@@ -21,6 +21,8 @@ type Config struct {
 }
 
 type Context struct {
+	// the name of the context is the key of the toml entry
+	name         string
 	APIURL       string `toml:"api_url,omitempty" json:"api_url,omitempty"`
 	OIDCIssuer   string `toml:"oidc_issuer,omitempty" json:"oidc_issuer,omitempty"`
 	OIDCClientID string `toml:"oidc_client_id,omitempty" json:"oidc_client_id,omitempty"`
@@ -30,6 +32,8 @@ type Context struct {
 
 	// OIDCProvider is filled in by calling Initialize()
 	OIDCProvider rp.RelyingParty
+
+	TokenStore tokenstore.Storage
 }
 
 func (c *Context) Initialize(ctx context.Context) error {
@@ -46,11 +50,13 @@ func (c *Context) Initialize(ctx context.Context) error {
 	}
 
 	c.OIDCProvider = p
-	ts := tokenstore.New()
+	c.TokenStore = tokenstore.New(tokenstore.Opts{
+		Name: c.name,
+	})
 
 	oauthconf := p.OAuthConfig()
 
-	tok, err := ts.Token()
+	tok, err := c.TokenStore.Token()
 	if err != nil {
 		return err
 	}
@@ -58,7 +64,7 @@ func (c *Context) Initialize(ctx context.Context) error {
 	src := &tokenstore.NotifyRefreshTokenSource{
 		New:       oauthconf.TokenSource(ctx, tok),
 		T:         tok,
-		SaveToken: ts.Save,
+		SaveToken: c.TokenStore.Save,
 	}
 
 	c.HTTPClient = oauth2.NewClient(ctx, src)
@@ -83,19 +89,6 @@ func (c Config) Current() (*Context, error) {
 	}
 
 	return &got, nil
-}
-
-// CurrentOrEmpty returns the current context,
-// or an empty context if it can't be found.
-func (c Config) CurrentOrEmpty() Context {
-	if c.Contexts == nil {
-		return Context{}
-	}
-	got, ok := c.Contexts[c.CurrentContext]
-	if !ok {
-		return Context{}
-	}
-	return got
 }
 
 // Default returns an empty config.

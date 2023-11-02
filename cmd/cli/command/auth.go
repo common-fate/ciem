@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/common-fate/ciem/tokenstore"
+	"github.com/common-fate/ciem/config"
+	"github.com/common-fate/ciem/loginflow"
 	"github.com/urfave/cli/v2"
 )
 
@@ -24,8 +25,14 @@ var tokenCommand = cli.Command{
 		&cli.BoolFlag{Name: "show-sensitive-values", Usage: "Show sensitive values"},
 	},
 	Action: func(c *cli.Context) error {
-		ts := tokenstore.New()
-		tok, err := ts.Token()
+		ctx := c.Context
+
+		cfg, err := config.LoadDefault(ctx)
+		if err != nil {
+			return err
+		}
+
+		tok, err := cfg.TokenStore.Token()
 		if err != nil {
 			return err
 		}
@@ -55,14 +62,15 @@ var refreshCommand = cli.Command{
 	Usage: "Force a refresh of the access token",
 	Flags: []cli.Flag{
 		&cli.BoolFlag{Name: "show-sensitive-values", Usage: "Show sensitive values"},
-		&cli.StringFlag{Name: "issuer", Usage: "The OIDC issuer"},
-		&cli.StringFlag{Name: "client-id", Usage: "The OIDC client ID"},
 	},
 	Action: func(c *cli.Context) error {
-		lf := LoginFlow{
-			ClientID: c.String("client-id"),
-			Issuer:   c.String("issuer"),
+		cfg, err := config.LoadDefault(c.Context)
+		if err != nil {
+			return err
 		}
+
+		lf := loginflow.NewFromConfig(cfg)
+
 		tok, err := lf.RefreshToken(c.Context)
 		if err != nil {
 			return err

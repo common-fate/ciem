@@ -2,15 +2,19 @@ package tokenstore
 
 import (
 	"github.com/99designs/keyring"
+	"github.com/common-fate/clio"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 )
 
 type Storage struct {
 	keyring cfKeyring
+	name    string
 }
 
 type Opts struct {
+	Name string
+
 	// Keyring is a custom keyring to use rather than
 	// the default one, which is configured with
 	// environment variables.
@@ -29,15 +33,10 @@ func WithKeyring(k keyring.Keyring) func(o *Opts) {
 // This is usually 'default' and in future can be
 // expanded to allow CLI users to switch between
 // separate Common Fate Cloud tenancies.
-func New(opts ...func(*Opts)) Storage {
-
-	var o Opts
-	for _, opt := range opts {
-		opt(&o)
-	}
-
+func New(opts Opts) Storage {
 	return Storage{
-		keyring: cfKeyring{keyring: o.Keyring},
+		keyring: cfKeyring{keyring: opts.Keyring},
+		name:    opts.Name,
 	}
 }
 
@@ -48,12 +47,10 @@ var (
 // Token returns the token.
 func (s *Storage) Token() (*oauth2.Token, error) {
 	var t oauth2.Token
-	err := s.keyring.Retrieve(s.key(), &t)
-	if err == keyring.ErrKeyNotFound {
-		return nil, ErrNotFound
-	}
+	err := s.keyring.Retrieve(s.name, &t)
 	if err != nil {
-		return nil, errors.Wrap(err, "keyring error")
+		clio.Debugf("error fetching token: %s", err)
+		return &oauth2.Token{}, nil
 	}
 
 	return &t, nil
@@ -61,15 +58,10 @@ func (s *Storage) Token() (*oauth2.Token, error) {
 
 // Save the token
 func (s *Storage) Save(token *oauth2.Token) error {
-	return s.keyring.Store(s.key(), token)
+	return s.keyring.Store(s.name, token)
 }
 
 // Clear the token
 func (s *Storage) Clear() error {
-	return s.keyring.Clear(s.key())
-}
-
-// key of the keyring item includes the context name in it.
-func (s *Storage) key() string {
-	return "authtoken"
+	return s.keyring.Clear(s.name)
 }

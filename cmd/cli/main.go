@@ -32,6 +32,7 @@ func main() {
 			&command.Login,
 			&command.Auth,
 			&command.List,
+			&command.Request,
 		},
 	}
 	clio.SetLevelFromEnv("CF_LOG")

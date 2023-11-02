@@ -5,7 +5,7 @@ import (
 
 	"github.com/bufbuild/connect-go"
 	"github.com/common-fate/ciem/config"
-	cf "github.com/common-fate/ciem/gen/proto/common_fate/v1alpha1"
+	cf "github.com/common-fate/ciem/gen/proto/commonfatecloud/v1alpha1"
 	"github.com/common-fate/ciem/service/access"
 	"github.com/common-fate/ciem/table"
 	"github.com/urfave/cli/v2"
@@ -22,9 +22,6 @@ var List = cli.Command{
 var gcpList = cli.Command{
 	Name:  "gcp",
 	Usage: "List available GCP entitlements",
-	Flags: []cli.Flag{
-		&cli.BoolFlag{Name: "lazy", Usage: "When the lazy flag is used, a login flow will only be started when the access token is expired"},
-	},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
 

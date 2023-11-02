@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package common_fate.v1alpha1;
+package commonfatecloud.v1alpha1;
 
 service UserManagementService {
   rpc ListUsers(ListUsersRequest) returns (ListUsersResponse) {}
@@ -52,10 +52,6 @@ message AccessRequest {
 }
 
 message CreateEntitlement {
-  oneof principal {
-    string user_id = 1;
-  }
-
   oneof target {
     GCPEntitlement gcp = 4;
   }
