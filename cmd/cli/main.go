@@ -13,7 +13,7 @@ import (
 
 func main() {
 	app := &cli.App{
-		Name:      "accessclient",
+		Name:      "ciem",
 		Writer:    os.Stderr,
 		Usage:     "https://commonfate.io",
 		UsageText: "accessclient [options] [command]",
