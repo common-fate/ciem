@@ -16,7 +16,7 @@ func main() {
 		Name:      "ciem",
 		Writer:    os.Stderr,
 		Usage:     "https://commonfate.io",
-		UsageText: "accessclient [options] [command]",
+		UsageText: "ciem [options] [command]",
 		Flags: []cli.Flag{
 			&cli.StringFlag{Name: "api-url", Usage: "override the Common Fate API URL"},
 			&cli.BoolFlag{Name: "verbose", Usage: "Enable verbose logging, effectively sets environment variable CF_LOG=DEBUG"},
