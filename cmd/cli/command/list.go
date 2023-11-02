@@ -1,0 +1,60 @@
+package command
+
+import (
+	"os"
+
+	"github.com/bufbuild/connect-go"
+	"github.com/common-fate/ciem/config"
+	cf "github.com/common-fate/ciem/gen/proto/common_fate/v1alpha1"
+	"github.com/common-fate/ciem/service/access"
+	"github.com/common-fate/ciem/table"
+	"github.com/urfave/cli/v2"
+)
+
+var List = cli.Command{
+	Name:  "list",
+	Usage: "List available entitlements",
+	Subcommands: []*cli.Command{
+		&gcpList,
+	},
+}
+
+var gcpList = cli.Command{
+	Name:  "gcp",
+	Usage: "List available GCP entitlements",
+	Flags: []cli.Flag{
+		&cli.BoolFlag{Name: "lazy", Usage: "When the lazy flag is used, a login flow will only be started when the access token is expired"},
+	},
+	Action: func(c *cli.Context) error {
+		ctx := c.Context
+
+		cfg, err := config.LoadDefault(ctx)
+		if err != nil {
+			return err
+		}
+
+		client := access.NewFromConfig(cfg)
+
+		res, err := client.ListEntitlementsForProvider(ctx, connect.NewRequest(&cf.ListEntitlementsForProviderRequest{
+			Provider: cf.EntitlementProvider_ENTITLEMENT_PROVIDER_GCP,
+		}))
+		if err != nil {
+			return err
+		}
+
+		w := table.New(os.Stdout)
+		w.Columns("PROJECT", "ROLE")
+
+		for _, e := range res.Msg.Entitlements {
+			gcp, ok := e.Target.(*cf.AvailableEntitlement_Gcp)
+			if !ok {
+				continue
+			}
+			w.Row(gcp.Gcp.Project, gcp.Gcp.Role)
+		}
+
+		w.Flush()
+
+		return nil
+	},
+}

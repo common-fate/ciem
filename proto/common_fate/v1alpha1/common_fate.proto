@@ -1,0 +1,245 @@
+syntax = "proto3";
+
+package common_fate.v1alpha1;
+
+service UserManagementService {
+  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse) {}
+}
+service ConnectionsService {
+  rpc ListConnections(ListConnectionsRequest) returns (ListConnectionsResponse) {}
+  rpc AddConnection(AddConnectionRequest) returns (AddConnectionsResponse) {}
+  rpc RemoveConnection(RemoveConnectionRequest) returns (RemoveConnectionResponse) {}
+
+  rpc ListAWSAccounts(ListAWSAccountsRequest) returns (ListAWSAccountsResponse) {}
+  rpc GetAWSRolesForAccount(ListAWSRolesForAccountRequest) returns (ListAWSRolesForAccountResponse) {}
+}
+service UsageMetricsService {
+  rpc GetAWSRoleMetrics(GetAWSRoleMetricsRequest) returns (GetAWSRoleMetricsResponse) {}
+  rpc GetUsageForRole(GetUsageForRoleRequest) returns (GetUsageForRoleResponse) {}
+}
+
+service AccessService {
+  rpc ListEntitlementsForProvider(ListEntitlementsForProviderRequest) returns (ListEntitlementsForProviderResponse) {}
+  rpc CreateAccessRequest(CreateAccessRequestRequest) returns (CreateAccessRequestResponse) {}
+}
+
+message ListEntitlementsForProviderRequest {
+  EntitlementProvider provider = 1;
+  // currently unimplemented
+  optional string page = 2;
+  // currently unimplemented
+  optional int32 limit = 3;
+}
+
+message ListEntitlementsForProviderResponse {
+  repeated AvailableEntitlement entitlements = 1;
+  // currently unimplemented
+  optional string next_page = 2;
+}
+
+message CreateAccessRequestRequest {
+  repeated CreateEntitlement entitlements = 1;
+  optional Justification justification = 2;
+}
+
+message CreateAccessRequestResponse {
+  AccessRequest access_request = 1;
+}
+
+message AccessRequest {
+  string id = 1;
+  repeated RequestedEntitlement entitlements = 2;
+}
+
+message CreateEntitlement {
+  oneof principal {
+    string user_id = 1;
+  }
+
+  oneof target {
+    GCPEntitlement gcp = 4;
+  }
+}
+
+// an entitlement which the user has requested access to.
+message RequestedEntitlement {
+  string id = 1;
+  EntitlementStatus status = 2;
+
+  oneof principal {
+    string user_id = 3;
+  }
+
+  oneof target {
+    GCPEntitlement gcp = 5;
+  }
+}
+
+// an entitlement which is available for the user to request access to.
+message AvailableEntitlement {
+  oneof target {
+    GCPEntitlement gcp = 5;
+  }
+}
+
+message Justification {
+  optional string reason = 1;
+}
+
+enum EntitlementStatus {
+  ENTITLEMENT_STATUS_UNSPECIFIED = 0;
+  ENTITLEMENT_STATUS_PENDING_APPROVAL = 1;
+  ENTITLEMENT_STATUS_CANCELLED = 2;
+  ENTITLEMENT_STATUS_REVOKED = 3;
+  ENTITLEMENT_STATUS_COMPLETE = 4;
+  ENTITLEMENT_STATUS_ACTIVE = 5;
+  ENTITLEMENT_STATUS_PROVISIONING = 6;
+  ENTITLEMENT_STATUS_DEPROVISIONING = 7;
+  ENTITLEMENT_STATUS_FAILED = 8;
+  ENTITLEMENT_STATUS_CLOSED = 9;
+}
+
+enum EntitlementProvider {
+  ENTITLEMENT_PROVIDER_UNSPECIFIED = 0;
+  ENTITLEMENT_PROVIDER_AWS_IDC = 1;
+  ENTITLEMENT_PROVIDER_GCP = 2;
+}
+
+message GCPEntitlement {
+  string project = 1;
+  string role = 2;
+  string role_title = 3;
+}
+
+message ListUsersRequest {
+  optional int32 page = 1;
+  optional int32 limit = 2;
+}
+
+message ListUsersResponse {
+  repeated User users = 1;
+  int32 current_page = 2;
+  optional int32 next_page = 3;
+  optional int32 previous_page = 4;
+}
+message User {
+  string id = 1;
+  string primary_email = 2;
+  string first_name = 3;
+  string last_name = 4;
+  string avatar = 5;
+}
+message Connection {
+  string id = 1;
+  oneof connection_type {
+    AWSSSOConnection aws_sso_connection = 3;
+  }
+}
+
+message AWSAction {
+  string ip_address = 1;
+  string location = 2;
+  string device = 3;
+  string action_log = 4;
+  string created_at = 5;
+}
+
+message AWSSSOConnection {
+  string name = 1;
+  string start_url = 2;
+  string instance_region = 3;
+}
+
+
+message ListConnectionsRequest {}
+
+message ListConnectionsResponse {
+  repeated Connection connections = 1;
+}
+
+message AddConnectionRequest {
+  oneof connection {
+    AWSSSOConnection aws_sso_connection = 2;
+  }
+}
+
+message AddConnectionsResponse {
+  Connection connection = 1;
+}
+
+message RemoveConnectionRequest {
+  string id = 1;
+}
+
+message RemoveConnectionResponse {
+}
+
+message AWSAccount {
+  string id = 1;
+  string name = 2;
+  string role_name = 3;
+  string connection_id = 4;
+}
+
+message ListAWSAccountsRequest {}
+
+message ListAWSAccountsResponse {
+  repeated AWSAccount aws_accounts = 1;
+}
+
+message AWSRole {
+  string name = 1;
+  string account_id = 2;
+  string account_name = 3;
+  string connection_id = 4;
+}
+
+message ListAWSRolesForAccountRequest {
+  string account_id = 1;
+}
+
+message ListAWSRolesForAccountResponse {
+  repeated AWSRole aws_roles = 1;
+}
+
+message GetAWSRoleMetricsRequest {
+  string role_name = 1;
+  string account_id = 2;
+  // from and to dates
+  string from = 3;
+  string to = 4;
+}
+message AWSRoleMetrics {
+  string role_name = 1;
+  string account_id = 2;
+ 
+
+  string date = 3;
+  int32 count = 4; // the count of how many actions were performed 
+}
+
+message GetAWSRoleMetricsResponse {
+  repeated AWSRoleMetrics aws_role_metrics = 1;
+}
+
+message GetUsageForRoleRequest {
+  string role_name = 1;
+  string account_id = 2;
+  
+  int32 page_size = 3;
+  int32 offset = 4;
+}
+
+message RoleAction {
+  User user = 1;
+  AWSAction aws_action = 2;
+}
+
+/**
+
+Returns a list of actions performed by all users for a given role
+
+*/
+message GetUsageForRoleResponse {
+  repeated RoleAction activity = 1;
+}
