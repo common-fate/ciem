@@ -43,11 +43,11 @@ var gcpList = cli.Command{
 		w.Columns("PROJECT", "ROLE")
 
 		for _, e := range res.Msg.Entitlements {
-			gcp, ok := e.Target.(*cf.AvailableEntitlement_Gcp)
-			if !ok {
+			gcp := e.GetGcp()
+			if gcp == nil {
 				continue
 			}
-			w.Row(gcp.Gcp.Project, gcp.Gcp.Role)
+			w.Row(gcp.Project, gcp.Role)
 		}
 
 		w.Flush()

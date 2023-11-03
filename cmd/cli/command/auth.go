@@ -7,6 +7,7 @@ import (
 	"github.com/common-fate/ciem/config"
 	"github.com/common-fate/ciem/loginflow"
 	"github.com/urfave/cli/v2"
+	"golang.org/x/oauth2"
 )
 
 var Auth = cli.Command{
@@ -15,6 +16,7 @@ var Auth = cli.Command{
 	Subcommands: []*cli.Command{
 		&tokenCommand,
 		&refreshCommand,
+		&setCommand,
 	},
 }
 
@@ -91,6 +93,31 @@ var refreshCommand = cli.Command{
 		}
 
 		fmt.Println(string(tokenStr))
+
+		return nil
+	},
+}
+
+var setCommand = cli.Command{
+	Name:  "set",
+	Usage: "Set the authentication token",
+	Flags: []cli.Flag{
+		&cli.StringFlag{Name: "token", Usage: "The OIDC authentication token", Required: true},
+	},
+	Action: func(c *cli.Context) error {
+		cfg, err := config.LoadDefault(c.Context)
+		if err != nil {
+			return err
+		}
+
+		var tok oauth2.Token
+
+		err = json.Unmarshal([]byte(c.String("token")), &tok)
+		if err != nil {
+			return err
+		}
+
+		cfg.TokenStore.Save(&tok)
 
 		return nil
 	},

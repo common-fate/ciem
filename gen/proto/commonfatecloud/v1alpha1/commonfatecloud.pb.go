@@ -209,7 +209,7 @@ type ListEntitlementsForProviderResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Entitlements []*AvailableEntitlement `protobuf:"bytes,1,rep,name=entitlements,proto3" json:"entitlements,omitempty"`
+	Entitlements []*Entitlement `protobuf:"bytes,1,rep,name=entitlements,proto3" json:"entitlements,omitempty"`
 	// currently unimplemented
 	NextPage *string `protobuf:"bytes,2,opt,name=next_page,json=nextPage,proto3,oneof" json:"next_page,omitempty"`
 }
@@ -246,7 +246,7 @@ func (*ListEntitlementsForProviderResponse) Descriptor() ([]byte, []int) {
 	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *ListEntitlementsForProviderResponse) GetEntitlements() []*AvailableEntitlement {
+func (x *ListEntitlementsForProviderResponse) GetEntitlements() []*Entitlement {
 	if x != nil {
 		return x.Entitlements
 	}
@@ -265,8 +265,8 @@ type CreateAccessRequestRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Entitlements  []*CreateEntitlement `protobuf:"bytes,1,rep,name=entitlements,proto3" json:"entitlements,omitempty"`
-	Justification *Justification       `protobuf:"bytes,2,opt,name=justification,proto3,oneof" json:"justification,omitempty"`
+	Entitlements  []*Entitlement `protobuf:"bytes,1,rep,name=entitlements,proto3" json:"entitlements,omitempty"`
+	Justification *Justification `protobuf:"bytes,2,opt,name=justification,proto3,oneof" json:"justification,omitempty"`
 }
 
 func (x *CreateAccessRequestRequest) Reset() {
@@ -301,7 +301,7 @@ func (*CreateAccessRequestRequest) Descriptor() ([]byte, []int) {
 	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *CreateAccessRequestRequest) GetEntitlements() []*CreateEntitlement {
+func (x *CreateAccessRequestRequest) GetEntitlements() []*Entitlement {
 	if x != nil {
 		return x.Entitlements
 	}
@@ -367,8 +367,8 @@ type AccessRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Id           string                  `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Entitlements []*RequestedEntitlement `protobuf:"bytes,2,rep,name=entitlements,proto3" json:"entitlements,omitempty"`
+	Id           string                `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Entitlements []*EntitlementRequest `protobuf:"bytes,2,rep,name=entitlements,proto3" json:"entitlements,omitempty"`
 }
 
 func (x *AccessRequest) Reset() {
@@ -410,26 +410,26 @@ func (x *AccessRequest) GetId() string {
 	return ""
 }
 
-func (x *AccessRequest) GetEntitlements() []*RequestedEntitlement {
+func (x *AccessRequest) GetEntitlements() []*EntitlementRequest {
 	if x != nil {
 		return x.Entitlements
 	}
 	return nil
 }
 
-type CreateEntitlement struct {
+// an entitlement which the user has requested access to.
+type EntitlementRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// Types that are assignable to Target:
-	//
-	//	*CreateEntitlement_Gcp
-	Target isCreateEntitlement_Target `protobuf_oneof:"target"`
+	Id          string            `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Status      EntitlementStatus `protobuf:"varint,2,opt,name=status,proto3,enum=commonfatecloud.v1alpha1.EntitlementStatus" json:"status,omitempty"`
+	Entitlement *Entitlement      `protobuf:"bytes,3,opt,name=entitlement,proto3" json:"entitlement,omitempty"`
 }
 
-func (x *CreateEntitlement) Reset() {
-	*x = CreateEntitlement{}
+func (x *EntitlementRequest) Reset() {
+	*x = EntitlementRequest{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -437,13 +437,13 @@ func (x *CreateEntitlement) Reset() {
 	}
 }
 
-func (x *CreateEntitlement) String() string {
+func (x *EntitlementRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*CreateEntitlement) ProtoMessage() {}
+func (*EntitlementRequest) ProtoMessage() {}
 
-func (x *CreateEntitlement) ProtoReflect() protoreflect.Message {
+func (x *EntitlementRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -455,55 +455,46 @@ func (x *CreateEntitlement) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CreateEntitlement.ProtoReflect.Descriptor instead.
-func (*CreateEntitlement) Descriptor() ([]byte, []int) {
+// Deprecated: Use EntitlementRequest.ProtoReflect.Descriptor instead.
+func (*EntitlementRequest) Descriptor() ([]byte, []int) {
 	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{5}
 }
 
-func (m *CreateEntitlement) GetTarget() isCreateEntitlement_Target {
-	if m != nil {
-		return m.Target
+func (x *EntitlementRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *EntitlementRequest) GetStatus() EntitlementStatus {
+	if x != nil {
+		return x.Status
+	}
+	return EntitlementStatus_ENTITLEMENT_STATUS_UNSPECIFIED
+}
+
+func (x *EntitlementRequest) GetEntitlement() *Entitlement {
+	if x != nil {
+		return x.Entitlement
 	}
 	return nil
 }
 
-func (x *CreateEntitlement) GetGcp() *GCPEntitlement {
-	if x, ok := x.GetTarget().(*CreateEntitlement_Gcp); ok {
-		return x.Gcp
-	}
-	return nil
-}
-
-type isCreateEntitlement_Target interface {
-	isCreateEntitlement_Target()
-}
-
-type CreateEntitlement_Gcp struct {
-	Gcp *GCPEntitlement `protobuf:"bytes,4,opt,name=gcp,proto3,oneof"`
-}
-
-func (*CreateEntitlement_Gcp) isCreateEntitlement_Target() {}
-
-// an entitlement which the user has requested access to.
-type RequestedEntitlement struct {
+// an entitlement which is available for the user to request access to.
+type Entitlement struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Id     string            `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Status EntitlementStatus `protobuf:"varint,2,opt,name=status,proto3,enum=commonfatecloud.v1alpha1.EntitlementStatus" json:"status,omitempty"`
-	// Types that are assignable to Principal:
-	//
-	//	*RequestedEntitlement_UserId
-	Principal isRequestedEntitlement_Principal `protobuf_oneof:"principal"`
 	// Types that are assignable to Target:
 	//
-	//	*RequestedEntitlement_Gcp
-	Target isRequestedEntitlement_Target `protobuf_oneof:"target"`
+	//	*Entitlement_Gcp
+	Target isEntitlement_Target `protobuf_oneof:"target"`
 }
 
-func (x *RequestedEntitlement) Reset() {
-	*x = RequestedEntitlement{}
+func (x *Entitlement) Reset() {
+	*x = Entitlement{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -511,13 +502,13 @@ func (x *RequestedEntitlement) Reset() {
 	}
 }
 
-func (x *RequestedEntitlement) String() string {
+func (x *Entitlement) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RequestedEntitlement) ProtoMessage() {}
+func (*Entitlement) ProtoMessage() {}
 
-func (x *RequestedEntitlement) ProtoReflect() protoreflect.Message {
+func (x *Entitlement) ProtoReflect() protoreflect.Message {
 	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -529,140 +520,34 @@ func (x *RequestedEntitlement) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RequestedEntitlement.ProtoReflect.Descriptor instead.
-func (*RequestedEntitlement) Descriptor() ([]byte, []int) {
+// Deprecated: Use Entitlement.ProtoReflect.Descriptor instead.
+func (*Entitlement) Descriptor() ([]byte, []int) {
 	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *RequestedEntitlement) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-func (x *RequestedEntitlement) GetStatus() EntitlementStatus {
-	if x != nil {
-		return x.Status
-	}
-	return EntitlementStatus_ENTITLEMENT_STATUS_UNSPECIFIED
-}
-
-func (m *RequestedEntitlement) GetPrincipal() isRequestedEntitlement_Principal {
-	if m != nil {
-		return m.Principal
-	}
-	return nil
-}
-
-func (x *RequestedEntitlement) GetUserId() string {
-	if x, ok := x.GetPrincipal().(*RequestedEntitlement_UserId); ok {
-		return x.UserId
-	}
-	return ""
-}
-
-func (m *RequestedEntitlement) GetTarget() isRequestedEntitlement_Target {
+func (m *Entitlement) GetTarget() isEntitlement_Target {
 	if m != nil {
 		return m.Target
 	}
 	return nil
 }
 
-func (x *RequestedEntitlement) GetGcp() *GCPEntitlement {
-	if x, ok := x.GetTarget().(*RequestedEntitlement_Gcp); ok {
+func (x *Entitlement) GetGcp() *GCPEntitlement {
+	if x, ok := x.GetTarget().(*Entitlement_Gcp); ok {
 		return x.Gcp
 	}
 	return nil
 }
 
-type isRequestedEntitlement_Principal interface {
-	isRequestedEntitlement_Principal()
+type isEntitlement_Target interface {
+	isEntitlement_Target()
 }
 
-type RequestedEntitlement_UserId struct {
-	UserId string `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3,oneof"`
-}
-
-func (*RequestedEntitlement_UserId) isRequestedEntitlement_Principal() {}
-
-type isRequestedEntitlement_Target interface {
-	isRequestedEntitlement_Target()
-}
-
-type RequestedEntitlement_Gcp struct {
+type Entitlement_Gcp struct {
 	Gcp *GCPEntitlement `protobuf:"bytes,5,opt,name=gcp,proto3,oneof"`
 }
 
-func (*RequestedEntitlement_Gcp) isRequestedEntitlement_Target() {}
-
-// an entitlement which is available for the user to request access to.
-type AvailableEntitlement struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	// Types that are assignable to Target:
-	//
-	//	*AvailableEntitlement_Gcp
-	Target isAvailableEntitlement_Target `protobuf_oneof:"target"`
-}
-
-func (x *AvailableEntitlement) Reset() {
-	*x = AvailableEntitlement{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[7]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *AvailableEntitlement) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AvailableEntitlement) ProtoMessage() {}
-
-func (x *AvailableEntitlement) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[7]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AvailableEntitlement.ProtoReflect.Descriptor instead.
-func (*AvailableEntitlement) Descriptor() ([]byte, []int) {
-	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{7}
-}
-
-func (m *AvailableEntitlement) GetTarget() isAvailableEntitlement_Target {
-	if m != nil {
-		return m.Target
-	}
-	return nil
-}
-
-func (x *AvailableEntitlement) GetGcp() *GCPEntitlement {
-	if x, ok := x.GetTarget().(*AvailableEntitlement_Gcp); ok {
-		return x.Gcp
-	}
-	return nil
-}
-
-type isAvailableEntitlement_Target interface {
-	isAvailableEntitlement_Target()
-}
-
-type AvailableEntitlement_Gcp struct {
-	Gcp *GCPEntitlement `protobuf:"bytes,5,opt,name=gcp,proto3,oneof"`
-}
-
-func (*AvailableEntitlement_Gcp) isAvailableEntitlement_Target() {}
+func (*Entitlement_Gcp) isEntitlement_Target() {}
 
 type Justification struct {
 	state         protoimpl.MessageState
@@ -675,7 +560,7 @@ type Justification struct {
 func (x *Justification) Reset() {
 	*x = Justification{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[8]
+		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -688,7 +573,7 @@ func (x *Justification) String() string {
 func (*Justification) ProtoMessage() {}
 
 func (x *Justification) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[8]
+	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -701,7 +586,7 @@ func (x *Justification) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Justification.ProtoReflect.Descriptor instead.
 func (*Justification) Descriptor() ([]byte, []int) {
-	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{8}
+	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *Justification) GetReason() string {
@@ -724,7 +609,7 @@ type GCPEntitlement struct {
 func (x *GCPEntitlement) Reset() {
 	*x = GCPEntitlement{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[9]
+		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -737,7 +622,7 @@ func (x *GCPEntitlement) String() string {
 func (*GCPEntitlement) ProtoMessage() {}
 
 func (x *GCPEntitlement) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[9]
+	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -750,7 +635,7 @@ func (x *GCPEntitlement) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GCPEntitlement.ProtoReflect.Descriptor instead.
 func (*GCPEntitlement) Descriptor() ([]byte, []int) {
-	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{9}
+	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GCPEntitlement) GetProject() string {
@@ -786,7 +671,7 @@ type ListUsersRequest struct {
 func (x *ListUsersRequest) Reset() {
 	*x = ListUsersRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[10]
+		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[9]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -799,7 +684,7 @@ func (x *ListUsersRequest) String() string {
 func (*ListUsersRequest) ProtoMessage() {}
 
 func (x *ListUsersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[10]
+	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[9]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -812,7 +697,7 @@ func (x *ListUsersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUsersRequest.ProtoReflect.Descriptor instead.
 func (*ListUsersRequest) Descriptor() ([]byte, []int) {
-	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{10}
+	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ListUsersRequest) GetPage() int32 {
@@ -843,7 +728,7 @@ type ListUsersResponse struct {
 func (x *ListUsersResponse) Reset() {
 	*x = ListUsersResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[11]
+		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[10]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -856,7 +741,7 @@ func (x *ListUsersResponse) String() string {
 func (*ListUsersResponse) ProtoMessage() {}
 
 func (x *ListUsersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[11]
+	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[10]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -869,7 +754,7 @@ func (x *ListUsersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUsersResponse.ProtoReflect.Descriptor instead.
 func (*ListUsersResponse) Descriptor() ([]byte, []int) {
-	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{11}
+	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ListUsersResponse) GetUsers() []*User {
@@ -915,7 +800,7 @@ type User struct {
 func (x *User) Reset() {
 	*x = User{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[12]
+		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[11]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -928,7 +813,7 @@ func (x *User) String() string {
 func (*User) ProtoMessage() {}
 
 func (x *User) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[12]
+	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[11]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -941,7 +826,7 @@ func (x *User) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use User.ProtoReflect.Descriptor instead.
 func (*User) Descriptor() ([]byte, []int) {
-	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{12}
+	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *User) GetId() string {
@@ -994,7 +879,7 @@ type Connection struct {
 func (x *Connection) Reset() {
 	*x = Connection{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[13]
+		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[12]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1007,7 +892,7 @@ func (x *Connection) String() string {
 func (*Connection) ProtoMessage() {}
 
 func (x *Connection) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[13]
+	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[12]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1020,7 +905,7 @@ func (x *Connection) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Connection.ProtoReflect.Descriptor instead.
 func (*Connection) Descriptor() ([]byte, []int) {
-	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{13}
+	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *Connection) GetId() string {
@@ -1069,7 +954,7 @@ type AWSAction struct {
 func (x *AWSAction) Reset() {
 	*x = AWSAction{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[14]
+		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[13]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1082,7 +967,7 @@ func (x *AWSAction) String() string {
 func (*AWSAction) ProtoMessage() {}
 
 func (x *AWSAction) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[14]
+	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[13]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1095,7 +980,7 @@ func (x *AWSAction) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AWSAction.ProtoReflect.Descriptor instead.
 func (*AWSAction) Descriptor() ([]byte, []int) {
-	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{14}
+	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *AWSAction) GetIpAddress() string {
@@ -1146,7 +1031,7 @@ type AWSSSOConnection struct {
 func (x *AWSSSOConnection) Reset() {
 	*x = AWSSSOConnection{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[15]
+		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[14]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1159,7 +1044,7 @@ func (x *AWSSSOConnection) String() string {
 func (*AWSSSOConnection) ProtoMessage() {}
 
 func (x *AWSSSOConnection) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[15]
+	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[14]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1172,7 +1057,7 @@ func (x *AWSSSOConnection) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AWSSSOConnection.ProtoReflect.Descriptor instead.
 func (*AWSSSOConnection) Descriptor() ([]byte, []int) {
-	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{15}
+	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *AWSSSOConnection) GetName() string {
@@ -1205,7 +1090,7 @@ type ListConnectionsRequest struct {
 func (x *ListConnectionsRequest) Reset() {
 	*x = ListConnectionsRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[16]
+		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[15]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1218,7 +1103,7 @@ func (x *ListConnectionsRequest) String() string {
 func (*ListConnectionsRequest) ProtoMessage() {}
 
 func (x *ListConnectionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[16]
+	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[15]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1231,7 +1116,7 @@ func (x *ListConnectionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListConnectionsRequest.ProtoReflect.Descriptor instead.
 func (*ListConnectionsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{16}
+	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{15}
 }
 
 type ListConnectionsResponse struct {
@@ -1245,7 +1130,7 @@ type ListConnectionsResponse struct {
 func (x *ListConnectionsResponse) Reset() {
 	*x = ListConnectionsResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[17]
+		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[16]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1258,7 +1143,7 @@ func (x *ListConnectionsResponse) String() string {
 func (*ListConnectionsResponse) ProtoMessage() {}
 
 func (x *ListConnectionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[17]
+	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[16]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1271,7 +1156,7 @@ func (x *ListConnectionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListConnectionsResponse.ProtoReflect.Descriptor instead.
 func (*ListConnectionsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{17}
+	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ListConnectionsResponse) GetConnections() []*Connection {
@@ -1295,7 +1180,7 @@ type AddConnectionRequest struct {
 func (x *AddConnectionRequest) Reset() {
 	*x = AddConnectionRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[18]
+		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[17]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1308,7 +1193,7 @@ func (x *AddConnectionRequest) String() string {
 func (*AddConnectionRequest) ProtoMessage() {}
 
 func (x *AddConnectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[18]
+	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[17]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1321,7 +1206,7 @@ func (x *AddConnectionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddConnectionRequest.ProtoReflect.Descriptor instead.
 func (*AddConnectionRequest) Descriptor() ([]byte, []int) {
-	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{18}
+	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{17}
 }
 
 func (m *AddConnectionRequest) GetConnection() isAddConnectionRequest_Connection {
@@ -1359,7 +1244,7 @@ type AddConnectionsResponse struct {
 func (x *AddConnectionsResponse) Reset() {
 	*x = AddConnectionsResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[19]
+		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[18]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1372,7 +1257,7 @@ func (x *AddConnectionsResponse) String() string {
 func (*AddConnectionsResponse) ProtoMessage() {}
 
 func (x *AddConnectionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[19]
+	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[18]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1385,7 +1270,7 @@ func (x *AddConnectionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddConnectionsResponse.ProtoReflect.Descriptor instead.
 func (*AddConnectionsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{19}
+	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *AddConnectionsResponse) GetConnection() *Connection {
@@ -1406,7 +1291,7 @@ type RemoveConnectionRequest struct {
 func (x *RemoveConnectionRequest) Reset() {
 	*x = RemoveConnectionRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[20]
+		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[19]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1419,7 +1304,7 @@ func (x *RemoveConnectionRequest) String() string {
 func (*RemoveConnectionRequest) ProtoMessage() {}
 
 func (x *RemoveConnectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[20]
+	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[19]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1432,7 +1317,7 @@ func (x *RemoveConnectionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveConnectionRequest.ProtoReflect.Descriptor instead.
 func (*RemoveConnectionRequest) Descriptor() ([]byte, []int) {
-	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{20}
+	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *RemoveConnectionRequest) GetId() string {
@@ -1451,7 +1336,7 @@ type RemoveConnectionResponse struct {
 func (x *RemoveConnectionResponse) Reset() {
 	*x = RemoveConnectionResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[21]
+		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[20]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1464,7 +1349,7 @@ func (x *RemoveConnectionResponse) String() string {
 func (*RemoveConnectionResponse) ProtoMessage() {}
 
 func (x *RemoveConnectionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[21]
+	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[20]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1477,7 +1362,7 @@ func (x *RemoveConnectionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveConnectionResponse.ProtoReflect.Descriptor instead.
 func (*RemoveConnectionResponse) Descriptor() ([]byte, []int) {
-	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{21}
+	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{20}
 }
 
 type AWSAccount struct {
@@ -1494,7 +1379,7 @@ type AWSAccount struct {
 func (x *AWSAccount) Reset() {
 	*x = AWSAccount{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[22]
+		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[21]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1507,7 +1392,7 @@ func (x *AWSAccount) String() string {
 func (*AWSAccount) ProtoMessage() {}
 
 func (x *AWSAccount) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[22]
+	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[21]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1520,7 +1405,7 @@ func (x *AWSAccount) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AWSAccount.ProtoReflect.Descriptor instead.
 func (*AWSAccount) Descriptor() ([]byte, []int) {
-	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{22}
+	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *AWSAccount) GetId() string {
@@ -1560,7 +1445,7 @@ type ListAWSAccountsRequest struct {
 func (x *ListAWSAccountsRequest) Reset() {
 	*x = ListAWSAccountsRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[23]
+		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[22]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1573,7 +1458,7 @@ func (x *ListAWSAccountsRequest) String() string {
 func (*ListAWSAccountsRequest) ProtoMessage() {}
 
 func (x *ListAWSAccountsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[23]
+	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[22]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1586,7 +1471,7 @@ func (x *ListAWSAccountsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAWSAccountsRequest.ProtoReflect.Descriptor instead.
 func (*ListAWSAccountsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{23}
+	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{22}
 }
 
 type ListAWSAccountsResponse struct {
@@ -1600,7 +1485,7 @@ type ListAWSAccountsResponse struct {
 func (x *ListAWSAccountsResponse) Reset() {
 	*x = ListAWSAccountsResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[24]
+		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[23]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1613,7 +1498,7 @@ func (x *ListAWSAccountsResponse) String() string {
 func (*ListAWSAccountsResponse) ProtoMessage() {}
 
 func (x *ListAWSAccountsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[24]
+	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[23]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1626,7 +1511,7 @@ func (x *ListAWSAccountsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAWSAccountsResponse.ProtoReflect.Descriptor instead.
 func (*ListAWSAccountsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{24}
+	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ListAWSAccountsResponse) GetAwsAccounts() []*AWSAccount {
@@ -1650,7 +1535,7 @@ type AWSRole struct {
 func (x *AWSRole) Reset() {
 	*x = AWSRole{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[25]
+		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[24]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1663,7 +1548,7 @@ func (x *AWSRole) String() string {
 func (*AWSRole) ProtoMessage() {}
 
 func (x *AWSRole) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[25]
+	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[24]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1676,7 +1561,7 @@ func (x *AWSRole) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AWSRole.ProtoReflect.Descriptor instead.
 func (*AWSRole) Descriptor() ([]byte, []int) {
-	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{25}
+	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *AWSRole) GetName() string {
@@ -1718,7 +1603,7 @@ type ListAWSRolesForAccountRequest struct {
 func (x *ListAWSRolesForAccountRequest) Reset() {
 	*x = ListAWSRolesForAccountRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[26]
+		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[25]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1731,7 +1616,7 @@ func (x *ListAWSRolesForAccountRequest) String() string {
 func (*ListAWSRolesForAccountRequest) ProtoMessage() {}
 
 func (x *ListAWSRolesForAccountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[26]
+	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[25]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1744,7 +1629,7 @@ func (x *ListAWSRolesForAccountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAWSRolesForAccountRequest.ProtoReflect.Descriptor instead.
 func (*ListAWSRolesForAccountRequest) Descriptor() ([]byte, []int) {
-	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{26}
+	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *ListAWSRolesForAccountRequest) GetAccountId() string {
@@ -1765,7 +1650,7 @@ type ListAWSRolesForAccountResponse struct {
 func (x *ListAWSRolesForAccountResponse) Reset() {
 	*x = ListAWSRolesForAccountResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[27]
+		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[26]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1778,7 +1663,7 @@ func (x *ListAWSRolesForAccountResponse) String() string {
 func (*ListAWSRolesForAccountResponse) ProtoMessage() {}
 
 func (x *ListAWSRolesForAccountResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[27]
+	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[26]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1791,7 +1676,7 @@ func (x *ListAWSRolesForAccountResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAWSRolesForAccountResponse.ProtoReflect.Descriptor instead.
 func (*ListAWSRolesForAccountResponse) Descriptor() ([]byte, []int) {
-	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{27}
+	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *ListAWSRolesForAccountResponse) GetAwsRoles() []*AWSRole {
@@ -1816,7 +1701,7 @@ type GetAWSRoleMetricsRequest struct {
 func (x *GetAWSRoleMetricsRequest) Reset() {
 	*x = GetAWSRoleMetricsRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[28]
+		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[27]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1829,7 +1714,7 @@ func (x *GetAWSRoleMetricsRequest) String() string {
 func (*GetAWSRoleMetricsRequest) ProtoMessage() {}
 
 func (x *GetAWSRoleMetricsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[28]
+	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[27]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1842,7 +1727,7 @@ func (x *GetAWSRoleMetricsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAWSRoleMetricsRequest.ProtoReflect.Descriptor instead.
 func (*GetAWSRoleMetricsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{28}
+	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *GetAWSRoleMetricsRequest) GetRoleName() string {
@@ -1887,7 +1772,7 @@ type AWSRoleMetrics struct {
 func (x *AWSRoleMetrics) Reset() {
 	*x = AWSRoleMetrics{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[29]
+		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[28]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1900,7 +1785,7 @@ func (x *AWSRoleMetrics) String() string {
 func (*AWSRoleMetrics) ProtoMessage() {}
 
 func (x *AWSRoleMetrics) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[29]
+	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[28]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1913,7 +1798,7 @@ func (x *AWSRoleMetrics) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AWSRoleMetrics.ProtoReflect.Descriptor instead.
 func (*AWSRoleMetrics) Descriptor() ([]byte, []int) {
-	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{29}
+	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *AWSRoleMetrics) GetRoleName() string {
@@ -1955,7 +1840,7 @@ type GetAWSRoleMetricsResponse struct {
 func (x *GetAWSRoleMetricsResponse) Reset() {
 	*x = GetAWSRoleMetricsResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[30]
+		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[29]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1968,7 +1853,7 @@ func (x *GetAWSRoleMetricsResponse) String() string {
 func (*GetAWSRoleMetricsResponse) ProtoMessage() {}
 
 func (x *GetAWSRoleMetricsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[30]
+	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[29]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1981,7 +1866,7 @@ func (x *GetAWSRoleMetricsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAWSRoleMetricsResponse.ProtoReflect.Descriptor instead.
 func (*GetAWSRoleMetricsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{30}
+	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *GetAWSRoleMetricsResponse) GetAwsRoleMetrics() []*AWSRoleMetrics {
@@ -2005,7 +1890,7 @@ type GetUsageForRoleRequest struct {
 func (x *GetUsageForRoleRequest) Reset() {
 	*x = GetUsageForRoleRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[31]
+		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[30]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2018,7 +1903,7 @@ func (x *GetUsageForRoleRequest) String() string {
 func (*GetUsageForRoleRequest) ProtoMessage() {}
 
 func (x *GetUsageForRoleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[31]
+	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[30]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2031,7 +1916,7 @@ func (x *GetUsageForRoleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUsageForRoleRequest.ProtoReflect.Descriptor instead.
 func (*GetUsageForRoleRequest) Descriptor() ([]byte, []int) {
-	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{31}
+	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *GetUsageForRoleRequest) GetRoleName() string {
@@ -2074,7 +1959,7 @@ type RoleAction struct {
 func (x *RoleAction) Reset() {
 	*x = RoleAction{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[32]
+		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[31]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2087,7 +1972,7 @@ func (x *RoleAction) String() string {
 func (*RoleAction) ProtoMessage() {}
 
 func (x *RoleAction) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[32]
+	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[31]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2100,7 +1985,7 @@ func (x *RoleAction) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RoleAction.ProtoReflect.Descriptor instead.
 func (*RoleAction) Descriptor() ([]byte, []int) {
-	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{32}
+	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *RoleAction) GetUser() *User {
@@ -2129,7 +2014,7 @@ type GetUsageForRoleResponse struct {
 func (x *GetUsageForRoleResponse) Reset() {
 	*x = GetUsageForRoleResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[33]
+		mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[32]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2142,7 +2027,7 @@ func (x *GetUsageForRoleResponse) String() string {
 func (*GetUsageForRoleResponse) ProtoMessage() {}
 
 func (x *GetUsageForRoleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[33]
+	mi := &file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[32]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2155,7 +2040,7 @@ func (x *GetUsageForRoleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUsageForRoleResponse.ProtoReflect.Descriptor instead.
 func (*GetUsageForRoleResponse) Descriptor() ([]byte, []int) {
-	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{33}
+	return file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *GetUsageForRoleResponse) GetActivity() []*RoleAction {
@@ -2184,66 +2069,56 @@ var file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDesc = []byte{
 	0x48, 0x00, 0x52, 0x04, 0x70, 0x61, 0x67, 0x65, 0x88, 0x01, 0x01, 0x12, 0x19, 0x0a, 0x05, 0x6c,
 	0x69, 0x6d, 0x69, 0x74, 0x18, 0x03, 0x20, 0x01, 0x28, 0x05, 0x48, 0x01, 0x52, 0x05, 0x6c, 0x69,
 	0x6d, 0x69, 0x74, 0x88, 0x01, 0x01, 0x42, 0x07, 0x0a, 0x05, 0x5f, 0x70, 0x61, 0x67, 0x65, 0x42,
-	0x08, 0x0a, 0x06, 0x5f, 0x6c, 0x69, 0x6d, 0x69, 0x74, 0x22, 0xa9, 0x01, 0x0a, 0x23, 0x4c, 0x69,
+	0x08, 0x0a, 0x06, 0x5f, 0x6c, 0x69, 0x6d, 0x69, 0x74, 0x22, 0xa0, 0x01, 0x0a, 0x23, 0x4c, 0x69,
 	0x73, 0x74, 0x45, 0x6e, 0x74, 0x69, 0x74, 0x6c, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x73, 0x46, 0x6f,
 	0x72, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
-	0x65, 0x12, 0x52, 0x0a, 0x0c, 0x65, 0x6e, 0x74, 0x69, 0x74, 0x6c, 0x65, 0x6d, 0x65, 0x6e, 0x74,
-	0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x2e, 0x2e, 0x63, 0x6f, 0x6d, 0x6d, 0x6f, 0x6e,
+	0x65, 0x12, 0x49, 0x0a, 0x0c, 0x65, 0x6e, 0x74, 0x69, 0x74, 0x6c, 0x65, 0x6d, 0x65, 0x6e, 0x74,
+	0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x25, 0x2e, 0x63, 0x6f, 0x6d, 0x6d, 0x6f, 0x6e,
 	0x66, 0x61, 0x74, 0x65, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68,
-	0x61, 0x31, 0x2e, 0x41, 0x76, 0x61, 0x69, 0x6c, 0x61, 0x62, 0x6c, 0x65, 0x45, 0x6e, 0x74, 0x69,
-	0x74, 0x6c, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x52, 0x0c, 0x65, 0x6e, 0x74, 0x69, 0x74, 0x6c, 0x65,
-	0x6d, 0x65, 0x6e, 0x74, 0x73, 0x12, 0x20, 0x0a, 0x09, 0x6e, 0x65, 0x78, 0x74, 0x5f, 0x70, 0x61,
-	0x67, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x48, 0x00, 0x52, 0x08, 0x6e, 0x65, 0x78, 0x74,
-	0x50, 0x61, 0x67, 0x65, 0x88, 0x01, 0x01, 0x42, 0x0c, 0x0a, 0x0a, 0x5f, 0x6e, 0x65, 0x78, 0x74,
-	0x5f, 0x70, 0x61, 0x67, 0x65, 0x22, 0xd3, 0x01, 0x0a, 0x1a, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65,
-	0x41, 0x63, 0x63, 0x65, 0x73, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x52, 0x65, 0x71,
-	0x75, 0x65, 0x73, 0x74, 0x12, 0x4f, 0x0a, 0x0c, 0x65, 0x6e, 0x74, 0x69, 0x74, 0x6c, 0x65, 0x6d,
-	0x65, 0x6e, 0x74, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x2b, 0x2e, 0x63, 0x6f, 0x6d,
-	0x6d, 0x6f, 0x6e, 0x66, 0x61, 0x74, 0x65, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x76, 0x31, 0x61,
-	0x6c, 0x70, 0x68, 0x61, 0x31, 0x2e, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x45, 0x6e, 0x74, 0x69,
-	0x74, 0x6c, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x52, 0x0c, 0x65, 0x6e, 0x74, 0x69, 0x74, 0x6c, 0x65,
-	0x6d, 0x65, 0x6e, 0x74, 0x73, 0x12, 0x52, 0x0a, 0x0d, 0x6a, 0x75, 0x73, 0x74, 0x69, 0x66, 0x69,
-	0x63, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x27, 0x2e, 0x63,
-	0x6f, 0x6d, 0x6d, 0x6f, 0x6e, 0x66, 0x61, 0x74, 0x65, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x76,
-	0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x2e, 0x4a, 0x75, 0x73, 0x74, 0x69, 0x66, 0x69, 0x63,
-	0x61, 0x74, 0x69, 0x6f, 0x6e, 0x48, 0x00, 0x52, 0x0d, 0x6a, 0x75, 0x73, 0x74, 0x69, 0x66, 0x69,
-	0x63, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x88, 0x01, 0x01, 0x42, 0x10, 0x0a, 0x0e, 0x5f, 0x6a, 0x75,
-	0x73, 0x74, 0x69, 0x66, 0x69, 0x63, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x22, 0x6d, 0x0a, 0x1b, 0x43,
-	0x72, 0x65, 0x61, 0x74, 0x65, 0x41, 0x63, 0x63, 0x65, 0x73, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65,
-	0x73, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x4e, 0x0a, 0x0e, 0x61, 0x63,
-	0x63, 0x65, 0x73, 0x73, 0x5f, 0x72, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x18, 0x01, 0x20, 0x01,
-	0x28, 0x0b, 0x32, 0x27, 0x2e, 0x63, 0x6f, 0x6d, 0x6d, 0x6f, 0x6e, 0x66, 0x61, 0x74, 0x65, 0x63,
-	0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x2e, 0x41, 0x63,
-	0x63, 0x65, 0x73, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x52, 0x0d, 0x61, 0x63, 0x63,
-	0x65, 0x73, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x22, 0x73, 0x0a, 0x0d, 0x41, 0x63,
-	0x63, 0x65, 0x73, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x0e, 0x0a, 0x02, 0x69,
-	0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x69, 0x64, 0x12, 0x52, 0x0a, 0x0c, 0x65,
-	0x6e, 0x74, 0x69, 0x74, 0x6c, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28,
-	0x0b, 0x32, 0x2e, 0x2e, 0x63, 0x6f, 0x6d, 0x6d, 0x6f, 0x6e, 0x66, 0x61, 0x74, 0x65, 0x63, 0x6c,
-	0x6f, 0x75, 0x64, 0x2e, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x2e, 0x52, 0x65, 0x71,
-	0x75, 0x65, 0x73, 0x74, 0x65, 0x64, 0x45, 0x6e, 0x74, 0x69, 0x74, 0x6c, 0x65, 0x6d, 0x65, 0x6e,
-	0x74, 0x52, 0x0c, 0x65, 0x6e, 0x74, 0x69, 0x74, 0x6c, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x73, 0x22,
-	0x5b, 0x0a, 0x11, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x45, 0x6e, 0x74, 0x69, 0x74, 0x6c, 0x65,
-	0x6d, 0x65, 0x6e, 0x74, 0x12, 0x3c, 0x0a, 0x03, 0x67, 0x63, 0x70, 0x18, 0x04, 0x20, 0x01, 0x28,
-	0x0b, 0x32, 0x28, 0x2e, 0x63, 0x6f, 0x6d, 0x6d, 0x6f, 0x6e, 0x66, 0x61, 0x74, 0x65, 0x63, 0x6c,
-	0x6f, 0x75, 0x64, 0x2e, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x2e, 0x47, 0x43, 0x50,
-	0x45, 0x6e, 0x74, 0x69, 0x74, 0x6c, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x48, 0x00, 0x52, 0x03, 0x67,
-	0x63, 0x70, 0x42, 0x08, 0x0a, 0x06, 0x74, 0x61, 0x72, 0x67, 0x65, 0x74, 0x22, 0xdb, 0x01, 0x0a,
-	0x14, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x65, 0x64, 0x45, 0x6e, 0x74, 0x69, 0x74, 0x6c,
-	0x65, 0x6d, 0x65, 0x6e, 0x74, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x61, 0x31, 0x2e, 0x45, 0x6e, 0x74, 0x69, 0x74, 0x6c, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x52, 0x0c,
+	0x65, 0x6e, 0x74, 0x69, 0x74, 0x6c, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x73, 0x12, 0x20, 0x0a, 0x09,
+	0x6e, 0x65, 0x78, 0x74, 0x5f, 0x70, 0x61, 0x67, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x48,
+	0x00, 0x52, 0x08, 0x6e, 0x65, 0x78, 0x74, 0x50, 0x61, 0x67, 0x65, 0x88, 0x01, 0x01, 0x42, 0x0c,
+	0x0a, 0x0a, 0x5f, 0x6e, 0x65, 0x78, 0x74, 0x5f, 0x70, 0x61, 0x67, 0x65, 0x22, 0xcd, 0x01, 0x0a,
+	0x1a, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x41, 0x63, 0x63, 0x65, 0x73, 0x73, 0x52, 0x65, 0x71,
+	0x75, 0x65, 0x73, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x49, 0x0a, 0x0c, 0x65,
+	0x6e, 0x74, 0x69, 0x74, 0x6c, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28,
+	0x0b, 0x32, 0x25, 0x2e, 0x63, 0x6f, 0x6d, 0x6d, 0x6f, 0x6e, 0x66, 0x61, 0x74, 0x65, 0x63, 0x6c,
+	0x6f, 0x75, 0x64, 0x2e, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x2e, 0x45, 0x6e, 0x74,
+	0x69, 0x74, 0x6c, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x52, 0x0c, 0x65, 0x6e, 0x74, 0x69, 0x74, 0x6c,
+	0x65, 0x6d, 0x65, 0x6e, 0x74, 0x73, 0x12, 0x52, 0x0a, 0x0d, 0x6a, 0x75, 0x73, 0x74, 0x69, 0x66,
+	0x69, 0x63, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x27, 0x2e,
+	0x63, 0x6f, 0x6d, 0x6d, 0x6f, 0x6e, 0x66, 0x61, 0x74, 0x65, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x2e,
+	0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x2e, 0x4a, 0x75, 0x73, 0x74, 0x69, 0x66, 0x69,
+	0x63, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x48, 0x00, 0x52, 0x0d, 0x6a, 0x75, 0x73, 0x74, 0x69, 0x66,
+	0x69, 0x63, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x88, 0x01, 0x01, 0x42, 0x10, 0x0a, 0x0e, 0x5f, 0x6a,
+	0x75, 0x73, 0x74, 0x69, 0x66, 0x69, 0x63, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x22, 0x6d, 0x0a, 0x1b,
+	0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x41, 0x63, 0x63, 0x65, 0x73, 0x73, 0x52, 0x65, 0x71, 0x75,
+	0x65, 0x73, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x4e, 0x0a, 0x0e, 0x61,
+	0x63, 0x63, 0x65, 0x73, 0x73, 0x5f, 0x72, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x0b, 0x32, 0x27, 0x2e, 0x63, 0x6f, 0x6d, 0x6d, 0x6f, 0x6e, 0x66, 0x61, 0x74, 0x65,
+	0x63, 0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x2e, 0x41,
+	0x63, 0x63, 0x65, 0x73, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x52, 0x0d, 0x61, 0x63,
+	0x63, 0x65, 0x73, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x22, 0x71, 0x0a, 0x0d, 0x41,
+	0x63, 0x63, 0x65, 0x73, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x0e, 0x0a, 0x02,
+	0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x69, 0x64, 0x12, 0x50, 0x0a, 0x0c,
+	0x65, 0x6e, 0x74, 0x69, 0x74, 0x6c, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x73, 0x18, 0x02, 0x20, 0x03,
+	0x28, 0x0b, 0x32, 0x2c, 0x2e, 0x63, 0x6f, 0x6d, 0x6d, 0x6f, 0x6e, 0x66, 0x61, 0x74, 0x65, 0x63,
+	0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x2e, 0x45, 0x6e,
+	0x74, 0x69, 0x74, 0x6c, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
+	0x52, 0x0c, 0x65, 0x6e, 0x74, 0x69, 0x74, 0x6c, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x73, 0x22, 0xb2,
+	0x01, 0x0a, 0x12, 0x45, 0x6e, 0x74, 0x69, 0x74, 0x6c, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x52, 0x65,
+	0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28,
 	0x09, 0x52, 0x02, 0x69, 0x64, 0x12, 0x43, 0x0a, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x18,
 	0x02, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x2b, 0x2e, 0x63, 0x6f, 0x6d, 0x6d, 0x6f, 0x6e, 0x66, 0x61,
 	0x74, 0x65, 0x63, 0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31,
 	0x2e, 0x45, 0x6e, 0x74, 0x69, 0x74, 0x6c, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x53, 0x74, 0x61, 0x74,
-	0x75, 0x73, 0x52, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x12, 0x19, 0x0a, 0x07, 0x75, 0x73,
-	0x65, 0x72, 0x5f, 0x69, 0x64, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x48, 0x00, 0x52, 0x06, 0x75,
-	0x73, 0x65, 0x72, 0x49, 0x64, 0x12, 0x3c, 0x0a, 0x03, 0x67, 0x63, 0x70, 0x18, 0x05, 0x20, 0x01,
-	0x28, 0x0b, 0x32, 0x28, 0x2e, 0x63, 0x6f, 0x6d, 0x6d, 0x6f, 0x6e, 0x66, 0x61, 0x74, 0x65, 0x63,
-	0x6c, 0x6f, 0x75, 0x64, 0x2e, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x2e, 0x47, 0x43,
-	0x50, 0x45, 0x6e, 0x74, 0x69, 0x74, 0x6c, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x48, 0x01, 0x52, 0x03,
-	0x67, 0x63, 0x70, 0x42, 0x0b, 0x0a, 0x09, 0x70, 0x72, 0x69, 0x6e, 0x63, 0x69, 0x70, 0x61, 0x6c,
-	0x42, 0x08, 0x0a, 0x06, 0x74, 0x61, 0x72, 0x67, 0x65, 0x74, 0x22, 0x5e, 0x0a, 0x14, 0x41, 0x76,
-	0x61, 0x69, 0x6c, 0x61, 0x62, 0x6c, 0x65, 0x45, 0x6e, 0x74, 0x69, 0x74, 0x6c, 0x65, 0x6d, 0x65,
+	0x75, 0x73, 0x52, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x12, 0x47, 0x0a, 0x0b, 0x65, 0x6e,
+	0x74, 0x69, 0x74, 0x6c, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32,
+	0x25, 0x2e, 0x63, 0x6f, 0x6d, 0x6d, 0x6f, 0x6e, 0x66, 0x61, 0x74, 0x65, 0x63, 0x6c, 0x6f, 0x75,
+	0x64, 0x2e, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x2e, 0x45, 0x6e, 0x74, 0x69, 0x74,
+	0x6c, 0x65, 0x6d, 0x65, 0x6e, 0x74, 0x52, 0x0b, 0x65, 0x6e, 0x74, 0x69, 0x74, 0x6c, 0x65, 0x6d,
+	0x65, 0x6e, 0x74, 0x22, 0x55, 0x0a, 0x0b, 0x45, 0x6e, 0x74, 0x69, 0x74, 0x6c, 0x65, 0x6d, 0x65,
 	0x6e, 0x74, 0x12, 0x3c, 0x0a, 0x03, 0x67, 0x63, 0x70, 0x18, 0x05, 0x20, 0x01, 0x28, 0x0b, 0x32,
 	0x28, 0x2e, 0x63, 0x6f, 0x6d, 0x6d, 0x6f, 0x6e, 0x66, 0x61, 0x74, 0x65, 0x63, 0x6c, 0x6f, 0x75,
 	0x64, 0x2e, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x2e, 0x47, 0x43, 0x50, 0x45, 0x6e,
@@ -2567,7 +2442,7 @@ func file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDescGZIP() []b
 }
 
 var file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes = make([]protoimpl.MessageInfo, 34)
+var file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
 var file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_goTypes = []interface{}{
 	(EntitlementStatus)(0),                      // 0: commonfatecloud.v1alpha1.EntitlementStatus
 	(EntitlementProvider)(0),                    // 1: commonfatecloud.v1alpha1.EntitlementProvider
@@ -2576,83 +2451,81 @@ var file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_goTypes = []interf
 	(*CreateAccessRequestRequest)(nil),          // 4: commonfatecloud.v1alpha1.CreateAccessRequestRequest
 	(*CreateAccessRequestResponse)(nil),         // 5: commonfatecloud.v1alpha1.CreateAccessRequestResponse
 	(*AccessRequest)(nil),                       // 6: commonfatecloud.v1alpha1.AccessRequest
-	(*CreateEntitlement)(nil),                   // 7: commonfatecloud.v1alpha1.CreateEntitlement
-	(*RequestedEntitlement)(nil),                // 8: commonfatecloud.v1alpha1.RequestedEntitlement
-	(*AvailableEntitlement)(nil),                // 9: commonfatecloud.v1alpha1.AvailableEntitlement
-	(*Justification)(nil),                       // 10: commonfatecloud.v1alpha1.Justification
-	(*GCPEntitlement)(nil),                      // 11: commonfatecloud.v1alpha1.GCPEntitlement
-	(*ListUsersRequest)(nil),                    // 12: commonfatecloud.v1alpha1.ListUsersRequest
-	(*ListUsersResponse)(nil),                   // 13: commonfatecloud.v1alpha1.ListUsersResponse
-	(*User)(nil),                                // 14: commonfatecloud.v1alpha1.User
-	(*Connection)(nil),                          // 15: commonfatecloud.v1alpha1.Connection
-	(*AWSAction)(nil),                           // 16: commonfatecloud.v1alpha1.AWSAction
-	(*AWSSSOConnection)(nil),                    // 17: commonfatecloud.v1alpha1.AWSSSOConnection
-	(*ListConnectionsRequest)(nil),              // 18: commonfatecloud.v1alpha1.ListConnectionsRequest
-	(*ListConnectionsResponse)(nil),             // 19: commonfatecloud.v1alpha1.ListConnectionsResponse
-	(*AddConnectionRequest)(nil),                // 20: commonfatecloud.v1alpha1.AddConnectionRequest
-	(*AddConnectionsResponse)(nil),              // 21: commonfatecloud.v1alpha1.AddConnectionsResponse
-	(*RemoveConnectionRequest)(nil),             // 22: commonfatecloud.v1alpha1.RemoveConnectionRequest
-	(*RemoveConnectionResponse)(nil),            // 23: commonfatecloud.v1alpha1.RemoveConnectionResponse
-	(*AWSAccount)(nil),                          // 24: commonfatecloud.v1alpha1.AWSAccount
-	(*ListAWSAccountsRequest)(nil),              // 25: commonfatecloud.v1alpha1.ListAWSAccountsRequest
-	(*ListAWSAccountsResponse)(nil),             // 26: commonfatecloud.v1alpha1.ListAWSAccountsResponse
-	(*AWSRole)(nil),                             // 27: commonfatecloud.v1alpha1.AWSRole
-	(*ListAWSRolesForAccountRequest)(nil),       // 28: commonfatecloud.v1alpha1.ListAWSRolesForAccountRequest
-	(*ListAWSRolesForAccountResponse)(nil),      // 29: commonfatecloud.v1alpha1.ListAWSRolesForAccountResponse
-	(*GetAWSRoleMetricsRequest)(nil),            // 30: commonfatecloud.v1alpha1.GetAWSRoleMetricsRequest
-	(*AWSRoleMetrics)(nil),                      // 31: commonfatecloud.v1alpha1.AWSRoleMetrics
-	(*GetAWSRoleMetricsResponse)(nil),           // 32: commonfatecloud.v1alpha1.GetAWSRoleMetricsResponse
-	(*GetUsageForRoleRequest)(nil),              // 33: commonfatecloud.v1alpha1.GetUsageForRoleRequest
-	(*RoleAction)(nil),                          // 34: commonfatecloud.v1alpha1.RoleAction
-	(*GetUsageForRoleResponse)(nil),             // 35: commonfatecloud.v1alpha1.GetUsageForRoleResponse
+	(*EntitlementRequest)(nil),                  // 7: commonfatecloud.v1alpha1.EntitlementRequest
+	(*Entitlement)(nil),                         // 8: commonfatecloud.v1alpha1.Entitlement
+	(*Justification)(nil),                       // 9: commonfatecloud.v1alpha1.Justification
+	(*GCPEntitlement)(nil),                      // 10: commonfatecloud.v1alpha1.GCPEntitlement
+	(*ListUsersRequest)(nil),                    // 11: commonfatecloud.v1alpha1.ListUsersRequest
+	(*ListUsersResponse)(nil),                   // 12: commonfatecloud.v1alpha1.ListUsersResponse
+	(*User)(nil),                                // 13: commonfatecloud.v1alpha1.User
+	(*Connection)(nil),                          // 14: commonfatecloud.v1alpha1.Connection
+	(*AWSAction)(nil),                           // 15: commonfatecloud.v1alpha1.AWSAction
+	(*AWSSSOConnection)(nil),                    // 16: commonfatecloud.v1alpha1.AWSSSOConnection
+	(*ListConnectionsRequest)(nil),              // 17: commonfatecloud.v1alpha1.ListConnectionsRequest
+	(*ListConnectionsResponse)(nil),             // 18: commonfatecloud.v1alpha1.ListConnectionsResponse
+	(*AddConnectionRequest)(nil),                // 19: commonfatecloud.v1alpha1.AddConnectionRequest
+	(*AddConnectionsResponse)(nil),              // 20: commonfatecloud.v1alpha1.AddConnectionsResponse
+	(*RemoveConnectionRequest)(nil),             // 21: commonfatecloud.v1alpha1.RemoveConnectionRequest
+	(*RemoveConnectionResponse)(nil),            // 22: commonfatecloud.v1alpha1.RemoveConnectionResponse
+	(*AWSAccount)(nil),                          // 23: commonfatecloud.v1alpha1.AWSAccount
+	(*ListAWSAccountsRequest)(nil),              // 24: commonfatecloud.v1alpha1.ListAWSAccountsRequest
+	(*ListAWSAccountsResponse)(nil),             // 25: commonfatecloud.v1alpha1.ListAWSAccountsResponse
+	(*AWSRole)(nil),                             // 26: commonfatecloud.v1alpha1.AWSRole
+	(*ListAWSRolesForAccountRequest)(nil),       // 27: commonfatecloud.v1alpha1.ListAWSRolesForAccountRequest
+	(*ListAWSRolesForAccountResponse)(nil),      // 28: commonfatecloud.v1alpha1.ListAWSRolesForAccountResponse
+	(*GetAWSRoleMetricsRequest)(nil),            // 29: commonfatecloud.v1alpha1.GetAWSRoleMetricsRequest
+	(*AWSRoleMetrics)(nil),                      // 30: commonfatecloud.v1alpha1.AWSRoleMetrics
+	(*GetAWSRoleMetricsResponse)(nil),           // 31: commonfatecloud.v1alpha1.GetAWSRoleMetricsResponse
+	(*GetUsageForRoleRequest)(nil),              // 32: commonfatecloud.v1alpha1.GetUsageForRoleRequest
+	(*RoleAction)(nil),                          // 33: commonfatecloud.v1alpha1.RoleAction
+	(*GetUsageForRoleResponse)(nil),             // 34: commonfatecloud.v1alpha1.GetUsageForRoleResponse
 }
 var file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_depIdxs = []int32{
 	1,  // 0: commonfatecloud.v1alpha1.ListEntitlementsForProviderRequest.provider:type_name -> commonfatecloud.v1alpha1.EntitlementProvider
-	9,  // 1: commonfatecloud.v1alpha1.ListEntitlementsForProviderResponse.entitlements:type_name -> commonfatecloud.v1alpha1.AvailableEntitlement
-	7,  // 2: commonfatecloud.v1alpha1.CreateAccessRequestRequest.entitlements:type_name -> commonfatecloud.v1alpha1.CreateEntitlement
-	10, // 3: commonfatecloud.v1alpha1.CreateAccessRequestRequest.justification:type_name -> commonfatecloud.v1alpha1.Justification
+	8,  // 1: commonfatecloud.v1alpha1.ListEntitlementsForProviderResponse.entitlements:type_name -> commonfatecloud.v1alpha1.Entitlement
+	8,  // 2: commonfatecloud.v1alpha1.CreateAccessRequestRequest.entitlements:type_name -> commonfatecloud.v1alpha1.Entitlement
+	9,  // 3: commonfatecloud.v1alpha1.CreateAccessRequestRequest.justification:type_name -> commonfatecloud.v1alpha1.Justification
 	6,  // 4: commonfatecloud.v1alpha1.CreateAccessRequestResponse.access_request:type_name -> commonfatecloud.v1alpha1.AccessRequest
-	8,  // 5: commonfatecloud.v1alpha1.AccessRequest.entitlements:type_name -> commonfatecloud.v1alpha1.RequestedEntitlement
-	11, // 6: commonfatecloud.v1alpha1.CreateEntitlement.gcp:type_name -> commonfatecloud.v1alpha1.GCPEntitlement
-	0,  // 7: commonfatecloud.v1alpha1.RequestedEntitlement.status:type_name -> commonfatecloud.v1alpha1.EntitlementStatus
-	11, // 8: commonfatecloud.v1alpha1.RequestedEntitlement.gcp:type_name -> commonfatecloud.v1alpha1.GCPEntitlement
-	11, // 9: commonfatecloud.v1alpha1.AvailableEntitlement.gcp:type_name -> commonfatecloud.v1alpha1.GCPEntitlement
-	14, // 10: commonfatecloud.v1alpha1.ListUsersResponse.users:type_name -> commonfatecloud.v1alpha1.User
-	17, // 11: commonfatecloud.v1alpha1.Connection.aws_sso_connection:type_name -> commonfatecloud.v1alpha1.AWSSSOConnection
-	15, // 12: commonfatecloud.v1alpha1.ListConnectionsResponse.connections:type_name -> commonfatecloud.v1alpha1.Connection
-	17, // 13: commonfatecloud.v1alpha1.AddConnectionRequest.aws_sso_connection:type_name -> commonfatecloud.v1alpha1.AWSSSOConnection
-	15, // 14: commonfatecloud.v1alpha1.AddConnectionsResponse.connection:type_name -> commonfatecloud.v1alpha1.Connection
-	24, // 15: commonfatecloud.v1alpha1.ListAWSAccountsResponse.aws_accounts:type_name -> commonfatecloud.v1alpha1.AWSAccount
-	27, // 16: commonfatecloud.v1alpha1.ListAWSRolesForAccountResponse.aws_roles:type_name -> commonfatecloud.v1alpha1.AWSRole
-	31, // 17: commonfatecloud.v1alpha1.GetAWSRoleMetricsResponse.aws_role_metrics:type_name -> commonfatecloud.v1alpha1.AWSRoleMetrics
-	14, // 18: commonfatecloud.v1alpha1.RoleAction.user:type_name -> commonfatecloud.v1alpha1.User
-	16, // 19: commonfatecloud.v1alpha1.RoleAction.aws_action:type_name -> commonfatecloud.v1alpha1.AWSAction
-	34, // 20: commonfatecloud.v1alpha1.GetUsageForRoleResponse.activity:type_name -> commonfatecloud.v1alpha1.RoleAction
-	12, // 21: commonfatecloud.v1alpha1.UserManagementService.ListUsers:input_type -> commonfatecloud.v1alpha1.ListUsersRequest
-	18, // 22: commonfatecloud.v1alpha1.ConnectionsService.ListConnections:input_type -> commonfatecloud.v1alpha1.ListConnectionsRequest
-	20, // 23: commonfatecloud.v1alpha1.ConnectionsService.AddConnection:input_type -> commonfatecloud.v1alpha1.AddConnectionRequest
-	22, // 24: commonfatecloud.v1alpha1.ConnectionsService.RemoveConnection:input_type -> commonfatecloud.v1alpha1.RemoveConnectionRequest
-	25, // 25: commonfatecloud.v1alpha1.ConnectionsService.ListAWSAccounts:input_type -> commonfatecloud.v1alpha1.ListAWSAccountsRequest
-	28, // 26: commonfatecloud.v1alpha1.ConnectionsService.GetAWSRolesForAccount:input_type -> commonfatecloud.v1alpha1.ListAWSRolesForAccountRequest
-	30, // 27: commonfatecloud.v1alpha1.UsageMetricsService.GetAWSRoleMetrics:input_type -> commonfatecloud.v1alpha1.GetAWSRoleMetricsRequest
-	33, // 28: commonfatecloud.v1alpha1.UsageMetricsService.GetUsageForRole:input_type -> commonfatecloud.v1alpha1.GetUsageForRoleRequest
-	2,  // 29: commonfatecloud.v1alpha1.AccessService.ListEntitlementsForProvider:input_type -> commonfatecloud.v1alpha1.ListEntitlementsForProviderRequest
-	4,  // 30: commonfatecloud.v1alpha1.AccessService.CreateAccessRequest:input_type -> commonfatecloud.v1alpha1.CreateAccessRequestRequest
-	13, // 31: commonfatecloud.v1alpha1.UserManagementService.ListUsers:output_type -> commonfatecloud.v1alpha1.ListUsersResponse
-	19, // 32: commonfatecloud.v1alpha1.ConnectionsService.ListConnections:output_type -> commonfatecloud.v1alpha1.ListConnectionsResponse
-	21, // 33: commonfatecloud.v1alpha1.ConnectionsService.AddConnection:output_type -> commonfatecloud.v1alpha1.AddConnectionsResponse
-	23, // 34: commonfatecloud.v1alpha1.ConnectionsService.RemoveConnection:output_type -> commonfatecloud.v1alpha1.RemoveConnectionResponse
-	26, // 35: commonfatecloud.v1alpha1.ConnectionsService.ListAWSAccounts:output_type -> commonfatecloud.v1alpha1.ListAWSAccountsResponse
-	29, // 36: commonfatecloud.v1alpha1.ConnectionsService.GetAWSRolesForAccount:output_type -> commonfatecloud.v1alpha1.ListAWSRolesForAccountResponse
-	32, // 37: commonfatecloud.v1alpha1.UsageMetricsService.GetAWSRoleMetrics:output_type -> commonfatecloud.v1alpha1.GetAWSRoleMetricsResponse
-	35, // 38: commonfatecloud.v1alpha1.UsageMetricsService.GetUsageForRole:output_type -> commonfatecloud.v1alpha1.GetUsageForRoleResponse
-	3,  // 39: commonfatecloud.v1alpha1.AccessService.ListEntitlementsForProvider:output_type -> commonfatecloud.v1alpha1.ListEntitlementsForProviderResponse
-	5,  // 40: commonfatecloud.v1alpha1.AccessService.CreateAccessRequest:output_type -> commonfatecloud.v1alpha1.CreateAccessRequestResponse
-	31, // [31:41] is the sub-list for method output_type
-	21, // [21:31] is the sub-list for method input_type
-	21, // [21:21] is the sub-list for extension type_name
-	21, // [21:21] is the sub-list for extension extendee
-	0,  // [0:21] is the sub-list for field type_name
+	7,  // 5: commonfatecloud.v1alpha1.AccessRequest.entitlements:type_name -> commonfatecloud.v1alpha1.EntitlementRequest
+	0,  // 6: commonfatecloud.v1alpha1.EntitlementRequest.status:type_name -> commonfatecloud.v1alpha1.EntitlementStatus
+	8,  // 7: commonfatecloud.v1alpha1.EntitlementRequest.entitlement:type_name -> commonfatecloud.v1alpha1.Entitlement
+	10, // 8: commonfatecloud.v1alpha1.Entitlement.gcp:type_name -> commonfatecloud.v1alpha1.GCPEntitlement
+	13, // 9: commonfatecloud.v1alpha1.ListUsersResponse.users:type_name -> commonfatecloud.v1alpha1.User
+	16, // 10: commonfatecloud.v1alpha1.Connection.aws_sso_connection:type_name -> commonfatecloud.v1alpha1.AWSSSOConnection
+	14, // 11: commonfatecloud.v1alpha1.ListConnectionsResponse.connections:type_name -> commonfatecloud.v1alpha1.Connection
+	16, // 12: commonfatecloud.v1alpha1.AddConnectionRequest.aws_sso_connection:type_name -> commonfatecloud.v1alpha1.AWSSSOConnection
+	14, // 13: commonfatecloud.v1alpha1.AddConnectionsResponse.connection:type_name -> commonfatecloud.v1alpha1.Connection
+	23, // 14: commonfatecloud.v1alpha1.ListAWSAccountsResponse.aws_accounts:type_name -> commonfatecloud.v1alpha1.AWSAccount
+	26, // 15: commonfatecloud.v1alpha1.ListAWSRolesForAccountResponse.aws_roles:type_name -> commonfatecloud.v1alpha1.AWSRole
+	30, // 16: commonfatecloud.v1alpha1.GetAWSRoleMetricsResponse.aws_role_metrics:type_name -> commonfatecloud.v1alpha1.AWSRoleMetrics
+	13, // 17: commonfatecloud.v1alpha1.RoleAction.user:type_name -> commonfatecloud.v1alpha1.User
+	15, // 18: commonfatecloud.v1alpha1.RoleAction.aws_action:type_name -> commonfatecloud.v1alpha1.AWSAction
+	33, // 19: commonfatecloud.v1alpha1.GetUsageForRoleResponse.activity:type_name -> commonfatecloud.v1alpha1.RoleAction
+	11, // 20: commonfatecloud.v1alpha1.UserManagementService.ListUsers:input_type -> commonfatecloud.v1alpha1.ListUsersRequest
+	17, // 21: commonfatecloud.v1alpha1.ConnectionsService.ListConnections:input_type -> commonfatecloud.v1alpha1.ListConnectionsRequest
+	19, // 22: commonfatecloud.v1alpha1.ConnectionsService.AddConnection:input_type -> commonfatecloud.v1alpha1.AddConnectionRequest
+	21, // 23: commonfatecloud.v1alpha1.ConnectionsService.RemoveConnection:input_type -> commonfatecloud.v1alpha1.RemoveConnectionRequest
+	24, // 24: commonfatecloud.v1alpha1.ConnectionsService.ListAWSAccounts:input_type -> commonfatecloud.v1alpha1.ListAWSAccountsRequest
+	27, // 25: commonfatecloud.v1alpha1.ConnectionsService.GetAWSRolesForAccount:input_type -> commonfatecloud.v1alpha1.ListAWSRolesForAccountRequest
+	29, // 26: commonfatecloud.v1alpha1.UsageMetricsService.GetAWSRoleMetrics:input_type -> commonfatecloud.v1alpha1.GetAWSRoleMetricsRequest
+	32, // 27: commonfatecloud.v1alpha1.UsageMetricsService.GetUsageForRole:input_type -> commonfatecloud.v1alpha1.GetUsageForRoleRequest
+	2,  // 28: commonfatecloud.v1alpha1.AccessService.ListEntitlementsForProvider:input_type -> commonfatecloud.v1alpha1.ListEntitlementsForProviderRequest
+	4,  // 29: commonfatecloud.v1alpha1.AccessService.CreateAccessRequest:input_type -> commonfatecloud.v1alpha1.CreateAccessRequestRequest
+	12, // 30: commonfatecloud.v1alpha1.UserManagementService.ListUsers:output_type -> commonfatecloud.v1alpha1.ListUsersResponse
+	18, // 31: commonfatecloud.v1alpha1.ConnectionsService.ListConnections:output_type -> commonfatecloud.v1alpha1.ListConnectionsResponse
+	20, // 32: commonfatecloud.v1alpha1.ConnectionsService.AddConnection:output_type -> commonfatecloud.v1alpha1.AddConnectionsResponse
+	22, // 33: commonfatecloud.v1alpha1.ConnectionsService.RemoveConnection:output_type -> commonfatecloud.v1alpha1.RemoveConnectionResponse
+	25, // 34: commonfatecloud.v1alpha1.ConnectionsService.ListAWSAccounts:output_type -> commonfatecloud.v1alpha1.ListAWSAccountsResponse
+	28, // 35: commonfatecloud.v1alpha1.ConnectionsService.GetAWSRolesForAccount:output_type -> commonfatecloud.v1alpha1.ListAWSRolesForAccountResponse
+	31, // 36: commonfatecloud.v1alpha1.UsageMetricsService.GetAWSRoleMetrics:output_type -> commonfatecloud.v1alpha1.GetAWSRoleMetricsResponse
+	34, // 37: commonfatecloud.v1alpha1.UsageMetricsService.GetUsageForRole:output_type -> commonfatecloud.v1alpha1.GetUsageForRoleResponse
+	3,  // 38: commonfatecloud.v1alpha1.AccessService.ListEntitlementsForProvider:output_type -> commonfatecloud.v1alpha1.ListEntitlementsForProviderResponse
+	5,  // 39: commonfatecloud.v1alpha1.AccessService.CreateAccessRequest:output_type -> commonfatecloud.v1alpha1.CreateAccessRequestResponse
+	30, // [30:40] is the sub-list for method output_type
+	20, // [20:30] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_init() }
@@ -2722,7 +2595,7 @@ func file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_init() {
 			}
 		}
 		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CreateEntitlement); i {
+			switch v := v.(*EntitlementRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2734,7 +2607,7 @@ func file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_init() {
 			}
 		}
 		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RequestedEntitlement); i {
+			switch v := v.(*Entitlement); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2746,18 +2619,6 @@ func file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_init() {
 			}
 		}
 		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AvailableEntitlement); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Justification); i {
 			case 0:
 				return &v.state
@@ -2769,7 +2630,7 @@ func file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_init() {
 				return nil
 			}
 		}
-		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
+		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GCPEntitlement); i {
 			case 0:
 				return &v.state
@@ -2781,7 +2642,7 @@ func file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_init() {
 				return nil
 			}
 		}
-		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ListUsersRequest); i {
 			case 0:
 				return &v.state
@@ -2793,7 +2654,7 @@ func file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_init() {
 				return nil
 			}
 		}
-		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
+		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ListUsersResponse); i {
 			case 0:
 				return &v.state
@@ -2805,7 +2666,7 @@ func file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_init() {
 				return nil
 			}
 		}
-		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
+		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*User); i {
 			case 0:
 				return &v.state
@@ -2817,7 +2678,7 @@ func file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_init() {
 				return nil
 			}
 		}
-		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
+		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Connection); i {
 			case 0:
 				return &v.state
@@ -2829,7 +2690,7 @@ func file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_init() {
 				return nil
 			}
 		}
-		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
+		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*AWSAction); i {
 			case 0:
 				return &v.state
@@ -2841,7 +2702,7 @@ func file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_init() {
 				return nil
 			}
 		}
-		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
+		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*AWSSSOConnection); i {
 			case 0:
 				return &v.state
@@ -2853,7 +2714,7 @@ func file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_init() {
 				return nil
 			}
 		}
-		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
+		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ListConnectionsRequest); i {
 			case 0:
 				return &v.state
@@ -2865,7 +2726,7 @@ func file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_init() {
 				return nil
 			}
 		}
-		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[17].Exporter = func(v interface{}, i int) interface{} {
+		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ListConnectionsResponse); i {
 			case 0:
 				return &v.state
@@ -2877,7 +2738,7 @@ func file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_init() {
 				return nil
 			}
 		}
-		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[18].Exporter = func(v interface{}, i int) interface{} {
+		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[17].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*AddConnectionRequest); i {
 			case 0:
 				return &v.state
@@ -2889,7 +2750,7 @@ func file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_init() {
 				return nil
 			}
 		}
-		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[19].Exporter = func(v interface{}, i int) interface{} {
+		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[18].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*AddConnectionsResponse); i {
 			case 0:
 				return &v.state
@@ -2901,7 +2762,7 @@ func file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_init() {
 				return nil
 			}
 		}
-		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[20].Exporter = func(v interface{}, i int) interface{} {
+		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[19].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*RemoveConnectionRequest); i {
 			case 0:
 				return &v.state
@@ -2913,7 +2774,7 @@ func file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_init() {
 				return nil
 			}
 		}
-		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[21].Exporter = func(v interface{}, i int) interface{} {
+		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[20].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*RemoveConnectionResponse); i {
 			case 0:
 				return &v.state
@@ -2925,7 +2786,7 @@ func file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_init() {
 				return nil
 			}
 		}
-		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[22].Exporter = func(v interface{}, i int) interface{} {
+		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[21].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*AWSAccount); i {
 			case 0:
 				return &v.state
@@ -2937,7 +2798,7 @@ func file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_init() {
 				return nil
 			}
 		}
-		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[23].Exporter = func(v interface{}, i int) interface{} {
+		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[22].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ListAWSAccountsRequest); i {
 			case 0:
 				return &v.state
@@ -2949,7 +2810,7 @@ func file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_init() {
 				return nil
 			}
 		}
-		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[24].Exporter = func(v interface{}, i int) interface{} {
+		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[23].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ListAWSAccountsResponse); i {
 			case 0:
 				return &v.state
@@ -2961,7 +2822,7 @@ func file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_init() {
 				return nil
 			}
 		}
-		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[25].Exporter = func(v interface{}, i int) interface{} {
+		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[24].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*AWSRole); i {
 			case 0:
 				return &v.state
@@ -2973,7 +2834,7 @@ func file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_init() {
 				return nil
 			}
 		}
-		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[26].Exporter = func(v interface{}, i int) interface{} {
+		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[25].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ListAWSRolesForAccountRequest); i {
 			case 0:
 				return &v.state
@@ -2985,7 +2846,7 @@ func file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_init() {
 				return nil
 			}
 		}
-		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[27].Exporter = func(v interface{}, i int) interface{} {
+		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[26].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ListAWSRolesForAccountResponse); i {
 			case 0:
 				return &v.state
@@ -2997,7 +2858,7 @@ func file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_init() {
 				return nil
 			}
 		}
-		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[28].Exporter = func(v interface{}, i int) interface{} {
+		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[27].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetAWSRoleMetricsRequest); i {
 			case 0:
 				return &v.state
@@ -3009,7 +2870,7 @@ func file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_init() {
 				return nil
 			}
 		}
-		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[29].Exporter = func(v interface{}, i int) interface{} {
+		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[28].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*AWSRoleMetrics); i {
 			case 0:
 				return &v.state
@@ -3021,7 +2882,7 @@ func file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_init() {
 				return nil
 			}
 		}
-		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[30].Exporter = func(v interface{}, i int) interface{} {
+		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[29].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetAWSRoleMetricsResponse); i {
 			case 0:
 				return &v.state
@@ -3033,7 +2894,7 @@ func file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_init() {
 				return nil
 			}
 		}
-		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[31].Exporter = func(v interface{}, i int) interface{} {
+		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[30].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetUsageForRoleRequest); i {
 			case 0:
 				return &v.state
@@ -3045,7 +2906,7 @@ func file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_init() {
 				return nil
 			}
 		}
-		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[32].Exporter = func(v interface{}, i int) interface{} {
+		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[31].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*RoleAction); i {
 			case 0:
 				return &v.state
@@ -3057,7 +2918,7 @@ func file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_init() {
 				return nil
 			}
 		}
-		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[33].Exporter = func(v interface{}, i int) interface{} {
+		file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[32].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetUsageForRoleResponse); i {
 			case 0:
 				return &v.state
@@ -3073,23 +2934,16 @@ func file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_init() {
 	file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[0].OneofWrappers = []interface{}{}
 	file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[1].OneofWrappers = []interface{}{}
 	file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[2].OneofWrappers = []interface{}{}
-	file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[5].OneofWrappers = []interface{}{
-		(*CreateEntitlement_Gcp)(nil),
-	}
 	file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[6].OneofWrappers = []interface{}{
-		(*RequestedEntitlement_UserId)(nil),
-		(*RequestedEntitlement_Gcp)(nil),
+		(*Entitlement_Gcp)(nil),
 	}
-	file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[7].OneofWrappers = []interface{}{
-		(*AvailableEntitlement_Gcp)(nil),
-	}
-	file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[8].OneofWrappers = []interface{}{}
+	file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[7].OneofWrappers = []interface{}{}
+	file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[9].OneofWrappers = []interface{}{}
 	file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[10].OneofWrappers = []interface{}{}
-	file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[11].OneofWrappers = []interface{}{}
-	file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[13].OneofWrappers = []interface{}{
+	file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[12].OneofWrappers = []interface{}{
 		(*Connection_AwsSsoConnection)(nil),
 	}
-	file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[18].OneofWrappers = []interface{}{
+	file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_msgTypes[17].OneofWrappers = []interface{}{
 		(*AddConnectionRequest_AwsSsoConnection)(nil),
 	}
 	type x struct{}
@@ -3098,7 +2952,7 @@ func file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_proto_commonfatecloud_v1alpha1_commonfatecloud_proto_rawDesc,
 			NumEnums:      2,
-			NumMessages:   34,
+			NumMessages:   33,
 			NumExtensions: 0,
 			NumServices:   4,
 		},

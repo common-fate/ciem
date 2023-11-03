@@ -2,7 +2,6 @@ package tokenstore
 
 import (
 	"sync"
-	"time"
 
 	"go.uber.org/zap"
 	"golang.org/x/oauth2"
@@ -26,8 +25,8 @@ type NotifyRefreshTokenSource struct {
 func (s *NotifyRefreshTokenSource) Token() (*oauth2.Token, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.T.Expiry.Before(time.Now()) {
-		zap.S().Debug("returning cached in-memory token")
+	if s.T.Valid() {
+		zap.S().Debug("returning cached in-memory token", "expiry", s.T.Expiry.String())
 		return s.T, nil
 	}
 	t, err := s.New.Token()

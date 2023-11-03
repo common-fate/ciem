@@ -32,13 +32,13 @@ message ListEntitlementsForProviderRequest {
 }
 
 message ListEntitlementsForProviderResponse {
-  repeated AvailableEntitlement entitlements = 1;
+  repeated Entitlement entitlements = 1;
   // currently unimplemented
   optional string next_page = 2;
 }
 
 message CreateAccessRequestRequest {
-  repeated CreateEntitlement entitlements = 1;
+  repeated Entitlement entitlements = 1;
   optional Justification justification = 2;
 }
 
@@ -48,31 +48,19 @@ message CreateAccessRequestResponse {
 
 message AccessRequest {
   string id = 1;
-  repeated RequestedEntitlement entitlements = 2;
+  repeated EntitlementRequest entitlements = 2;
 }
 
-message CreateEntitlement {
-  oneof target {
-    GCPEntitlement gcp = 4;
-  }
-}
 
 // an entitlement which the user has requested access to.
-message RequestedEntitlement {
+message EntitlementRequest {
   string id = 1;
   EntitlementStatus status = 2;
-
-  oneof principal {
-    string user_id = 3;
-  }
-
-  oneof target {
-    GCPEntitlement gcp = 5;
-  }
+  Entitlement entitlement = 3;
 }
 
 // an entitlement which is available for the user to request access to.
-message AvailableEntitlement {
+message Entitlement {
   oneof target {
     GCPEntitlement gcp = 5;
   }

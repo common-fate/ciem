@@ -35,9 +35,9 @@ var gcpRequest = cli.Command{
 		client := access.NewFromConfig(cfg)
 
 		res, err := client.CreateAccessRequest(ctx, connect.NewRequest(&cf.CreateAccessRequestRequest{
-			Entitlements: []*cf.CreateEntitlement{
+			Entitlements: []*cf.Entitlement{
 				{
-					Target: &cf.CreateEntitlement_Gcp{
+					Target: &cf.Entitlement_Gcp{
 						Gcp: &cf.GCPEntitlement{
 							Project: c.String("project"),
 							Role:    c.String("role"),
