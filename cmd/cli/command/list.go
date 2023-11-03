@@ -43,7 +43,7 @@ var gcpList = cli.Command{
 		w.Columns("PROJECT", "ROLE")
 
 		for _, e := range res.Msg.Entitlements {
-			gcp := e.GetGcp()
+			gcp := e.Resource.GetGcpProject()
 			if gcp == nil {
 				continue
 			}

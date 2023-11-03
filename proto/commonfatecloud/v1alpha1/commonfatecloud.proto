@@ -5,6 +5,7 @@ package commonfatecloud.v1alpha1;
 service UserManagementService {
   rpc ListUsers(ListUsersRequest) returns (ListUsersResponse) {}
 }
+
 service ConnectionsService {
   rpc ListConnections(ListConnectionsRequest) returns (ListConnectionsResponse) {}
   rpc AddConnection(AddConnectionRequest) returns (AddConnectionsResponse) {}
@@ -13,14 +14,24 @@ service ConnectionsService {
   rpc ListAWSAccounts(ListAWSAccountsRequest) returns (ListAWSAccountsResponse) {}
   rpc GetAWSRolesForAccount(ListAWSRolesForAccountRequest) returns (ListAWSRolesForAccountResponse) {}
 }
+
 service UsageMetricsService {
   rpc GetAWSRoleMetrics(GetAWSRoleMetricsRequest) returns (GetAWSRoleMetricsResponse) {}
   rpc GetUsageForRole(GetUsageForRoleRequest) returns (GetUsageForRoleResponse) {}
 }
 
 service AccessService {
+  rpc GetEntitlement(GetEntitlementRequest) returns (GetEntitlementResponse) {}
   rpc ListEntitlementsForProvider(ListEntitlementsForProviderRequest) returns (ListEntitlementsForProviderResponse) {}
   rpc CreateAccessRequest(CreateAccessRequestRequest) returns (CreateAccessRequestResponse) {}
+}
+
+message GetEntitlementRequest {
+  Resource resource = 1;
+}
+
+message GetEntitlementResponse {
+  Entitlement entitlement = 1;
 }
 
 message ListEntitlementsForProviderRequest {
@@ -38,8 +49,14 @@ message ListEntitlementsForProviderResponse {
 }
 
 message CreateAccessRequestRequest {
-  repeated Entitlement entitlements = 1;
+  repeated Resource resources = 1;
   optional Justification justification = 2;
+}
+
+message Resource {
+  oneof resource {
+    GCPProject gcp_project = 5;
+  }
 }
 
 message CreateAccessRequestResponse {
@@ -48,22 +65,13 @@ message CreateAccessRequestResponse {
 
 message AccessRequest {
   string id = 1;
-  repeated EntitlementRequest entitlements = 2;
-}
-
-
-// an entitlement which the user has requested access to.
-message EntitlementRequest {
-  string id = 1;
-  EntitlementStatus status = 2;
-  Entitlement entitlement = 3;
+  repeated Entitlement entitlements = 2;
 }
 
 // an entitlement which is available for the user to request access to.
 message Entitlement {
-  oneof target {
-    GCPEntitlement gcp = 5;
-  }
+  Resource resource = 1;
+  EntitlementStatus status = 2;
 }
 
 message Justification {
@@ -72,15 +80,10 @@ message Justification {
 
 enum EntitlementStatus {
   ENTITLEMENT_STATUS_UNSPECIFIED = 0;
-  ENTITLEMENT_STATUS_PENDING_APPROVAL = 1;
-  ENTITLEMENT_STATUS_CANCELLED = 2;
-  ENTITLEMENT_STATUS_REVOKED = 3;
-  ENTITLEMENT_STATUS_COMPLETE = 4;
-  ENTITLEMENT_STATUS_ACTIVE = 5;
-  ENTITLEMENT_STATUS_PROVISIONING = 6;
-  ENTITLEMENT_STATUS_DEPROVISIONING = 7;
-  ENTITLEMENT_STATUS_FAILED = 8;
-  ENTITLEMENT_STATUS_CLOSED = 9;
+  ENTITLEMENT_STATUS_ACTIVE = 1;
+  ENTITLEMENT_STATUS_PROVISIONING = 2;
+  ENTITLEMENT_STATUS_DEPROVISIONING = 3;
+  ENTITLEMENT_STATUS_INACTIVE = 4;
 }
 
 enum EntitlementProvider {
@@ -89,10 +92,9 @@ enum EntitlementProvider {
   ENTITLEMENT_PROVIDER_GCP = 2;
 }
 
-message GCPEntitlement {
+message GCPProject {
   string project = 1;
   string role = 2;
-  string role_title = 3;
 }
 
 message ListUsersRequest {

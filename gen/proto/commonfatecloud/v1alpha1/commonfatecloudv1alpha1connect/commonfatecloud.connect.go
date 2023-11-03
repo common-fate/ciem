@@ -63,6 +63,9 @@ const (
 	// UsageMetricsServiceGetUsageForRoleProcedure is the fully-qualified name of the
 	// UsageMetricsService's GetUsageForRole RPC.
 	UsageMetricsServiceGetUsageForRoleProcedure = "/commonfatecloud.v1alpha1.UsageMetricsService/GetUsageForRole"
+	// AccessServiceGetEntitlementProcedure is the fully-qualified name of the AccessService's
+	// GetEntitlement RPC.
+	AccessServiceGetEntitlementProcedure = "/commonfatecloud.v1alpha1.AccessService/GetEntitlement"
 	// AccessServiceListEntitlementsForProviderProcedure is the fully-qualified name of the
 	// AccessService's ListEntitlementsForProvider RPC.
 	AccessServiceListEntitlementsForProviderProcedure = "/commonfatecloud.v1alpha1.AccessService/ListEntitlementsForProvider"
@@ -399,6 +402,7 @@ func (UnimplementedUsageMetricsServiceHandler) GetUsageForRole(context.Context, 
 
 // AccessServiceClient is a client for the commonfatecloud.v1alpha1.AccessService service.
 type AccessServiceClient interface {
+	GetEntitlement(context.Context, *connect_go.Request[v1alpha1.GetEntitlementRequest]) (*connect_go.Response[v1alpha1.GetEntitlementResponse], error)
 	ListEntitlementsForProvider(context.Context, *connect_go.Request[v1alpha1.ListEntitlementsForProviderRequest]) (*connect_go.Response[v1alpha1.ListEntitlementsForProviderResponse], error)
 	CreateAccessRequest(context.Context, *connect_go.Request[v1alpha1.CreateAccessRequestRequest]) (*connect_go.Response[v1alpha1.CreateAccessRequestResponse], error)
 }
@@ -413,6 +417,11 @@ type AccessServiceClient interface {
 func NewAccessServiceClient(httpClient connect_go.HTTPClient, baseURL string, opts ...connect_go.ClientOption) AccessServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
 	return &accessServiceClient{
+		getEntitlement: connect_go.NewClient[v1alpha1.GetEntitlementRequest, v1alpha1.GetEntitlementResponse](
+			httpClient,
+			baseURL+AccessServiceGetEntitlementProcedure,
+			opts...,
+		),
 		listEntitlementsForProvider: connect_go.NewClient[v1alpha1.ListEntitlementsForProviderRequest, v1alpha1.ListEntitlementsForProviderResponse](
 			httpClient,
 			baseURL+AccessServiceListEntitlementsForProviderProcedure,
@@ -428,8 +437,14 @@ func NewAccessServiceClient(httpClient connect_go.HTTPClient, baseURL string, op
 
 // accessServiceClient implements AccessServiceClient.
 type accessServiceClient struct {
+	getEntitlement              *connect_go.Client[v1alpha1.GetEntitlementRequest, v1alpha1.GetEntitlementResponse]
 	listEntitlementsForProvider *connect_go.Client[v1alpha1.ListEntitlementsForProviderRequest, v1alpha1.ListEntitlementsForProviderResponse]
 	createAccessRequest         *connect_go.Client[v1alpha1.CreateAccessRequestRequest, v1alpha1.CreateAccessRequestResponse]
+}
+
+// GetEntitlement calls commonfatecloud.v1alpha1.AccessService.GetEntitlement.
+func (c *accessServiceClient) GetEntitlement(ctx context.Context, req *connect_go.Request[v1alpha1.GetEntitlementRequest]) (*connect_go.Response[v1alpha1.GetEntitlementResponse], error) {
+	return c.getEntitlement.CallUnary(ctx, req)
 }
 
 // ListEntitlementsForProvider calls
@@ -445,6 +460,7 @@ func (c *accessServiceClient) CreateAccessRequest(ctx context.Context, req *conn
 
 // AccessServiceHandler is an implementation of the commonfatecloud.v1alpha1.AccessService service.
 type AccessServiceHandler interface {
+	GetEntitlement(context.Context, *connect_go.Request[v1alpha1.GetEntitlementRequest]) (*connect_go.Response[v1alpha1.GetEntitlementResponse], error)
 	ListEntitlementsForProvider(context.Context, *connect_go.Request[v1alpha1.ListEntitlementsForProviderRequest]) (*connect_go.Response[v1alpha1.ListEntitlementsForProviderResponse], error)
 	CreateAccessRequest(context.Context, *connect_go.Request[v1alpha1.CreateAccessRequestRequest]) (*connect_go.Response[v1alpha1.CreateAccessRequestResponse], error)
 }
@@ -455,6 +471,11 @@ type AccessServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewAccessServiceHandler(svc AccessServiceHandler, opts ...connect_go.HandlerOption) (string, http.Handler) {
+	accessServiceGetEntitlementHandler := connect_go.NewUnaryHandler(
+		AccessServiceGetEntitlementProcedure,
+		svc.GetEntitlement,
+		opts...,
+	)
 	accessServiceListEntitlementsForProviderHandler := connect_go.NewUnaryHandler(
 		AccessServiceListEntitlementsForProviderProcedure,
 		svc.ListEntitlementsForProvider,
@@ -467,6 +488,8 @@ func NewAccessServiceHandler(svc AccessServiceHandler, opts ...connect_go.Handle
 	)
 	return "/commonfatecloud.v1alpha1.AccessService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
+		case AccessServiceGetEntitlementProcedure:
+			accessServiceGetEntitlementHandler.ServeHTTP(w, r)
 		case AccessServiceListEntitlementsForProviderProcedure:
 			accessServiceListEntitlementsForProviderHandler.ServeHTTP(w, r)
 		case AccessServiceCreateAccessRequestProcedure:
@@ -479,6 +502,10 @@ func NewAccessServiceHandler(svc AccessServiceHandler, opts ...connect_go.Handle
 
 // UnimplementedAccessServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedAccessServiceHandler struct{}
+
+func (UnimplementedAccessServiceHandler) GetEntitlement(context.Context, *connect_go.Request[v1alpha1.GetEntitlementRequest]) (*connect_go.Response[v1alpha1.GetEntitlementResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("commonfatecloud.v1alpha1.AccessService.GetEntitlement is not implemented"))
+}
 
 func (UnimplementedAccessServiceHandler) ListEntitlementsForProvider(context.Context, *connect_go.Request[v1alpha1.ListEntitlementsForProviderRequest]) (*connect_go.Response[v1alpha1.ListEntitlementsForProviderResponse], error) {
 	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("commonfatecloud.v1alpha1.AccessService.ListEntitlementsForProvider is not implemented"))

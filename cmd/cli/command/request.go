@@ -35,10 +35,10 @@ var gcpRequest = cli.Command{
 		client := access.NewFromConfig(cfg)
 
 		res, err := client.CreateAccessRequest(ctx, connect.NewRequest(&cf.CreateAccessRequestRequest{
-			Entitlements: []*cf.Entitlement{
+			Resources: []*cf.Resource{
 				{
-					Target: &cf.Entitlement_Gcp{
-						Gcp: &cf.GCPEntitlement{
+					Resource: &cf.Resource_GcpProject{
+						GcpProject: &cf.GCPProject{
 							Project: c.String("project"),
 							Role:    c.String("role"),
 						},
@@ -50,7 +50,16 @@ var gcpRequest = cli.Command{
 			return err
 		}
 
-		clio.Successf("created access request %s", res.Msg.AccessRequest.Id)
+		for _, e := range res.Msg.AccessRequest.Entitlements {
+			gcp := e.Resource.GetGcpProject()
+			if gcp == nil {
+				continue
+			}
+
+			if e.Status == cf.EntitlementStatus_ENTITLEMENT_STATUS_ACTIVE {
+				clio.Successf("access to %s with role %s is now active", gcp.Project, gcp.Role)
+			}
+		}
 
 		return nil
 	},
