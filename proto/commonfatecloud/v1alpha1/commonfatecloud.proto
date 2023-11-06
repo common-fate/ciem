@@ -44,7 +44,7 @@ message SignedHeader {
   string kid = 4;
 }
 
-message DeviceRegistration {
+message Device {
   string serial_number = 2;
   string uuid = 3;
   string platform = 4;
@@ -57,7 +57,7 @@ message DeviceRegistration {
 message RegisterDeviceRequest {
   SignedHeader header = 1;
   bytes signature = 2;
-  DeviceRegistration device_registration = 3;
+  Device device = 3;
 }
 
 message RegisterDeviceResponse {
