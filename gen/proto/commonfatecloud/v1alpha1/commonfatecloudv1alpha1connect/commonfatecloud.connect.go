@@ -27,6 +27,8 @@ const (
 	ConnectionsServiceName = "commonfatecloud.v1alpha1.ConnectionsService"
 	// UsageMetricsServiceName is the fully-qualified name of the UsageMetricsService service.
 	UsageMetricsServiceName = "commonfatecloud.v1alpha1.UsageMetricsService"
+	// DeviceServiceName is the fully-qualified name of the DeviceService service.
+	DeviceServiceName = "commonfatecloud.v1alpha1.DeviceService"
 	// AccessServiceName is the fully-qualified name of the AccessService service.
 	AccessServiceName = "commonfatecloud.v1alpha1.AccessService"
 )
@@ -63,6 +65,9 @@ const (
 	// UsageMetricsServiceGetUsageForRoleProcedure is the fully-qualified name of the
 	// UsageMetricsService's GetUsageForRole RPC.
 	UsageMetricsServiceGetUsageForRoleProcedure = "/commonfatecloud.v1alpha1.UsageMetricsService/GetUsageForRole"
+	// DeviceServiceRegisterDeviceProcedure is the fully-qualified name of the DeviceService's
+	// RegisterDevice RPC.
+	DeviceServiceRegisterDeviceProcedure = "/commonfatecloud.v1alpha1.DeviceService/RegisterDevice"
 	// AccessServiceGetEntitlementProcedure is the fully-qualified name of the AccessService's
 	// GetEntitlement RPC.
 	AccessServiceGetEntitlementProcedure = "/commonfatecloud.v1alpha1.AccessService/GetEntitlement"
@@ -398,6 +403,72 @@ func (UnimplementedUsageMetricsServiceHandler) GetAWSRoleMetrics(context.Context
 
 func (UnimplementedUsageMetricsServiceHandler) GetUsageForRole(context.Context, *connect_go.Request[v1alpha1.GetUsageForRoleRequest]) (*connect_go.Response[v1alpha1.GetUsageForRoleResponse], error) {
 	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("commonfatecloud.v1alpha1.UsageMetricsService.GetUsageForRole is not implemented"))
+}
+
+// DeviceServiceClient is a client for the commonfatecloud.v1alpha1.DeviceService service.
+type DeviceServiceClient interface {
+	RegisterDevice(context.Context, *connect_go.Request[v1alpha1.RegisterDeviceRequest]) (*connect_go.Response[v1alpha1.RegisterDeviceResponse], error)
+}
+
+// NewDeviceServiceClient constructs a client for the commonfatecloud.v1alpha1.DeviceService
+// service. By default, it uses the Connect protocol with the binary Protobuf Codec, asks for
+// gzipped responses, and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply
+// the connect.WithGRPC() or connect.WithGRPCWeb() options.
+//
+// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
+// http://api.acme.com or https://acme.com/grpc).
+func NewDeviceServiceClient(httpClient connect_go.HTTPClient, baseURL string, opts ...connect_go.ClientOption) DeviceServiceClient {
+	baseURL = strings.TrimRight(baseURL, "/")
+	return &deviceServiceClient{
+		registerDevice: connect_go.NewClient[v1alpha1.RegisterDeviceRequest, v1alpha1.RegisterDeviceResponse](
+			httpClient,
+			baseURL+DeviceServiceRegisterDeviceProcedure,
+			opts...,
+		),
+	}
+}
+
+// deviceServiceClient implements DeviceServiceClient.
+type deviceServiceClient struct {
+	registerDevice *connect_go.Client[v1alpha1.RegisterDeviceRequest, v1alpha1.RegisterDeviceResponse]
+}
+
+// RegisterDevice calls commonfatecloud.v1alpha1.DeviceService.RegisterDevice.
+func (c *deviceServiceClient) RegisterDevice(ctx context.Context, req *connect_go.Request[v1alpha1.RegisterDeviceRequest]) (*connect_go.Response[v1alpha1.RegisterDeviceResponse], error) {
+	return c.registerDevice.CallUnary(ctx, req)
+}
+
+// DeviceServiceHandler is an implementation of the commonfatecloud.v1alpha1.DeviceService service.
+type DeviceServiceHandler interface {
+	RegisterDevice(context.Context, *connect_go.Request[v1alpha1.RegisterDeviceRequest]) (*connect_go.Response[v1alpha1.RegisterDeviceResponse], error)
+}
+
+// NewDeviceServiceHandler builds an HTTP handler from the service implementation. It returns the
+// path on which to mount the handler and the handler itself.
+//
+// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
+// and JSON codecs. They also support gzip compression.
+func NewDeviceServiceHandler(svc DeviceServiceHandler, opts ...connect_go.HandlerOption) (string, http.Handler) {
+	deviceServiceRegisterDeviceHandler := connect_go.NewUnaryHandler(
+		DeviceServiceRegisterDeviceProcedure,
+		svc.RegisterDevice,
+		opts...,
+	)
+	return "/commonfatecloud.v1alpha1.DeviceService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case DeviceServiceRegisterDeviceProcedure:
+			deviceServiceRegisterDeviceHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+}
+
+// UnimplementedDeviceServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedDeviceServiceHandler struct{}
+
+func (UnimplementedDeviceServiceHandler) RegisterDevice(context.Context, *connect_go.Request[v1alpha1.RegisterDeviceRequest]) (*connect_go.Response[v1alpha1.RegisterDeviceResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("commonfatecloud.v1alpha1.DeviceService.RegisterDevice is not implemented"))
 }
 
 // AccessServiceClient is a client for the commonfatecloud.v1alpha1.AccessService service.
