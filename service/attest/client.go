@@ -1,4 +1,4 @@
-package device
+package attest
 
 import (
 	"github.com/common-fate/ciem/config"
