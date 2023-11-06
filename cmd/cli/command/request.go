@@ -3,7 +3,7 @@ package command
 import (
 	"github.com/bufbuild/connect-go"
 	"github.com/common-fate/ciem/config"
-	cf "github.com/common-fate/ciem/gen/proto/commonfatecloud/v1alpha1"
+	accessv1alpha1 "github.com/common-fate/ciem/gen/commonfate/cloud/access/v1alpha1"
 	"github.com/common-fate/ciem/service/access"
 	"github.com/common-fate/clio"
 	"github.com/urfave/cli/v2"
@@ -34,11 +34,11 @@ var gcpRequest = cli.Command{
 
 		client := access.NewFromConfig(cfg)
 
-		res, err := client.CreateAccessRequest(ctx, connect.NewRequest(&cf.CreateAccessRequestRequest{
-			Resources: []*cf.Resource{
+		res, err := client.CreateAccessRequest(ctx, connect.NewRequest(&accessv1alpha1.CreateAccessRequestRequest{
+			Resources: []*accessv1alpha1.Resource{
 				{
-					Resource: &cf.Resource_GcpProject{
-						GcpProject: &cf.GCPProject{
+					Resource: &accessv1alpha1.Resource_GcpProject{
+						GcpProject: &accessv1alpha1.GCPProject{
 							Project: c.String("project"),
 							Role:    c.String("role"),
 						},
@@ -56,7 +56,7 @@ var gcpRequest = cli.Command{
 				continue
 			}
 
-			if e.Status == cf.EntitlementStatus_ENTITLEMENT_STATUS_ACTIVE {
+			if e.Status == accessv1alpha1.EntitlementStatus_ENTITLEMENT_STATUS_ACTIVE {
 				clio.Successf("access to %s with role %s is now active", gcp.Project, gcp.Role)
 			}
 		}

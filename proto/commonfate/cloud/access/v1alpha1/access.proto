@@ -1,6 +1,8 @@
 syntax = "proto3";
 
-package commonfatecloud.v1alpha1;
+package commonfate.cloud.access.v1alpha1;
+
+import "commonfate/cloud/attest/v1alpha1/attestation.proto";
 
 service UserManagementService {
   rpc ListUsers(ListUsersRequest) returns (ListUsersResponse) {}
@@ -20,28 +22,10 @@ service UsageMetricsService {
   rpc GetUsageForRole(GetUsageForRoleRequest) returns (GetUsageForRoleResponse) {}
 }
 
-service DeviceService {
-  rpc RegisterDevice(RegisterDeviceRequest) returns (RegisterDeviceResponse) {}
-}
-
 service AccessService {
   rpc GetEntitlement(GetEntitlementRequest) returns (GetEntitlementResponse) {}
   rpc ListEntitlementsForProvider(ListEntitlementsForProviderRequest) returns (ListEntitlementsForProviderResponse) {}
   rpc CreateAccessRequest(CreateAccessRequestRequest) returns (CreateAccessRequestResponse) {}
-}
-
-message SignedHeader {
-  // should always be '1'
-  int64 version = 1;
-
-  // the current timestamp in milliseconds since Unix epoch
-  int64 timestamp = 2;
-
-  // the SHA256 digest of the message contents
-  bytes content_digest = 3;
-  
-  // the ID of the key that signed the message
-  string kid = 4;
 }
 
 message Device {
@@ -55,9 +39,8 @@ message Device {
 }
 
 message RegisterDeviceRequest {
-  SignedHeader header = 1;
-  bytes signature = 2;
-  Device device = 3;
+  commonfate.cloud.attest.v1alpha1.Attestation attestation = 1;
+  commonfate.cloud.attest.v1alpha1.Device device = 3;
 }
 
 message RegisterDeviceResponse {
@@ -116,6 +99,7 @@ message Entitlement {
 
 message Justification {
   optional string reason = 1;
+  optional commonfate.cloud.attest.v1alpha1.Attestation device_attestation = 2;
 }
 
 enum EntitlementStatus {

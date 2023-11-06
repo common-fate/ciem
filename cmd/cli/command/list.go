@@ -5,7 +5,7 @@ import (
 
 	"github.com/bufbuild/connect-go"
 	"github.com/common-fate/ciem/config"
-	cf "github.com/common-fate/ciem/gen/proto/commonfatecloud/v1alpha1"
+	accessv1alpha1 "github.com/common-fate/ciem/gen/commonfate/cloud/access/v1alpha1"
 	"github.com/common-fate/ciem/service/access"
 	"github.com/common-fate/ciem/table"
 	"github.com/urfave/cli/v2"
@@ -32,8 +32,8 @@ var gcpList = cli.Command{
 
 		client := access.NewFromConfig(cfg)
 
-		res, err := client.ListEntitlementsForProvider(ctx, connect.NewRequest(&cf.ListEntitlementsForProviderRequest{
-			Provider: cf.EntitlementProvider_ENTITLEMENT_PROVIDER_GCP,
+		res, err := client.ListEntitlementsForProvider(ctx, connect.NewRequest(&accessv1alpha1.ListEntitlementsForProviderRequest{
+			Provider: accessv1alpha1.EntitlementProvider_ENTITLEMENT_PROVIDER_GCP,
 		}))
 		if err != nil {
 			return err
