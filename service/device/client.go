@@ -1,4 +1,4 @@
-package access
+package device
 
 import (
 	"github.com/common-fate/ciem/config"
