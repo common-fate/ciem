@@ -50,13 +50,13 @@ var gcpRequest = cli.Command{
 			return err
 		}
 
-		for _, e := range res.Msg.AccessRequest.Entitlements {
-			gcp := e.Resource.GetGcpProject()
+		for _, e := range res.Msg.RequestGroup.Requests {
+			gcp := e.Entitlement.Resource.GetGcpProject()
 			if gcp == nil {
 				continue
 			}
 
-			if e.Status == accessv1alpha1.EntitlementStatus_ENTITLEMENT_STATUS_ACTIVE {
+			if e.Entitlement.Status == accessv1alpha1.EntitlementStatus_ENTITLEMENT_STATUS_ACTIVE {
 				clio.Successf("access to %s with role %s is now active", gcp.Project, gcp.Role)
 			}
 		}

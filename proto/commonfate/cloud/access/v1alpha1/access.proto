@@ -3,23 +3,10 @@ syntax = "proto3";
 package commonfate.cloud.access.v1alpha1;
 
 import "commonfate/cloud/attest/v1alpha1/attestation.proto";
+import "commonfate/cloud/access/v1alpha1/resource.proto";
 
 service UserManagementService {
   rpc ListUsers(ListUsersRequest) returns (ListUsersResponse) {}
-}
-
-service ConnectionsService {
-  rpc ListConnections(ListConnectionsRequest) returns (ListConnectionsResponse) {}
-  rpc AddConnection(AddConnectionRequest) returns (AddConnectionsResponse) {}
-  rpc RemoveConnection(RemoveConnectionRequest) returns (RemoveConnectionResponse) {}
-
-  rpc ListAWSAccounts(ListAWSAccountsRequest) returns (ListAWSAccountsResponse) {}
-  rpc GetAWSRolesForAccount(ListAWSRolesForAccountRequest) returns (ListAWSRolesForAccountResponse) {}
-}
-
-service UsageMetricsService {
-  rpc GetAWSRoleMetrics(GetAWSRoleMetricsRequest) returns (GetAWSRoleMetricsResponse) {}
-  rpc GetUsageForRole(GetUsageForRoleRequest) returns (GetUsageForRoleResponse) {}
 }
 
 service AccessService {
@@ -28,15 +15,6 @@ service AccessService {
   rpc CreateAccessRequest(CreateAccessRequestRequest) returns (CreateAccessRequestResponse) {}
 }
 
-message Device {
-  string serial_number = 2;
-  string uuid = 3;
-  string platform = 4;
-  string architecture = 5;
-  string hostname = 6;
-  string kernel_release = 7;
-  string kernel_version = 8;
-}
 
 message RegisterDeviceRequest {
   commonfate.cloud.attest.v1alpha1.Attestation attestation = 1;
@@ -76,19 +54,18 @@ message CreateAccessRequestRequest {
   optional Justification justification = 2;
 }
 
-message Resource {
-  oneof resource {
-    GCPProject gcp_project = 5;
-  }
+message CreateAccessRequestResponse {
+  RequestGroup request_group = 1;
 }
 
-message CreateAccessRequestResponse {
-  AccessRequest access_request = 1;
+message RequestGroup {
+  string id = 1;
+  repeated AccessRequest requests = 2;
 }
 
 message AccessRequest {
   string id = 1;
-  repeated Entitlement entitlements = 2;
+  Entitlement entitlement = 2;
 }
 
 // an entitlement which is available for the user to request access to.
@@ -116,11 +93,6 @@ enum EntitlementProvider {
   ENTITLEMENT_PROVIDER_GCP = 2;
 }
 
-message GCPProject {
-  string project = 1;
-  string role = 2;
-}
-
 message ListUsersRequest {
   optional int32 page = 1;
   optional int32 limit = 2;
@@ -132,124 +104,11 @@ message ListUsersResponse {
   optional int32 next_page = 3;
   optional int32 previous_page = 4;
 }
+
 message User {
   string id = 1;
   string primary_email = 2;
   string first_name = 3;
   string last_name = 4;
   string avatar = 5;
-}
-message Connection {
-  string id = 1;
-  oneof connection_type {
-    AWSSSOConnection aws_sso_connection = 3;
-  }
-}
-
-message AWSAction {
-  string ip_address = 1;
-  string location = 2;
-  string device = 3;
-  string action_log = 4;
-  string created_at = 5;
-}
-
-message AWSSSOConnection {
-  string name = 1;
-  string start_url = 2;
-  string instance_region = 3;
-}
-
-
-message ListConnectionsRequest {}
-
-message ListConnectionsResponse {
-  repeated Connection connections = 1;
-}
-
-message AddConnectionRequest {
-  oneof connection {
-    AWSSSOConnection aws_sso_connection = 2;
-  }
-}
-
-message AddConnectionsResponse {
-  Connection connection = 1;
-}
-
-message RemoveConnectionRequest {
-  string id = 1;
-}
-
-message RemoveConnectionResponse {
-}
-
-message AWSAccount {
-  string id = 1;
-  string name = 2;
-  string role_name = 3;
-  string connection_id = 4;
-}
-
-message ListAWSAccountsRequest {}
-
-message ListAWSAccountsResponse {
-  repeated AWSAccount aws_accounts = 1;
-}
-
-message AWSRole {
-  string name = 1;
-  string account_id = 2;
-  string account_name = 3;
-  string connection_id = 4;
-}
-
-message ListAWSRolesForAccountRequest {
-  string account_id = 1;
-}
-
-message ListAWSRolesForAccountResponse {
-  repeated AWSRole aws_roles = 1;
-}
-
-message GetAWSRoleMetricsRequest {
-  string role_name = 1;
-  string account_id = 2;
-  // from and to dates
-  string from = 3;
-  string to = 4;
-}
-message AWSRoleMetrics {
-  string role_name = 1;
-  string account_id = 2;
- 
-
-  string date = 3;
-  int32 count = 4; // the count of how many actions were performed 
-}
-
-message GetAWSRoleMetricsResponse {
-  repeated AWSRoleMetrics aws_role_metrics = 1;
-}
-
-message GetUsageForRoleRequest {
-  string role_name = 1;
-  string account_id = 2;
-  
-  int32 page_size = 3;
-  int32 offset = 4;
-}
-
-message RoleAction {
-  User user = 1;
-  AWSAction aws_action = 2;
-}
-
-/**
-
-Returns a list of actions performed by all users for a given role
-
-*/
-message GetUsageForRoleResponse {
-  repeated RoleAction activity = 1;
 }
