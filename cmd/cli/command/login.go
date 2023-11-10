@@ -20,3 +20,16 @@ var Login = cli.Command{
 		return lf.Login(c.Context)
 	},
 }
+
+var Logout = cli.Command{
+	Name:  "logout",
+	Usage: "Log out of Common Fate Cloud",
+	Action: func(c *cli.Context) error {
+		cfg, err := config.LoadDefault(c.Context)
+		if err != nil {
+			return err
+		}
+
+		return cfg.TokenStore.Clear()
+	},
+}

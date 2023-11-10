@@ -30,6 +30,7 @@ func main() {
 		},
 		Commands: []*cli.Command{
 			&command.Login,
+			&command.Logout,
 			&command.Auth,
 			&command.List,
 			&command.Request,

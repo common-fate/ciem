@@ -23,6 +23,8 @@ const _ = connect_go.IsAtLeastVersion0_1_0
 const (
 	// UserManagementServiceName is the fully-qualified name of the UserManagementService service.
 	UserManagementServiceName = "commonfate.cloud.access.v1alpha1.UserManagementService"
+	// ResourceServiceName is the fully-qualified name of the ResourceService service.
+	ResourceServiceName = "commonfate.cloud.access.v1alpha1.ResourceService"
 	// AccessServiceName is the fully-qualified name of the AccessService service.
 	AccessServiceName = "commonfate.cloud.access.v1alpha1.AccessService"
 )
@@ -38,15 +40,27 @@ const (
 	// UserManagementServiceListUsersProcedure is the fully-qualified name of the
 	// UserManagementService's ListUsers RPC.
 	UserManagementServiceListUsersProcedure = "/commonfate.cloud.access.v1alpha1.UserManagementService/ListUsers"
-	// AccessServiceGetEntitlementProcedure is the fully-qualified name of the AccessService's
-	// GetEntitlement RPC.
-	AccessServiceGetEntitlementProcedure = "/commonfate.cloud.access.v1alpha1.AccessService/GetEntitlement"
-	// AccessServiceListEntitlementsForProviderProcedure is the fully-qualified name of the
-	// AccessService's ListEntitlementsForProvider RPC.
-	AccessServiceListEntitlementsForProviderProcedure = "/commonfate.cloud.access.v1alpha1.AccessService/ListEntitlementsForProvider"
-	// AccessServiceCreateAccessRequestProcedure is the fully-qualified name of the AccessService's
-	// CreateAccessRequest RPC.
-	AccessServiceCreateAccessRequestProcedure = "/commonfate.cloud.access.v1alpha1.AccessService/CreateAccessRequest"
+	// ResourceServiceListResourcesForProviderProcedure is the fully-qualified name of the
+	// ResourceService's ListResourcesForProvider RPC.
+	ResourceServiceListResourcesForProviderProcedure = "/commonfate.cloud.access.v1alpha1.ResourceService/ListResourcesForProvider"
+	// AccessServiceEnsureAccessProcedure is the fully-qualified name of the AccessService's
+	// EnsureAccess RPC.
+	AccessServiceEnsureAccessProcedure = "/commonfate.cloud.access.v1alpha1.AccessService/EnsureAccess"
+	// AccessServiceListAccessRequestsProcedure is the fully-qualified name of the AccessService's
+	// ListAccessRequests RPC.
+	AccessServiceListAccessRequestsProcedure = "/commonfate.cloud.access.v1alpha1.AccessService/ListAccessRequests"
+	// AccessServiceGetAccessRequestProcedure is the fully-qualified name of the AccessService's
+	// GetAccessRequest RPC.
+	AccessServiceGetAccessRequestProcedure = "/commonfate.cloud.access.v1alpha1.AccessService/GetAccessRequest"
+	// AccessServiceRevokeAccessRequestProcedure is the fully-qualified name of the AccessService's
+	// RevokeAccessRequest RPC.
+	AccessServiceRevokeAccessRequestProcedure = "/commonfate.cloud.access.v1alpha1.AccessService/RevokeAccessRequest"
+	// AccessServiceCancelAccessRequestProcedure is the fully-qualified name of the AccessService's
+	// CancelAccessRequest RPC.
+	AccessServiceCancelAccessRequestProcedure = "/commonfate.cloud.access.v1alpha1.AccessService/CancelAccessRequest"
+	// AccessServiceReviewAccessRequestProcedure is the fully-qualified name of the AccessService's
+	// ReviewAccessRequest RPC.
+	AccessServiceReviewAccessRequestProcedure = "/commonfate.cloud.access.v1alpha1.AccessService/ReviewAccessRequest"
 )
 
 // UserManagementServiceClient is a client for the
@@ -118,11 +132,99 @@ func (UnimplementedUserManagementServiceHandler) ListUsers(context.Context, *con
 	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("commonfate.cloud.access.v1alpha1.UserManagementService.ListUsers is not implemented"))
 }
 
+// ResourceServiceClient is a client for the commonfate.cloud.access.v1alpha1.ResourceService
+// service.
+type ResourceServiceClient interface {
+	ListResourcesForProvider(context.Context, *connect_go.Request[v1alpha1.ListResourcesForProviderRequest]) (*connect_go.Response[v1alpha1.ListResourcesForProviderResponse], error)
+}
+
+// NewResourceServiceClient constructs a client for the
+// commonfate.cloud.access.v1alpha1.ResourceService service. By default, it uses the Connect
+// protocol with the binary Protobuf Codec, asks for gzipped responses, and sends uncompressed
+// requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
+// connect.WithGRPCWeb() options.
+//
+// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
+// http://api.acme.com or https://acme.com/grpc).
+func NewResourceServiceClient(httpClient connect_go.HTTPClient, baseURL string, opts ...connect_go.ClientOption) ResourceServiceClient {
+	baseURL = strings.TrimRight(baseURL, "/")
+	return &resourceServiceClient{
+		listResourcesForProvider: connect_go.NewClient[v1alpha1.ListResourcesForProviderRequest, v1alpha1.ListResourcesForProviderResponse](
+			httpClient,
+			baseURL+ResourceServiceListResourcesForProviderProcedure,
+			opts...,
+		),
+	}
+}
+
+// resourceServiceClient implements ResourceServiceClient.
+type resourceServiceClient struct {
+	listResourcesForProvider *connect_go.Client[v1alpha1.ListResourcesForProviderRequest, v1alpha1.ListResourcesForProviderResponse]
+}
+
+// ListResourcesForProvider calls
+// commonfate.cloud.access.v1alpha1.ResourceService.ListResourcesForProvider.
+func (c *resourceServiceClient) ListResourcesForProvider(ctx context.Context, req *connect_go.Request[v1alpha1.ListResourcesForProviderRequest]) (*connect_go.Response[v1alpha1.ListResourcesForProviderResponse], error) {
+	return c.listResourcesForProvider.CallUnary(ctx, req)
+}
+
+// ResourceServiceHandler is an implementation of the
+// commonfate.cloud.access.v1alpha1.ResourceService service.
+type ResourceServiceHandler interface {
+	ListResourcesForProvider(context.Context, *connect_go.Request[v1alpha1.ListResourcesForProviderRequest]) (*connect_go.Response[v1alpha1.ListResourcesForProviderResponse], error)
+}
+
+// NewResourceServiceHandler builds an HTTP handler from the service implementation. It returns the
+// path on which to mount the handler and the handler itself.
+//
+// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
+// and JSON codecs. They also support gzip compression.
+func NewResourceServiceHandler(svc ResourceServiceHandler, opts ...connect_go.HandlerOption) (string, http.Handler) {
+	resourceServiceListResourcesForProviderHandler := connect_go.NewUnaryHandler(
+		ResourceServiceListResourcesForProviderProcedure,
+		svc.ListResourcesForProvider,
+		opts...,
+	)
+	return "/commonfate.cloud.access.v1alpha1.ResourceService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case ResourceServiceListResourcesForProviderProcedure:
+			resourceServiceListResourcesForProviderHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+}
+
+// UnimplementedResourceServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedResourceServiceHandler struct{}
+
+func (UnimplementedResourceServiceHandler) ListResourcesForProvider(context.Context, *connect_go.Request[v1alpha1.ListResourcesForProviderRequest]) (*connect_go.Response[v1alpha1.ListResourcesForProviderResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("commonfate.cloud.access.v1alpha1.ResourceService.ListResourcesForProvider is not implemented"))
+}
+
 // AccessServiceClient is a client for the commonfate.cloud.access.v1alpha1.AccessService service.
 type AccessServiceClient interface {
-	GetEntitlement(context.Context, *connect_go.Request[v1alpha1.GetEntitlementRequest]) (*connect_go.Response[v1alpha1.GetEntitlementResponse], error)
-	ListEntitlementsForProvider(context.Context, *connect_go.Request[v1alpha1.ListEntitlementsForProviderRequest]) (*connect_go.Response[v1alpha1.ListEntitlementsForProviderResponse], error)
-	CreateAccessRequest(context.Context, *connect_go.Request[v1alpha1.CreateAccessRequestRequest]) (*connect_go.Response[v1alpha1.CreateAccessRequestResponse], error)
+	// EnsureAccess is a high-level declarative API which can be called to ensure access has been provisioned to an entitlement.
+	//
+	// The method checks whether the entitlement has been provisioned to the user.
+	// If the entitlement has not been provisioned, an Access Request will be created for the entitlement.
+	// If a pending Access Request exists for the entitlement, this request is returned.
+	//
+	// In future, this method may trigger an extension to any Access Requests which are due to expire.
+	//
+	// As an alternative to this high-level API, it is possible to use low-level APIs to achieve the same outcome:
+	//
+	// 1. call AccessService.Preflight() to check the status of the entitlement
+	// 2. call AccessService.CreateAccessRequest() to request access to the entitlement
+	//
+	// This method is used by the Common Fate CLI in commands like 'cf exec gcp -- <command>' to ensure access
+	// is provisioned prior to running a command.
+	EnsureAccess(context.Context, *connect_go.Request[v1alpha1.EnsureAccessRequest]) (*connect_go.Response[v1alpha1.EnsureAccessResponse], error)
+	ListAccessRequests(context.Context, *connect_go.Request[v1alpha1.ListAccessRequestsRequest]) (*connect_go.Response[v1alpha1.ListAccessRequestsResponse], error)
+	GetAccessRequest(context.Context, *connect_go.Request[v1alpha1.GetAccessRequestRequest]) (*connect_go.Response[v1alpha1.GetAccessRequestResponse], error)
+	RevokeAccessRequest(context.Context, *connect_go.Request[v1alpha1.RevokeAccessRequestRequest]) (*connect_go.Response[v1alpha1.RevokeAccessRequestResponse], error)
+	CancelAccessRequest(context.Context, *connect_go.Request[v1alpha1.CancelAccessRequestRequest]) (*connect_go.Response[v1alpha1.CancelAccessRequestResponse], error)
+	ReviewAccessRequest(context.Context, *connect_go.Request[v1alpha1.ReviewAccessRequestRequest]) (*connect_go.Response[v1alpha1.ReviewAccessRequestResponse], error)
 }
 
 // NewAccessServiceClient constructs a client for the commonfate.cloud.access.v1alpha1.AccessService
@@ -135,19 +237,34 @@ type AccessServiceClient interface {
 func NewAccessServiceClient(httpClient connect_go.HTTPClient, baseURL string, opts ...connect_go.ClientOption) AccessServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
 	return &accessServiceClient{
-		getEntitlement: connect_go.NewClient[v1alpha1.GetEntitlementRequest, v1alpha1.GetEntitlementResponse](
+		ensureAccess: connect_go.NewClient[v1alpha1.EnsureAccessRequest, v1alpha1.EnsureAccessResponse](
 			httpClient,
-			baseURL+AccessServiceGetEntitlementProcedure,
+			baseURL+AccessServiceEnsureAccessProcedure,
 			opts...,
 		),
-		listEntitlementsForProvider: connect_go.NewClient[v1alpha1.ListEntitlementsForProviderRequest, v1alpha1.ListEntitlementsForProviderResponse](
+		listAccessRequests: connect_go.NewClient[v1alpha1.ListAccessRequestsRequest, v1alpha1.ListAccessRequestsResponse](
 			httpClient,
-			baseURL+AccessServiceListEntitlementsForProviderProcedure,
+			baseURL+AccessServiceListAccessRequestsProcedure,
 			opts...,
 		),
-		createAccessRequest: connect_go.NewClient[v1alpha1.CreateAccessRequestRequest, v1alpha1.CreateAccessRequestResponse](
+		getAccessRequest: connect_go.NewClient[v1alpha1.GetAccessRequestRequest, v1alpha1.GetAccessRequestResponse](
 			httpClient,
-			baseURL+AccessServiceCreateAccessRequestProcedure,
+			baseURL+AccessServiceGetAccessRequestProcedure,
+			opts...,
+		),
+		revokeAccessRequest: connect_go.NewClient[v1alpha1.RevokeAccessRequestRequest, v1alpha1.RevokeAccessRequestResponse](
+			httpClient,
+			baseURL+AccessServiceRevokeAccessRequestProcedure,
+			opts...,
+		),
+		cancelAccessRequest: connect_go.NewClient[v1alpha1.CancelAccessRequestRequest, v1alpha1.CancelAccessRequestResponse](
+			httpClient,
+			baseURL+AccessServiceCancelAccessRequestProcedure,
+			opts...,
+		),
+		reviewAccessRequest: connect_go.NewClient[v1alpha1.ReviewAccessRequestRequest, v1alpha1.ReviewAccessRequestResponse](
+			httpClient,
+			baseURL+AccessServiceReviewAccessRequestProcedure,
 			opts...,
 		),
 	}
@@ -155,33 +272,68 @@ func NewAccessServiceClient(httpClient connect_go.HTTPClient, baseURL string, op
 
 // accessServiceClient implements AccessServiceClient.
 type accessServiceClient struct {
-	getEntitlement              *connect_go.Client[v1alpha1.GetEntitlementRequest, v1alpha1.GetEntitlementResponse]
-	listEntitlementsForProvider *connect_go.Client[v1alpha1.ListEntitlementsForProviderRequest, v1alpha1.ListEntitlementsForProviderResponse]
-	createAccessRequest         *connect_go.Client[v1alpha1.CreateAccessRequestRequest, v1alpha1.CreateAccessRequestResponse]
+	ensureAccess        *connect_go.Client[v1alpha1.EnsureAccessRequest, v1alpha1.EnsureAccessResponse]
+	listAccessRequests  *connect_go.Client[v1alpha1.ListAccessRequestsRequest, v1alpha1.ListAccessRequestsResponse]
+	getAccessRequest    *connect_go.Client[v1alpha1.GetAccessRequestRequest, v1alpha1.GetAccessRequestResponse]
+	revokeAccessRequest *connect_go.Client[v1alpha1.RevokeAccessRequestRequest, v1alpha1.RevokeAccessRequestResponse]
+	cancelAccessRequest *connect_go.Client[v1alpha1.CancelAccessRequestRequest, v1alpha1.CancelAccessRequestResponse]
+	reviewAccessRequest *connect_go.Client[v1alpha1.ReviewAccessRequestRequest, v1alpha1.ReviewAccessRequestResponse]
 }
 
-// GetEntitlement calls commonfate.cloud.access.v1alpha1.AccessService.GetEntitlement.
-func (c *accessServiceClient) GetEntitlement(ctx context.Context, req *connect_go.Request[v1alpha1.GetEntitlementRequest]) (*connect_go.Response[v1alpha1.GetEntitlementResponse], error) {
-	return c.getEntitlement.CallUnary(ctx, req)
+// EnsureAccess calls commonfate.cloud.access.v1alpha1.AccessService.EnsureAccess.
+func (c *accessServiceClient) EnsureAccess(ctx context.Context, req *connect_go.Request[v1alpha1.EnsureAccessRequest]) (*connect_go.Response[v1alpha1.EnsureAccessResponse], error) {
+	return c.ensureAccess.CallUnary(ctx, req)
 }
 
-// ListEntitlementsForProvider calls
-// commonfate.cloud.access.v1alpha1.AccessService.ListEntitlementsForProvider.
-func (c *accessServiceClient) ListEntitlementsForProvider(ctx context.Context, req *connect_go.Request[v1alpha1.ListEntitlementsForProviderRequest]) (*connect_go.Response[v1alpha1.ListEntitlementsForProviderResponse], error) {
-	return c.listEntitlementsForProvider.CallUnary(ctx, req)
+// ListAccessRequests calls commonfate.cloud.access.v1alpha1.AccessService.ListAccessRequests.
+func (c *accessServiceClient) ListAccessRequests(ctx context.Context, req *connect_go.Request[v1alpha1.ListAccessRequestsRequest]) (*connect_go.Response[v1alpha1.ListAccessRequestsResponse], error) {
+	return c.listAccessRequests.CallUnary(ctx, req)
 }
 
-// CreateAccessRequest calls commonfate.cloud.access.v1alpha1.AccessService.CreateAccessRequest.
-func (c *accessServiceClient) CreateAccessRequest(ctx context.Context, req *connect_go.Request[v1alpha1.CreateAccessRequestRequest]) (*connect_go.Response[v1alpha1.CreateAccessRequestResponse], error) {
-	return c.createAccessRequest.CallUnary(ctx, req)
+// GetAccessRequest calls commonfate.cloud.access.v1alpha1.AccessService.GetAccessRequest.
+func (c *accessServiceClient) GetAccessRequest(ctx context.Context, req *connect_go.Request[v1alpha1.GetAccessRequestRequest]) (*connect_go.Response[v1alpha1.GetAccessRequestResponse], error) {
+	return c.getAccessRequest.CallUnary(ctx, req)
+}
+
+// RevokeAccessRequest calls commonfate.cloud.access.v1alpha1.AccessService.RevokeAccessRequest.
+func (c *accessServiceClient) RevokeAccessRequest(ctx context.Context, req *connect_go.Request[v1alpha1.RevokeAccessRequestRequest]) (*connect_go.Response[v1alpha1.RevokeAccessRequestResponse], error) {
+	return c.revokeAccessRequest.CallUnary(ctx, req)
+}
+
+// CancelAccessRequest calls commonfate.cloud.access.v1alpha1.AccessService.CancelAccessRequest.
+func (c *accessServiceClient) CancelAccessRequest(ctx context.Context, req *connect_go.Request[v1alpha1.CancelAccessRequestRequest]) (*connect_go.Response[v1alpha1.CancelAccessRequestResponse], error) {
+	return c.cancelAccessRequest.CallUnary(ctx, req)
+}
+
+// ReviewAccessRequest calls commonfate.cloud.access.v1alpha1.AccessService.ReviewAccessRequest.
+func (c *accessServiceClient) ReviewAccessRequest(ctx context.Context, req *connect_go.Request[v1alpha1.ReviewAccessRequestRequest]) (*connect_go.Response[v1alpha1.ReviewAccessRequestResponse], error) {
+	return c.reviewAccessRequest.CallUnary(ctx, req)
 }
 
 // AccessServiceHandler is an implementation of the commonfate.cloud.access.v1alpha1.AccessService
 // service.
 type AccessServiceHandler interface {
-	GetEntitlement(context.Context, *connect_go.Request[v1alpha1.GetEntitlementRequest]) (*connect_go.Response[v1alpha1.GetEntitlementResponse], error)
-	ListEntitlementsForProvider(context.Context, *connect_go.Request[v1alpha1.ListEntitlementsForProviderRequest]) (*connect_go.Response[v1alpha1.ListEntitlementsForProviderResponse], error)
-	CreateAccessRequest(context.Context, *connect_go.Request[v1alpha1.CreateAccessRequestRequest]) (*connect_go.Response[v1alpha1.CreateAccessRequestResponse], error)
+	// EnsureAccess is a high-level declarative API which can be called to ensure access has been provisioned to an entitlement.
+	//
+	// The method checks whether the entitlement has been provisioned to the user.
+	// If the entitlement has not been provisioned, an Access Request will be created for the entitlement.
+	// If a pending Access Request exists for the entitlement, this request is returned.
+	//
+	// In future, this method may trigger an extension to any Access Requests which are due to expire.
+	//
+	// As an alternative to this high-level API, it is possible to use low-level APIs to achieve the same outcome:
+	//
+	// 1. call AccessService.Preflight() to check the status of the entitlement
+	// 2. call AccessService.CreateAccessRequest() to request access to the entitlement
+	//
+	// This method is used by the Common Fate CLI in commands like 'cf exec gcp -- <command>' to ensure access
+	// is provisioned prior to running a command.
+	EnsureAccess(context.Context, *connect_go.Request[v1alpha1.EnsureAccessRequest]) (*connect_go.Response[v1alpha1.EnsureAccessResponse], error)
+	ListAccessRequests(context.Context, *connect_go.Request[v1alpha1.ListAccessRequestsRequest]) (*connect_go.Response[v1alpha1.ListAccessRequestsResponse], error)
+	GetAccessRequest(context.Context, *connect_go.Request[v1alpha1.GetAccessRequestRequest]) (*connect_go.Response[v1alpha1.GetAccessRequestResponse], error)
+	RevokeAccessRequest(context.Context, *connect_go.Request[v1alpha1.RevokeAccessRequestRequest]) (*connect_go.Response[v1alpha1.RevokeAccessRequestResponse], error)
+	CancelAccessRequest(context.Context, *connect_go.Request[v1alpha1.CancelAccessRequestRequest]) (*connect_go.Response[v1alpha1.CancelAccessRequestResponse], error)
+	ReviewAccessRequest(context.Context, *connect_go.Request[v1alpha1.ReviewAccessRequestRequest]) (*connect_go.Response[v1alpha1.ReviewAccessRequestResponse], error)
 }
 
 // NewAccessServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -190,29 +342,50 @@ type AccessServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewAccessServiceHandler(svc AccessServiceHandler, opts ...connect_go.HandlerOption) (string, http.Handler) {
-	accessServiceGetEntitlementHandler := connect_go.NewUnaryHandler(
-		AccessServiceGetEntitlementProcedure,
-		svc.GetEntitlement,
+	accessServiceEnsureAccessHandler := connect_go.NewUnaryHandler(
+		AccessServiceEnsureAccessProcedure,
+		svc.EnsureAccess,
 		opts...,
 	)
-	accessServiceListEntitlementsForProviderHandler := connect_go.NewUnaryHandler(
-		AccessServiceListEntitlementsForProviderProcedure,
-		svc.ListEntitlementsForProvider,
+	accessServiceListAccessRequestsHandler := connect_go.NewUnaryHandler(
+		AccessServiceListAccessRequestsProcedure,
+		svc.ListAccessRequests,
 		opts...,
 	)
-	accessServiceCreateAccessRequestHandler := connect_go.NewUnaryHandler(
-		AccessServiceCreateAccessRequestProcedure,
-		svc.CreateAccessRequest,
+	accessServiceGetAccessRequestHandler := connect_go.NewUnaryHandler(
+		AccessServiceGetAccessRequestProcedure,
+		svc.GetAccessRequest,
+		opts...,
+	)
+	accessServiceRevokeAccessRequestHandler := connect_go.NewUnaryHandler(
+		AccessServiceRevokeAccessRequestProcedure,
+		svc.RevokeAccessRequest,
+		opts...,
+	)
+	accessServiceCancelAccessRequestHandler := connect_go.NewUnaryHandler(
+		AccessServiceCancelAccessRequestProcedure,
+		svc.CancelAccessRequest,
+		opts...,
+	)
+	accessServiceReviewAccessRequestHandler := connect_go.NewUnaryHandler(
+		AccessServiceReviewAccessRequestProcedure,
+		svc.ReviewAccessRequest,
 		opts...,
 	)
 	return "/commonfate.cloud.access.v1alpha1.AccessService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case AccessServiceGetEntitlementProcedure:
-			accessServiceGetEntitlementHandler.ServeHTTP(w, r)
-		case AccessServiceListEntitlementsForProviderProcedure:
-			accessServiceListEntitlementsForProviderHandler.ServeHTTP(w, r)
-		case AccessServiceCreateAccessRequestProcedure:
-			accessServiceCreateAccessRequestHandler.ServeHTTP(w, r)
+		case AccessServiceEnsureAccessProcedure:
+			accessServiceEnsureAccessHandler.ServeHTTP(w, r)
+		case AccessServiceListAccessRequestsProcedure:
+			accessServiceListAccessRequestsHandler.ServeHTTP(w, r)
+		case AccessServiceGetAccessRequestProcedure:
+			accessServiceGetAccessRequestHandler.ServeHTTP(w, r)
+		case AccessServiceRevokeAccessRequestProcedure:
+			accessServiceRevokeAccessRequestHandler.ServeHTTP(w, r)
+		case AccessServiceCancelAccessRequestProcedure:
+			accessServiceCancelAccessRequestHandler.ServeHTTP(w, r)
+		case AccessServiceReviewAccessRequestProcedure:
+			accessServiceReviewAccessRequestHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -222,14 +395,26 @@ func NewAccessServiceHandler(svc AccessServiceHandler, opts ...connect_go.Handle
 // UnimplementedAccessServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedAccessServiceHandler struct{}
 
-func (UnimplementedAccessServiceHandler) GetEntitlement(context.Context, *connect_go.Request[v1alpha1.GetEntitlementRequest]) (*connect_go.Response[v1alpha1.GetEntitlementResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("commonfate.cloud.access.v1alpha1.AccessService.GetEntitlement is not implemented"))
+func (UnimplementedAccessServiceHandler) EnsureAccess(context.Context, *connect_go.Request[v1alpha1.EnsureAccessRequest]) (*connect_go.Response[v1alpha1.EnsureAccessResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("commonfate.cloud.access.v1alpha1.AccessService.EnsureAccess is not implemented"))
 }
 
-func (UnimplementedAccessServiceHandler) ListEntitlementsForProvider(context.Context, *connect_go.Request[v1alpha1.ListEntitlementsForProviderRequest]) (*connect_go.Response[v1alpha1.ListEntitlementsForProviderResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("commonfate.cloud.access.v1alpha1.AccessService.ListEntitlementsForProvider is not implemented"))
+func (UnimplementedAccessServiceHandler) ListAccessRequests(context.Context, *connect_go.Request[v1alpha1.ListAccessRequestsRequest]) (*connect_go.Response[v1alpha1.ListAccessRequestsResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("commonfate.cloud.access.v1alpha1.AccessService.ListAccessRequests is not implemented"))
 }
 
-func (UnimplementedAccessServiceHandler) CreateAccessRequest(context.Context, *connect_go.Request[v1alpha1.CreateAccessRequestRequest]) (*connect_go.Response[v1alpha1.CreateAccessRequestResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("commonfate.cloud.access.v1alpha1.AccessService.CreateAccessRequest is not implemented"))
+func (UnimplementedAccessServiceHandler) GetAccessRequest(context.Context, *connect_go.Request[v1alpha1.GetAccessRequestRequest]) (*connect_go.Response[v1alpha1.GetAccessRequestResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("commonfate.cloud.access.v1alpha1.AccessService.GetAccessRequest is not implemented"))
+}
+
+func (UnimplementedAccessServiceHandler) RevokeAccessRequest(context.Context, *connect_go.Request[v1alpha1.RevokeAccessRequestRequest]) (*connect_go.Response[v1alpha1.RevokeAccessRequestResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("commonfate.cloud.access.v1alpha1.AccessService.RevokeAccessRequest is not implemented"))
+}
+
+func (UnimplementedAccessServiceHandler) CancelAccessRequest(context.Context, *connect_go.Request[v1alpha1.CancelAccessRequestRequest]) (*connect_go.Response[v1alpha1.CancelAccessRequestResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("commonfate.cloud.access.v1alpha1.AccessService.CancelAccessRequest is not implemented"))
+}
+
+func (UnimplementedAccessServiceHandler) ReviewAccessRequest(context.Context, *connect_go.Request[v1alpha1.ReviewAccessRequestRequest]) (*connect_go.Response[v1alpha1.ReviewAccessRequestResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("commonfate.cloud.access.v1alpha1.AccessService.ReviewAccessRequest is not implemented"))
 }

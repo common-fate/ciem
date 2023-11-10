@@ -9,33 +9,212 @@ service UserManagementService {
   rpc ListUsers(ListUsersRequest) returns (ListUsersResponse) {}
 }
 
+service ResourceService {
+  rpc ListResourcesForProvider(ListResourcesForProviderRequest) returns (ListResourcesForProviderResponse) {}
+}
+
 service AccessService {
-  rpc GetEntitlement(GetEntitlementRequest) returns (GetEntitlementResponse) {}
-  rpc ListEntitlementsForProvider(ListEntitlementsForProviderRequest) returns (ListEntitlementsForProviderResponse) {}
-  rpc CreateAccessRequest(CreateAccessRequestRequest) returns (CreateAccessRequestResponse) {}
+  // EnsureAccess is a high-level declarative API which can be called to ensure access has been provisioned to an entitlement.
+  //
+  // The method checks whether the entitlement has been provisioned to the user.
+  // If the entitlement has not been provisioned, an Access Request will be created for the entitlement.
+  // If a pending Access Request exists for the entitlement, this request is returned.
+  //
+  // In future, this method may trigger an extension to any Access Requests which are due to expire.
+  // 
+  // As an alternative to this high-level API, it is possible to use low-level APIs to achieve the same outcome:
+  //
+  // 1. call AccessService.Preflight() to check the status of the entitlement
+  // 2. call AccessService.CreateAccessRequest() to request access to the entitlement
+  //
+  // This method is used by the Common Fate CLI in commands like 'cf exec gcp -- <command>' to ensure access
+  // is provisioned prior to running a command.
+  rpc EnsureAccess(EnsureAccessRequest) returns (EnsureAccessResponse) {}
+
+  // // Preflight runs the validation and approval policies against an entitlement to determine whether access
+  // // would be granted, without actually creating an Access Request. The Preflight response indicates whether
+  // // a manual approval would be required for the access.
+  // //
+  // // Common Fate clients call the Preflight method prior to creating an Access Request so that we can ask
+  // // users to confirm that they want to create an Access Request to be manually reviewed.
+  // //
+  // // This avoids situations where a user was expecting to automatically have access granted, but the 
+  // // Adaptive Access Engine blocks automatic access. In this situation, a user may not want to bother 
+  // // the resource owner with an Access Request. Rather than cancelling the Access Request immediately,
+  // // the user can use the Preflight method to determine whether a manual approval is required,
+  // // and then make a choice as to whether they want to submit an Access Request or not.
+  // rpc Preflight(PreflightRequest) returns (PreflightResponse) {}
+
+  // // the batch endpoint could be added in future
+  // // rpc BatchEnsureAccess(BatchEnsureAccessRequest) returns (BatchEnsureAccessResponse) {}
+
+  // // CreateAccessRequest is a low-level API to create an Access Request to a particular entitlement.
+  // // The method will fail if the user already has access to the entitlement, or if a pending Access Request
+  // // already exists for the entitlement.
+  // rpc CreateAccessRequest(CreateAccessRequestRequest) returns (CreateAccessRequestResponse) {}
+
+  // the batch endpoint could be added in future
+  // rpc BatchCreateAccessRequest(BatchCreateAccessRequestRequest) returns (BatchCreateAccessRequestResponse) {}
+
+  rpc ListAccessRequests(ListAccessRequestsRequest) returns (ListAccessRequestsResponse) {}
+  rpc GetAccessRequest(GetAccessRequestRequest) returns (GetAccessRequestResponse) {}
+  rpc RevokeAccessRequest(RevokeAccessRequestRequest) returns (RevokeAccessRequestResponse) {}
+  rpc CancelAccessRequest(CancelAccessRequestRequest) returns (CancelAccessRequestResponse) {}
+  rpc ReviewAccessRequest(ReviewAccessRequestRequest) returns (ReviewAccessRequestResponse) {}
 }
 
+// message PreflightRequest {
+//   AccessRequestInput input = 1;
+// }
 
-message RegisterDeviceRequest {
-  commonfate.cloud.attest.v1alpha1.Attestation attestation = 1;
-  commonfate.cloud.attest.v1alpha1.Device device = 3;
+// message PreflightResponse {
+//   // The ID of the preflight request.
+//   string id = 1;
+
+//   // Indicates whether the entitlement can already be used by the client.
+//   // Will be false if the Access Request is pending or if the request failed validation.
+//   bool entitlement_is_active = 2;
+
+//   // Indicates if the Access Request returned already existed.
+//   // Will be true if a new Access Request was created.
+//   bool request_already_exists = 3;
+
+//   // The outcome of the preflight request.
+//   PreflightOutcome outcome = 4;
+
+//   // An existing Access Request. Will be nil if access is already active because the user was assigned
+//   // persistent access to the entitlement, or if a new request needs to be created.
+//   optional AccessRequest existing_access_request = 5;
+
+//   // A validation error message. Present if the outcome is PREFLIGHT_OUTCOME_INVALID.
+//   optional string error = 6;
+// }
+
+// // The outcome of the preflight, specifically relating
+// // to whether an Access Request would be created and why/why not.
+// enum PreflightOutcome {
+//   PREFLIGHT_OUTCOME_UNSPECIFIED = 0;
+//   // An Access Request does not need to be created.
+//   // This is either because an Access Request already exists, and/or 
+//   // because the entitlement has been persistently assigned to the user.
+//   //
+//   // You can check the 'entitlement_is_active' and 'request_already_exists'
+//   // fields in the response to determine the cause of this status.
+//   PREFLIGHT_OUTCOME_REQUEST_NOT_REQUIRED = 2;
+//   // The Access Request would fail the Validation Policy.
+//   PREFLIGHT_OUTCOME_INVALID = 3;
+//   // The Access Request would be automatically approved.
+//   PREFLIGHT_OUTCOME_WILL_BE_AUTO_APPROVED = 4;
+//   // The Access Request would be blocked and require manual approval.
+//   PREFLIGHT_OUTCOME_WILL_REQUIRE_MANUAL_APPROVAL = 5;
+// }
+
+message EnsureAccessRequest {
+  AccessRequestInput input = 1;
 }
 
-message RegisterDeviceResponse {
-  string device_id = 1;
-  // true if the device already exists
-  bool already_exists = 2;
+message EnsureAccessResponse {
+  // Indicates whether the entitlement can now be used by the client.
+  // Will be false if the Access Request is pending or if the request failed validation.
+  bool entitlement_is_active = 1;
+
+  // Indicates if the Access Request returned already existed.
+  // Will be true if a new Access Request was created.
+  bool request_already_exists = 2;
+
+  // An Access Request. Will be nil if access is already active because the user was assigned
+  // persistent access to the entitlement.
+  optional AccessRequest access_request = 3;
 }
 
-message GetEntitlementRequest {
+message RevokeAccessRequestRequest {
+  // The ID of the Access Request.
+  string id = 1;
+}
+
+message RevokeAccessRequestResponse {
+}
+
+message CancelAccessRequestRequest {
+  // The ID of the Access Request.
+  string id = 1;
+}
+
+message CancelAccessRequestResponse {
+}
+
+enum RequestReviewDecision {
+  REQUEST_REVIEW_DECISION_UNSPECIFIED = 0;
+  REQUEST_REVIEW_DECISION_APPROVE = 1;
+  REQUEST_REVIEW_DECISION_CLOSE = 2;
+}
+message ReviewAccessRequestRequest {
+  // The ID of the Access Request.
+  string id = 1;
+  RequestReviewDecision decision = 2;
+}
+
+message ReviewAccessRequestResponse {
+}
+message ListAccessRequestsRequest {
+    optional string page = 1;
+    optional int32 limit = 2;
+}
+
+message ListAccessRequestsResponse {
+  repeated AccessRequest access_requests = 1;
+  optional string next_page = 2;
+}
+
+message GetAccessRequestRequest {
+  // The ID of the Access Request.
+  string id = 1;
+}
+
+message GetAccessRequestResponse {
+  AccessRequest access_request = 1;
+}
+
+message CreateAccessRequestRequest {
+  AccessRequestInput input = 1;
+}
+
+message CreateAccessRequestResponse {
+  AccessRequest access_request = 1;
+}
+
+message AccessRequestInput {
+  // The resource to request access to.
   Resource resource = 1;
+  
+  // The principal to request access on behalf of.
+  // Reserved for future use.
+  Principal principal = 2;
+
+  // User-provided justification to justify access to the resource.
+  optional Justification justification = 3;
 }
 
-message GetEntitlementResponse {
-  Entitlement entitlement = 1;
+// The principal to request access on behalf of.
+// Reserved for future use.
+message Principal {
+  oneof principal {
+    // The currently authenticated user.
+    bool current_user = 1;
+  }
 }
 
-message ListEntitlementsForProviderRequest {
+message AccessRequest {
+  // The ID of the Access Request.
+  string id = 1;
+  // Batch ID of the Access Request. Access Requests created in the same 
+  // API call have the same Batch ID.
+  string batch_id = 2;
+  Entitlement entitlement = 3;
+  User requestor = 4;
+}
+
+message ListResourcesForProviderRequest {
   EntitlementProvider provider = 1;
   // currently unimplemented
   optional string page = 2;
@@ -43,29 +222,10 @@ message ListEntitlementsForProviderRequest {
   optional int32 limit = 3;
 }
 
-message ListEntitlementsForProviderResponse {
+message ListResourcesForProviderResponse {
   repeated Entitlement entitlements = 1;
   // currently unimplemented
   optional string next_page = 2;
-}
-
-message CreateAccessRequestRequest {
-  repeated Resource resources = 1;
-  optional Justification justification = 2;
-}
-
-message CreateAccessRequestResponse {
-  RequestGroup request_group = 1;
-}
-
-message RequestGroup {
-  string id = 1;
-  repeated AccessRequest requests = 2;
-}
-
-message AccessRequest {
-  string id = 1;
-  Entitlement entitlement = 2;
 }
 
 // an entitlement which is available for the user to request access to.
@@ -79,12 +239,18 @@ message Justification {
   optional commonfate.cloud.attest.v1alpha1.Attestation device_attestation = 2;
 }
 
+
 enum EntitlementStatus {
   ENTITLEMENT_STATUS_UNSPECIFIED = 0;
   ENTITLEMENT_STATUS_ACTIVE = 1;
   ENTITLEMENT_STATUS_PROVISIONING = 2;
   ENTITLEMENT_STATUS_DEPROVISIONING = 3;
-  ENTITLEMENT_STATUS_INACTIVE = 4;
+  ENTITLEMENT_STATUS_CLOSED = 4;
+  ENTITLEMENT_STATUS_FAILED = 5;
+  ENTITLEMENT_STATUS_REVOKED = 6;
+  ENTITLEMENT_STATUS_COMPLETE = 7;
+  ENTITLEMENT_STATUS_CANCELLED = 8;
+  ENTITLEMENT_STATUS_PENDING_APPROVAL = 9;
 }
 
 enum EntitlementProvider {

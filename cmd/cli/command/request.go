@@ -34,14 +34,19 @@ var gcpRequest = cli.Command{
 
 		client := access.NewFromConfig(cfg)
 
-		res, err := client.CreateAccessRequest(ctx, connect.NewRequest(&accessv1alpha1.CreateAccessRequestRequest{
-			Resources: []*accessv1alpha1.Resource{
-				{
+		res, err := client.EnsureAccess(ctx, connect.NewRequest(&accessv1alpha1.EnsureAccessRequest{
+			Input: &accessv1alpha1.AccessRequestInput{
+				Resource: &accessv1alpha1.Resource{
 					Resource: &accessv1alpha1.Resource_GcpProject{
 						GcpProject: &accessv1alpha1.GCPProject{
 							Project: c.String("project"),
 							Role:    c.String("role"),
 						},
+					},
+				},
+				Principal: &accessv1alpha1.Principal{
+					Principal: &accessv1alpha1.Principal_CurrentUser{
+						CurrentUser: true,
 					},
 				},
 			},
@@ -50,15 +55,10 @@ var gcpRequest = cli.Command{
 			return err
 		}
 
-		for _, e := range res.Msg.RequestGroup.Requests {
-			gcp := e.Entitlement.Resource.GetGcpProject()
-			if gcp == nil {
-				continue
-			}
+		clio.Infow("response", "response", res)
 
-			if e.Entitlement.Status == accessv1alpha1.EntitlementStatus_ENTITLEMENT_STATUS_ACTIVE {
-				clio.Successf("access to %s with role %s is now active", gcp.Project, gcp.Role)
-			}
+		if res.Msg.AccessRequest.Entitlement.Status == accessv1alpha1.EntitlementStatus_ENTITLEMENT_STATUS_ACTIVE {
+			clio.Successf("access to %s with role %s is now active", res.Msg.AccessRequest.Entitlement.Resource.GetGcpProject().Project, res.Msg.AccessRequest.Entitlement.Resource.GetGcpProject().Role)
 		}
 
 		return nil

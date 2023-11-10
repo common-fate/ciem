@@ -32,9 +32,7 @@ var gcpList = cli.Command{
 
 		client := access.NewFromConfig(cfg)
 
-		res, err := client.ListEntitlementsForProvider(ctx, connect.NewRequest(&accessv1alpha1.ListEntitlementsForProviderRequest{
-			Provider: accessv1alpha1.EntitlementProvider_ENTITLEMENT_PROVIDER_GCP,
-		}))
+		res, err := client.ListAccessRequests(ctx, connect.NewRequest(&accessv1alpha1.ListAccessRequestsRequest{}))
 		if err != nil {
 			return err
 		}
@@ -42,12 +40,13 @@ var gcpList = cli.Command{
 		w := table.New(os.Stdout)
 		w.Columns("PROJECT", "ROLE")
 
-		for _, e := range res.Msg.Entitlements {
-			gcp := e.Resource.GetGcpProject()
-			if gcp == nil {
-				continue
+		for _, e := range res.Msg.AccessRequests {
+			switch v := e.Entitlement.Resource.Resource.(type) {
+			case *accessv1alpha1.Resource_AwsAccount:
+				w.Row(v.AwsAccount.AccountId, v.AwsAccount.Role)
+			case *accessv1alpha1.Resource_GcpProject:
+				w.Row(v.GcpProject.Project, v.GcpProject.Role)
 			}
-			w.Row(gcp.Project, gcp.Role)
 		}
 
 		w.Flush()
