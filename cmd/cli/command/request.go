@@ -5,6 +5,7 @@ import (
 	"github.com/common-fate/ciem/config"
 	accessv1alpha1 "github.com/common-fate/ciem/gen/commonfate/cloud/access/v1alpha1"
 	"github.com/common-fate/ciem/service/access"
+	"github.com/common-fate/ciem/service/request"
 	"github.com/common-fate/clio"
 	"github.com/urfave/cli/v2"
 )
@@ -14,6 +15,9 @@ var Request = cli.Command{
 	Usage: "Request access to an entitlement",
 	Subcommands: []*cli.Command{
 		&gcpRequest,
+		&review,
+		&revoke,
+		&cancel,
 	},
 }
 
@@ -34,21 +38,11 @@ var gcpRequest = cli.Command{
 
 		client := access.NewFromConfig(cfg)
 
-		res, err := client.EnsureAccess(ctx, connect.NewRequest(&accessv1alpha1.EnsureAccessRequest{
-			Input: &accessv1alpha1.AccessRequestInput{
-				Resource: &accessv1alpha1.Resource{
-					Resource: &accessv1alpha1.Resource_GcpProject{
-						GcpProject: &accessv1alpha1.GCPProject{
-							Project: c.String("project"),
-							Role:    c.String("role"),
-						},
-					},
-				},
-				Principal: &accessv1alpha1.Principal{
-					Principal: &accessv1alpha1.Principal_CurrentUser{
-						CurrentUser: true,
-					},
-				},
+		res, err := client.Grant(ctx, connect.NewRequest(&accessv1alpha1.GrantRequest{
+			Action: c.String("role"),
+			Resource: &accessv1alpha1.EntityUID{
+				Type: "GCP::Project",
+				Id:   c.String("project"),
 			},
 		}))
 		if err != nil {
@@ -56,10 +50,118 @@ var gcpRequest = cli.Command{
 		}
 
 		clio.Infow("response", "response", res)
-
-		if res.Msg.AccessRequest.Entitlement.Status == accessv1alpha1.EntitlementStatus_ENTITLEMENT_STATUS_ACTIVE {
-			clio.Successf("access to %s with role %s is now active", res.Msg.AccessRequest.Entitlement.Resource.GetGcpProject().Project, res.Msg.AccessRequest.Entitlement.Resource.GetGcpProject().Role)
+		if res.Msg.Decision == accessv1alpha1.Decision_DECISION_DENIED {
+			clio.Warnf("access was denied")
 		}
+		if res.Msg.Decision == accessv1alpha1.Decision_DECISION_REVIEW_REQUIRED {
+			clio.Warnf("access requires review")
+		}
+		if res.Msg.AccessRequest != nil && res.Msg.AccessRequest.Status == accessv1alpha1.RequestStatus_REQUEST_STATUS_ACTIVE {
+			clio.Successf("access to %s with role %s is now active", res.Msg.AccessRequest.Resource.Uid.Id, res.Msg.AccessRequest.Action)
+		}
+
+		return nil
+	},
+}
+
+var review = cli.Command{
+	Name:  "review",
+	Usage: "Review access to a GCP entitlement",
+	Flags: []cli.Flag{
+		&cli.StringFlag{Name: "request-id"},
+		&cli.BoolFlag{Name: "approve", Value: true},
+	},
+	Action: func(c *cli.Context) error {
+		ctx := c.Context
+
+		cfg, err := config.LoadDefault(ctx)
+		if err != nil {
+			return err
+		}
+
+		cfg.APIURL = "http://localhost:8080"
+		client := request.NewFromConfig(cfg)
+
+		dec := accessv1alpha1.RequestReviewDecision_REQUEST_REVIEW_DECISION_CLOSE
+		if c.Bool("approve") {
+			dec = accessv1alpha1.RequestReviewDecision_REQUEST_REVIEW_DECISION_APPROVE
+		}
+		res, err := client.ReviewAccessRequest(ctx, connect.NewRequest(&accessv1alpha1.ReviewAccessRequestRequest{
+			Id:       c.String("request-id"),
+			Decision: dec,
+		}))
+
+		clio.Debugw("result", "res", res)
+		if err != nil {
+			return err
+		}
+		if c.Bool("approve") {
+			clio.Successf("approved request")
+		} else {
+			clio.Successf("closed request")
+		}
+
+		return nil
+	},
+}
+
+var revoke = cli.Command{
+	Name:  "revoke",
+	Usage: "Revoke access to a GCP entitlement",
+	Flags: []cli.Flag{
+		&cli.StringFlag{Name: "request-id"},
+	},
+	Action: func(c *cli.Context) error {
+		ctx := c.Context
+
+		cfg, err := config.LoadDefault(ctx)
+		if err != nil {
+			return err
+		}
+
+		cfg.APIURL = "http://localhost:8080"
+		client := request.NewFromConfig(cfg)
+
+		res, err := client.RevokeAccessRequest(ctx, connect.NewRequest(&accessv1alpha1.RevokeAccessRequestRequest{
+			Id: c.String("request-id"),
+		}))
+
+		clio.Debugw("result", "res", res)
+		if err != nil {
+			return err
+		}
+		clio.Successf("revoked request")
+
+		return nil
+	},
+}
+
+var cancel = cli.Command{
+	Name:  "cancel",
+	Usage: "Cancel access to a GCP entitlement",
+	Flags: []cli.Flag{
+		&cli.StringFlag{Name: "request-id"},
+	},
+	Action: func(c *cli.Context) error {
+		ctx := c.Context
+
+		cfg, err := config.LoadDefault(ctx)
+		if err != nil {
+			return err
+		}
+
+		cfg.APIURL = "http://localhost:8080"
+		client := request.NewFromConfig(cfg)
+
+		res, err := client.CancelAccessRequest(ctx, connect.NewRequest(&accessv1alpha1.CancelAccessRequestRequest{
+			Id: c.String("request-id"),
+		}))
+
+		clio.Debugw("result", "res", res)
+		if err != nil {
+			return err
+		}
+		clio.Successf("cancelled request")
 
 		return nil
 	},

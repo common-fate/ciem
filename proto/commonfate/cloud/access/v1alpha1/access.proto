@@ -3,7 +3,7 @@ syntax = "proto3";
 package commonfate.cloud.access.v1alpha1;
 
 import "commonfate/cloud/attest/v1alpha1/attestation.proto";
-import "commonfate/cloud/access/v1alpha1/resource.proto";
+import "google/protobuf/timestamp.proto";
 
 service UserManagementService {
   rpc ListUsers(ListUsersRequest) returns (ListUsersResponse) {}
@@ -13,8 +13,10 @@ service ResourceService {
   rpc ListResourcesForProvider(ListResourcesForProviderRequest) returns (ListResourcesForProviderResponse) {}
 }
 
+// AccessService is the Access Handler's user-facing API.
+// Users call this API to ensure that they have access to entitlements.
 service AccessService {
-  // EnsureAccess is a high-level declarative API which can be called to ensure access has been provisioned to an entitlement.
+  // Grant is a high-level declarative API which can be called to ensure access has been provisioned to an entitlement.
   //
   // The method checks whether the entitlement has been provisioned to the user.
   // If the entitlement has not been provisioned, an Access Request will be created for the entitlement.
@@ -22,40 +24,21 @@ service AccessService {
   //
   // In future, this method may trigger an extension to any Access Requests which are due to expire.
   // 
-  // As an alternative to this high-level API, it is possible to use low-level APIs to achieve the same outcome:
-  //
-  // 1. call AccessService.Preflight() to check the status of the entitlement
-  // 2. call AccessService.CreateAccessRequest() to request access to the entitlement
   //
   // This method is used by the Common Fate CLI in commands like 'cf exec gcp -- <command>' to ensure access
   // is provisioned prior to running a command.
-  rpc EnsureAccess(EnsureAccessRequest) returns (EnsureAccessResponse) {}
+  rpc Grant(GrantRequest) returns (GrantResponse) {}
+}
 
-  // // Preflight runs the validation and approval policies against an entitlement to determine whether access
-  // // would be granted, without actually creating an Access Request. The Preflight response indicates whether
-  // // a manual approval would be required for the access.
-  // //
-  // // Common Fate clients call the Preflight method prior to creating an Access Request so that we can ask
-  // // users to confirm that they want to create an Access Request to be manually reviewed.
-  // //
-  // // This avoids situations where a user was expecting to automatically have access granted, but the 
-  // // Adaptive Access Engine blocks automatic access. In this situation, a user may not want to bother 
-  // // the resource owner with an Access Request. Rather than cancelling the Access Request immediately,
-  // // the user can use the Preflight method to determine whether a manual approval is required,
-  // // and then make a choice as to whether they want to submit an Access Request or not.
-  // rpc Preflight(PreflightRequest) returns (PreflightResponse) {}
+// ControlPlaneService is the RPC service running in the control plane 
+// which is called by the Access Handlers.
+service ControlPlaneService {
+  // GetExistingAccessRequest checks if there is an existing access request for the particular entitlement.
+  // It returns a nil response if no access request exists.
+  rpc GetExistingAccessRequest(GetExistingAccessRequestRequest) returns (GetExistingAccessRequestResponse) {}
+}
 
-  // // the batch endpoint could be added in future
-  // // rpc BatchEnsureAccess(BatchEnsureAccessRequest) returns (BatchEnsureAccessResponse) {}
-
-  // // CreateAccessRequest is a low-level API to create an Access Request to a particular entitlement.
-  // // The method will fail if the user already has access to the entitlement, or if a pending Access Request
-  // // already exists for the entitlement.
-  // rpc CreateAccessRequest(CreateAccessRequestRequest) returns (CreateAccessRequestResponse) {}
-
-  // the batch endpoint could be added in future
-  // rpc BatchCreateAccessRequest(BatchCreateAccessRequestRequest) returns (BatchCreateAccessRequestResponse) {}
-
+service AccessRequestService {
   rpc ListAccessRequests(ListAccessRequestsRequest) returns (ListAccessRequestsResponse) {}
   rpc GetAccessRequest(GetAccessRequestRequest) returns (GetAccessRequestResponse) {}
   rpc RevokeAccessRequest(RevokeAccessRequestRequest) returns (RevokeAccessRequestResponse) {}
@@ -63,68 +46,179 @@ service AccessService {
   rpc ReviewAccessRequest(ReviewAccessRequestRequest) returns (ReviewAccessRequestResponse) {}
 }
 
-// message PreflightRequest {
-//   AccessRequestInput input = 1;
-// }
-
-// message PreflightResponse {
-//   // The ID of the preflight request.
-//   string id = 1;
-
-//   // Indicates whether the entitlement can already be used by the client.
-//   // Will be false if the Access Request is pending or if the request failed validation.
-//   bool entitlement_is_active = 2;
-
-//   // Indicates if the Access Request returned already existed.
-//   // Will be true if a new Access Request was created.
-//   bool request_already_exists = 3;
-
-//   // The outcome of the preflight request.
-//   PreflightOutcome outcome = 4;
-
-//   // An existing Access Request. Will be nil if access is already active because the user was assigned
-//   // persistent access to the entitlement, or if a new request needs to be created.
-//   optional AccessRequest existing_access_request = 5;
-
-//   // A validation error message. Present if the outcome is PREFLIGHT_OUTCOME_INVALID.
-//   optional string error = 6;
-// }
-
-// // The outcome of the preflight, specifically relating
-// // to whether an Access Request would be created and why/why not.
-// enum PreflightOutcome {
-//   PREFLIGHT_OUTCOME_UNSPECIFIED = 0;
-//   // An Access Request does not need to be created.
-//   // This is either because an Access Request already exists, and/or 
-//   // because the entitlement has been persistently assigned to the user.
-//   //
-//   // You can check the 'entitlement_is_active' and 'request_already_exists'
-//   // fields in the response to determine the cause of this status.
-//   PREFLIGHT_OUTCOME_REQUEST_NOT_REQUIRED = 2;
-//   // The Access Request would fail the Validation Policy.
-//   PREFLIGHT_OUTCOME_INVALID = 3;
-//   // The Access Request would be automatically approved.
-//   PREFLIGHT_OUTCOME_WILL_BE_AUTO_APPROVED = 4;
-//   // The Access Request would be blocked and require manual approval.
-//   PREFLIGHT_OUTCOME_WILL_REQUIRE_MANUAL_APPROVAL = 5;
-// }
-
-message EnsureAccessRequest {
-  AccessRequestInput input = 1;
+message GetExistingAccessRequestRequest {
+  EntityUID principal = 1;
+  string action = 2;
+  EntityUID resource = 3;
 }
 
-message EnsureAccessResponse {
-  // Indicates whether the entitlement can now be used by the client.
-  // Will be false if the Access Request is pending or if the request failed validation.
-  bool entitlement_is_active = 1;
+message GetExistingAccessRequestResponse {
+  optional AccessRequest access_request = 1;
+}
+
+message GrantRequest {
+  // to be added in future when 'on-behalf-of' requests are implemented.
+  reserved 1;
+  reserved "principal";
+
+  string action = 2;
+  EntityUID resource = 3;
+  Justification justification = 4;
+}
+
+enum Decision {
+  DECISION_UNSPECIFIED = 0;
+
+  // Access to the resource is allowed.
+  DECISION_ALLOWED = 2;
+
+  // Access to the resource requires a manual review.
+  DECISION_REVIEW_REQUIRED = 3;
+
+  // Access to the resource is denied.
+  DECISION_DENIED = 4;
+}
+
+message GrantResponse {
+  // An ID which can be used to debug the evaluation of the access policies
+  // associated with the request.
+  string decision_id = 1;
+
+  // The decision made by the Common Fate authorization engine.
+  Decision decision = 2;
 
   // Indicates if the Access Request returned already existed.
-  // Will be true if a new Access Request was created.
-  bool request_already_exists = 2;
+  // Will be false if a new Access Request was created.
+  bool request_already_exists = 3;
 
   // An Access Request. Will be nil if access is already active because the user was assigned
   // persistent access to the entitlement.
-  optional AccessRequest access_request = 3;
+  optional AccessRequest access_request = 4;
+
+  // If the access is active, the timestamp that the access expires at.
+  // If access is persistent, the expires_at field will be nil.
+  optional google.protobuf.Timestamp expires_at = 5;
+}
+
+message ListAccessRequestsRequest {
+    optional string page = 1;
+    optional int32 limit = 2;
+}
+
+message ListAccessRequestsResponse {
+  repeated AccessRequest access_requests = 1;
+  optional string next_page = 2;
+}
+
+message GetAccessRequestRequest {
+  // The ID of the Access Request.
+  string id = 1;
+}
+
+message GetAccessRequestResponse {
+  AccessRequest access_request = 1;
+}
+
+message EntityUID {
+  string type = 1;
+  string id = 2;
+}
+
+message Entity {
+  EntityUID uid = 1;
+  string name = 2;
+}
+
+// A request to be given entitlements allowing <Action> to be performed on <Resource>.
+//
+// For example, if the action is 'Admin', and the resource is AWS::Account::123456789012,
+// This request is for entitlements allowing Admin access to the account 123456789012.
+message AccessRequest {
+  // The ID of the Access Request.
+  string id = 1;
+
+  // Batch ID of the Access Request. Access Requests created in the same 
+  // API call have the same Batch ID.
+  string batch_id = 2;
+
+  // The resource being requested.
+  Entity resource = 3;
+
+  // The permissions being requested, such as "View" or "Admin".
+  string action = 4;
+
+  // The user or service account that requested the access.
+  Entity requestor = 5;
+
+  // The status of the Access Request.
+  RequestStatus status = 6;
+}
+
+enum RequestStatus {
+  REQUEST_STATUS_UNSPECIFIED = 0;
+  // Awaiting a manual review.
+  REQUEST_STATUS_PENDING_APPROVAL = 9;
+  // Being provisioned against the cloud provider.
+  REQUEST_STATUS_PROVISIONING = 2;
+  // The entitlement the request grants access to is currently active. 
+  REQUEST_STATUS_ACTIVE = 1;
+  // Being deprovisioned and removed from the cloud provider.
+  REQUEST_STATUS_DEPROVISIONING = 3;
+
+  // No longer active. Requests may be inactive due to several reasons, such as:
+  // - the request was cancelled by the user
+  // - the request was revoked by an administrator
+  // - the request has expired
+  REQUEST_STATUS_INACTIVE = 7;
+
+  // The Access Request encountered a fatal error.
+  REQUEST_STATUS_ERROR = 5;
+}
+
+message ListResourcesForProviderRequest {
+  EntitlementProvider provider = 1;
+  // currently unimplemented
+  optional string page = 2;
+  // currently unimplemented
+  optional int32 limit = 3;
+}
+
+message ListResourcesForProviderResponse {
+  repeated Entity resources = 1;
+  // currently unimplemented
+  optional string next_page = 2;
+}
+
+
+message Justification {
+  optional string reason = 1;
+  optional commonfate.cloud.attest.v1alpha1.Attestation device_attestation = 2;
+}
+
+enum EntitlementProvider {
+  ENTITLEMENT_PROVIDER_UNSPECIFIED = 0;
+  ENTITLEMENT_PROVIDER_AWS_IDC = 1;
+  ENTITLEMENT_PROVIDER_GCP = 2;
+}
+
+message ListUsersRequest {
+  optional int32 page = 1;
+  optional int32 limit = 2;
+}
+
+message ListUsersResponse {
+  repeated User users = 1;
+  int32 current_page = 2;
+  optional int32 next_page = 3;
+  optional int32 previous_page = 4;
+}
+
+message User {
+  string id = 1;
+  string primary_email = 2;
+  string first_name = 3;
+  string last_name = 4;
+  string avatar = 5;
 }
 
 message RevokeAccessRequestRequest {
@@ -155,126 +249,4 @@ message ReviewAccessRequestRequest {
 }
 
 message ReviewAccessRequestResponse {
-}
-message ListAccessRequestsRequest {
-    optional string page = 1;
-    optional int32 limit = 2;
-}
-
-message ListAccessRequestsResponse {
-  repeated AccessRequest access_requests = 1;
-  optional string next_page = 2;
-}
-
-message GetAccessRequestRequest {
-  // The ID of the Access Request.
-  string id = 1;
-}
-
-message GetAccessRequestResponse {
-  AccessRequest access_request = 1;
-}
-
-message CreateAccessRequestRequest {
-  AccessRequestInput input = 1;
-}
-
-message CreateAccessRequestResponse {
-  AccessRequest access_request = 1;
-}
-
-message AccessRequestInput {
-  // The resource to request access to.
-  Resource resource = 1;
-  
-  // The principal to request access on behalf of.
-  // Reserved for future use.
-  Principal principal = 2;
-
-  // User-provided justification to justify access to the resource.
-  optional Justification justification = 3;
-}
-
-// The principal to request access on behalf of.
-// Reserved for future use.
-message Principal {
-  oneof principal {
-    // The currently authenticated user.
-    bool current_user = 1;
-  }
-}
-
-message AccessRequest {
-  // The ID of the Access Request.
-  string id = 1;
-  // Batch ID of the Access Request. Access Requests created in the same 
-  // API call have the same Batch ID.
-  string batch_id = 2;
-  Entitlement entitlement = 3;
-  User requestor = 4;
-}
-
-message ListResourcesForProviderRequest {
-  EntitlementProvider provider = 1;
-  // currently unimplemented
-  optional string page = 2;
-  // currently unimplemented
-  optional int32 limit = 3;
-}
-
-message ListResourcesForProviderResponse {
-  repeated Entitlement entitlements = 1;
-  // currently unimplemented
-  optional string next_page = 2;
-}
-
-// an entitlement which is available for the user to request access to.
-message Entitlement {
-  Resource resource = 1;
-  EntitlementStatus status = 2;
-}
-
-message Justification {
-  optional string reason = 1;
-  optional commonfate.cloud.attest.v1alpha1.Attestation device_attestation = 2;
-}
-
-
-enum EntitlementStatus {
-  ENTITLEMENT_STATUS_UNSPECIFIED = 0;
-  ENTITLEMENT_STATUS_ACTIVE = 1;
-  ENTITLEMENT_STATUS_PROVISIONING = 2;
-  ENTITLEMENT_STATUS_DEPROVISIONING = 3;
-  ENTITLEMENT_STATUS_CLOSED = 4;
-  ENTITLEMENT_STATUS_FAILED = 5;
-  ENTITLEMENT_STATUS_REVOKED = 6;
-  ENTITLEMENT_STATUS_COMPLETE = 7;
-  ENTITLEMENT_STATUS_CANCELLED = 8;
-  ENTITLEMENT_STATUS_PENDING_APPROVAL = 9;
-}
-
-enum EntitlementProvider {
-  ENTITLEMENT_PROVIDER_UNSPECIFIED = 0;
-  ENTITLEMENT_PROVIDER_AWS_IDC = 1;
-  ENTITLEMENT_PROVIDER_GCP = 2;
-}
-
-message ListUsersRequest {
-  optional int32 page = 1;
-  optional int32 limit = 2;
-}
-
-message ListUsersResponse {
-  repeated User users = 1;
-  int32 current_page = 2;
-  optional int32 next_page = 3;
-  optional int32 previous_page = 4;
-}
-
-message User {
-  string id = 1;
-  string primary_email = 2;
-  string first_name = 3;
-  string last_name = 4;
-  string avatar = 5;
 }

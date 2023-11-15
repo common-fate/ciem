@@ -1,13 +1,6 @@
 package command
 
 import (
-	"os"
-
-	"github.com/bufbuild/connect-go"
-	"github.com/common-fate/ciem/config"
-	accessv1alpha1 "github.com/common-fate/ciem/gen/commonfate/cloud/access/v1alpha1"
-	"github.com/common-fate/ciem/service/access"
-	"github.com/common-fate/ciem/table"
 	"github.com/urfave/cli/v2"
 )
 
@@ -23,33 +16,33 @@ var gcpList = cli.Command{
 	Name:  "gcp",
 	Usage: "List available GCP entitlements",
 	Action: func(c *cli.Context) error {
-		ctx := c.Context
+		// ctx := c.Context
 
-		cfg, err := config.LoadDefault(ctx)
-		if err != nil {
-			return err
-		}
+		// cfg, err := config.LoadDefault(ctx)
+		// if err != nil {
+		// 	return err
+		// }
 
-		client := access.NewFromConfig(cfg)
+		// client := access.NewFromConfig(cfg)
 
-		res, err := client.ListAccessRequests(ctx, connect.NewRequest(&accessv1alpha1.ListAccessRequestsRequest{}))
-		if err != nil {
-			return err
-		}
+		// res, err := client.ListAccessRequests(ctx, connect.NewRequest(&accessv1alpha1.ListAccessRequestsRequest{}))
+		// if err != nil {
+		// 	return err
+		// }
 
-		w := table.New(os.Stdout)
-		w.Columns("PROJECT", "ROLE")
+		// w := table.New(os.Stdout)
+		// w.Columns("PROJECT", "ROLE")
 
-		for _, e := range res.Msg.AccessRequests {
-			switch v := e.Entitlement.Resource.Resource.(type) {
-			case *accessv1alpha1.Resource_AwsAccount:
-				w.Row(v.AwsAccount.AccountId, v.AwsAccount.Role)
-			case *accessv1alpha1.Resource_GcpProject:
-				w.Row(v.GcpProject.Project, v.GcpProject.Role)
-			}
-		}
+		// for _, e := range res.Msg.AccessRequests {
+		// 	switch v := e.Entitlement.Resource.Resource.(type) {
+		// 	case *accessv1alpha1.Resource_AwsAccount:
+		// 		w.Row(v.AwsAccount.AccountId, v.AwsAccount.Role)
+		// 	case *accessv1alpha1.Resource_GcpProject:
+		// 		w.Row(v.GcpProject.Project, v.GcpProject.Role)
+		// 	}
+		// }
 
-		w.Flush()
+		// w.Flush()
 
 		return nil
 	},

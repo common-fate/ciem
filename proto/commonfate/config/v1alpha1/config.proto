@@ -1,0 +1,270 @@
+syntax = "proto3";
+package commonfate.config.v1alpha1;
+
+service ConfigService {
+    // IdentitySource CRUD operations
+    rpc CreateIdentitySource(CreateIdentitySourceRequest) returns (CreateIdentitySourceResponse) {}
+    rpc ReadIdentitySource(ReadIdentitySourceRequest) returns (ReadIdentitySourceResponse) {}
+    rpc UpdateIdentitySource(UpdateIdentitySourceRequest) returns (UpdateIdentitySourceResponse) {}
+    rpc DeleteIdentitySource(DeleteIdentitySourceRequest) returns (DeleteIdentitySourceResponse) {}
+
+    // AccessPolicy CRUD operations
+    rpc CreateAccessPolicy(CreateAccessPolicyRequest) returns (CreateAccessPolicyResponse) {}
+    rpc ReadAccessPolicy(ReadAccessPolicyRequest) returns (ReadAccessPolicyResponse) {}
+    rpc UpdateAccessPolicy(UpdateAccessPolicyRequest) returns (UpdateAccessPolicyResponse) {}
+    rpc DeleteAccessPolicy(DeleteAccessPolicyRequest) returns (DeleteAccessPolicyResponse) {}
+
+    // GCPConnection CRUD operations
+    rpc CreateGCPConnection(CreateGCPConnectionRequest) returns (CreateGCPConnectionResponse) {}
+    rpc ReadGCPConnection(ReadGCPConnectionRequest) returns (ReadGCPConnectionResponse) {}
+    rpc UpdateGCPConnection(UpdateGCPConnectionRequest) returns (UpdateGCPConnectionResponse) {}
+    rpc DeleteGCPConnection(DeleteGCPConnectionRequest) returns (DeleteGCPConnectionResponse) {}
+
+    // ApprovalWorkflow CRUD operations
+    rpc CreateApprovalWorkflow(CreateApprovalWorkflowRequest) returns (CreateApprovalWorkflowResponse) {}
+    rpc ReadApprovalWorkflow(ReadApprovalWorkflowRequest) returns (ReadApprovalWorkflowResponse) {}
+    rpc UpdateApprovalWorkflow(UpdateApprovalWorkflowRequest) returns (UpdateApprovalWorkflowResponse) {}
+    rpc DeleteApprovalWorkflow(DeleteApprovalWorkflowRequest) returns (DeleteApprovalWorkflowResponse) {}
+
+    // PermissionMapping CRUD operations
+    rpc CreatePermissionMapping(CreatePermissionMappingRequest) returns (CreatePermissionMappingResponse) {}
+    rpc ReadPermissionMapping(ReadPermissionMappingRequest) returns (ReadPermissionMappingResponse) {}
+    rpc UpdatePermissionMapping(UpdatePermissionMappingRequest) returns (UpdatePermissionMappingResponse) {}
+    rpc DeletePermissionMapping(DeletePermissionMappingRequest) returns (DeletePermissionMappingResponse) {}
+}
+
+
+// Request and Response types for CreateIdentitySource
+message CreateIdentitySourceRequest {
+    string id = 1;
+    string namespace = 2;
+}
+
+message CreateIdentitySourceResponse {
+    string id = 1;
+    string namespace = 2;
+}
+
+// Request and Response types for ReadIdentitySource
+message ReadIdentitySourceRequest {
+    string id = 1;
+    string namespace = 2;
+}
+
+message ReadIdentitySourceResponse {
+    string id = 1;
+    string namespace = 2;
+}
+
+// Request and Response types for UpdateIdentitySource
+message UpdateIdentitySourceRequest {
+    string id = 1;
+    string namespace = 2;
+}
+
+message UpdateIdentitySourceResponse {
+    string id = 1;
+    string namespace = 2;
+}
+
+// Request and Response types for DeleteIdentitySource
+message DeleteIdentitySourceRequest {
+    string id = 1;
+}
+
+message DeleteIdentitySourceResponse {
+    string id = 1;
+}
+
+// Request and Response types for CreateAccessPolicy
+message CreateAccessPolicyRequest {
+    string id = 1;
+    string cedar_policy = 2;
+}
+
+message CreateAccessPolicyResponse {
+    string id = 1;
+    string cedar_policy = 2;
+}
+
+// Request and Response types for ReadAccessPolicy
+message ReadAccessPolicyRequest {
+    string id = 1;
+}
+
+message ReadAccessPolicyResponse {
+    string id = 1;
+    string cedar_policy = 2;
+}
+
+// Request and Response types for UpdateAccessPolicy
+message UpdateAccessPolicyRequest {
+    string id = 1;
+    string cedar_policy = 2;
+}
+
+message UpdateAccessPolicyResponse {
+    string id = 1;
+    string cedar_policy = 2;
+}
+
+// Request and Response types for DeleteAccessPolicy
+message DeleteAccessPolicyRequest {
+    string id = 1;
+}
+
+message DeleteAccessPolicyResponse {
+    string id = 1;
+}
+
+// Request and Response types for CreateGCPConnection
+message CreateGCPConnectionRequest {
+    string id = 1;
+    string org = 2;
+    string slug = 3;
+    string workload_identity_role = 4;
+}
+
+message CreateGCPConnectionResponse {
+    string id = 1;
+    string org = 2;
+    string slug = 3;
+    string workload_identity_role = 4;
+}
+
+// Request and Response types for ReadGCPConnection
+message ReadGCPConnectionRequest {
+    string id = 1;
+    string org = 2;
+    string slug = 3;
+}
+
+message ReadGCPConnectionResponse {
+    string id = 1;
+    string org = 2;
+    string slug = 3;
+    string workload_identity_role = 4;
+}
+
+// Request and Response types for UpdateGCPConnection
+message UpdateGCPConnectionRequest {
+    string id = 1;
+    string org = 2;
+    string slug = 3;
+    string workload_identity_role = 4;
+}
+
+message UpdateGCPConnectionResponse {
+    string id = 1;
+    string org = 2;
+    string slug = 3;
+    string workload_identity_role = 4;
+}
+
+// Request and Response types for DeleteGCPConnection
+message DeleteGCPConnectionRequest {
+    string id = 1;
+    string org = 2;
+    string slug = 3;
+}
+
+message DeleteGCPConnectionResponse {
+    string id = 1;
+    string org = 2;
+    string slug = 3;
+}
+
+// Request and Response types for CreateApprovalWorkflow
+message CreateApprovalWorkflowRequest {
+    string id = 1;
+    string default_value = 2; 
+    string notify_slack_channel = 3;
+}
+
+message CreateApprovalWorkflowResponse {
+    string id = 1;
+    string default_value = 2; 
+    string notify_slack_channel = 3;
+}
+
+// Request and Response types for ReadApprovalWorkflow
+message ReadApprovalWorkflowRequest {
+    string id = 1;
+}
+
+message ReadApprovalWorkflowResponse {
+    string id = 1;
+    string default_value = 2; 
+    string notify_slack_channel = 3;
+}
+
+// Request and Response types for UpdateApprovalWorkflow
+message UpdateApprovalWorkflowRequest {
+    string id = 1;
+    string default_value = 2; 
+    string notify_slack_channel = 3;
+}
+
+message UpdateApprovalWorkflowResponse {
+    string id = 1;
+    string default_value = 2; 
+    string notify_slack_channel = 3;
+}
+
+// Request and Response types for DeleteApprovalWorkflow
+message DeleteApprovalWorkflowRequest {
+    string id = 1;
+}
+
+message DeleteApprovalWorkflowResponse {
+    string id = 1;
+}
+
+// Request and Response types for CreatePermissionMapping
+message CreatePermissionMappingRequest {
+    string id = 1;
+    string permission = 2;
+    string gcp_role = 3;
+}
+
+message CreatePermissionMappingResponse {
+    string id = 1;
+    string permission = 2;
+    string gcp_role = 3;
+}
+
+// Request and Response types for ReadPermissionMapping
+message ReadPermissionMappingRequest {
+    string id = 1;
+    string permission = 2;
+}
+
+message ReadPermissionMappingResponse {
+    string id = 1;
+    string permission = 2;
+    string gcp_role = 3;
+}
+
+// Request and Response types for UpdatePermissionMapping
+message UpdatePermissionMappingRequest {
+    string id = 1;
+    string permission = 2;
+    string gcp_role = 3;
+}
+
+message UpdatePermissionMappingResponse {
+    string id = 1;
+    string permission = 2;
+    string gcp_role = 3;
+}
+
+// Request and Response types for DeletePermissionMapping
+message DeletePermissionMappingRequest {
+    string id = 1;
+    string permission = 2;
+}
+
+message DeletePermissionMappingResponse {
+    string id = 1;
+    string permission = 2;
+}

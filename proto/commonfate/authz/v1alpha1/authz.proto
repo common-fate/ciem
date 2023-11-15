@@ -1,0 +1,142 @@
+syntax = "proto3";
+
+package commonfate.authz.v1alpha1;
+
+import "google/protobuf/struct.proto";
+import "commonfate/authz/v1alpha1/entity.proto";
+
+service AuthzService {
+    // creates or updates entities for a particular policy store in the authorization service.
+    rpc BatchPutEntity(BatchPutEntityRequest) returns (BatchPutEntityResponse) {}
+
+    // removes entities from the authorization service.
+    rpc BatchDeleteEntity(BatchDeleteEntityRequest) returns (BatchDeleteEntityResponse) {}
+
+    // // updates the schema for a particular policy store
+    // rpc PutSchema(PutSchemaRequest) returns (PutSchemaResponse) {}
+
+    // rpc GetSchema(GetSchemaRequest) returns (GetSchemaResponse) {}
+
+    // adds Cedar policies for a particular policy store
+    rpc BatchPutPolicy(BatchPutPolicyRequest) returns (BatchPutPolicyResponse) {}
+
+    // run the policy and returns allow or deny + diagnostics and a decision ID.
+    // rpc Authorize(AuthorizeRequest) returns (AuthorizeResponse) {}
+
+    // run multiple authorization decisions and returns allow + deny for each.
+    rpc BatchAuthorize(BatchAuthorizeRequest) returns (BatchAuthorizeResponse) {}
+
+    // // look up which resources a particular principal can access
+    // rpc LookupResources(LookupResourcesRequest) returns (LookupResourcesResponse) {}
+
+    // // look up which principals could access a particular resource
+    // rpc LookupPrincipal(LookupPrincipalRequest) returns (LookupPrincipalResponse) {}
+
+    rpc ListPolicies(ListPoliciesRequest) returns (ListPoliciesResponse) {}
+
+    // Query for entities matching filter conditions.
+    rpc FilterEntities(FilterEntitiesRequest) returns (FilterEntitiesResponse) {}
+}
+
+message BatchDeleteEntityRequest {
+    repeated UID entities = 1;
+}
+
+message BatchDeleteEntityResponse {}
+
+message FilterEntitiesRequest {
+    // Filter entities for a particular type
+    string type = 1;
+
+    // Filter entities by their direct parents.
+    // Specifying multiple parents will be treated as an AND operation,
+    // and return entities matching all of the provided parent IDs.
+    repeated UID direct_parents = 2;
+
+    // Filter entities by their attributes.
+    repeated Attribute attribute_equals = 3;
+
+    // The token for the next page.
+    string page_token = 4;
+}
+
+message FilterEntitiesResponse {
+    repeated Entity entities = 1;
+    string next_page_token = 2;
+}
+
+message AuthorizationRequest {
+    UID principal = 1;
+    UID action = 2;
+    UID resource = 3;
+}
+
+message BatchAuthorizeRequest {
+    repeated AuthorizationRequest requests = 1;
+}
+
+message Decision {
+    string id = 1;
+    AuthorizationRequest request = 2;
+    bool allowed = 3;
+    Diagnostics diagnostics = 4;
+}
+
+message BatchAuthorizeResponse {
+    repeated Decision decisions = 1;
+}
+
+message AuthorizeRequest {
+    UID principal = 1;
+    UID action = 2;
+    UID resource = 3;
+}
+
+message AuthorizeResponse {
+    bool allowed = 1;
+}
+
+message ListPoliciesRequest {
+     // The token for the next page.
+     string page_token = 4;
+}
+
+message ListPoliciesResponse {
+    repeated Policy policies = 1;
+    string next_page_token = 2;
+}
+
+message BatchPutEntityRequest {
+    repeated Entity entities = 1;
+}
+
+message BatchPutEntityResponse {}
+
+message BatchPutPolicyRequest {
+    repeated Policy policies = 1;
+}
+
+message BatchPutPolicyResponse {}
+
+message ListEntitiesRequest {
+    // Filter entities for a particular type
+    string type = 1;
+
+    string page = 2;
+}
+
+message ListEntitiesResponse {
+    repeated Entity entities = 1;
+
+    string next_page = 3;
+}
+
+message Policy {
+    string id = 1;
+    string policy = 2;
+}
+
+message Diagnostics {
+    repeated string reason = 1;
+    repeated string errors = 2;
+}
