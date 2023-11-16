@@ -48,6 +48,9 @@ const (
 	// AuthzServiceListPoliciesProcedure is the fully-qualified name of the AuthzService's ListPolicies
 	// RPC.
 	AuthzServiceListPoliciesProcedure = "/commonfate.authz.v1alpha1.AuthzService/ListPolicies"
+	// AuthzServiceBatchDeletePoliciesProcedure is the fully-qualified name of the AuthzService's
+	// BatchDeletePolicies RPC.
+	AuthzServiceBatchDeletePoliciesProcedure = "/commonfate.authz.v1alpha1.AuthzService/BatchDeletePolicies"
 	// AuthzServiceFilterEntitiesProcedure is the fully-qualified name of the AuthzService's
 	// FilterEntities RPC.
 	AuthzServiceFilterEntitiesProcedure = "/commonfate.authz.v1alpha1.AuthzService/FilterEntities"
@@ -64,6 +67,7 @@ type AuthzServiceClient interface {
 	// run multiple authorization decisions and returns allow + deny for each.
 	BatchAuthorize(context.Context, *connect_go.Request[v1alpha1.BatchAuthorizeRequest]) (*connect_go.Response[v1alpha1.BatchAuthorizeResponse], error)
 	ListPolicies(context.Context, *connect_go.Request[v1alpha1.ListPoliciesRequest]) (*connect_go.Response[v1alpha1.ListPoliciesResponse], error)
+	BatchDeletePolicies(context.Context, *connect_go.Request[v1alpha1.BatchDeletePoliciesRequest]) (*connect_go.Response[v1alpha1.BatchDeletePoliciesResponse], error)
 	// Query for entities matching filter conditions.
 	FilterEntities(context.Context, *connect_go.Request[v1alpha1.FilterEntitiesRequest]) (*connect_go.Response[v1alpha1.FilterEntitiesResponse], error)
 }
@@ -103,6 +107,11 @@ func NewAuthzServiceClient(httpClient connect_go.HTTPClient, baseURL string, opt
 			baseURL+AuthzServiceListPoliciesProcedure,
 			opts...,
 		),
+		batchDeletePolicies: connect_go.NewClient[v1alpha1.BatchDeletePoliciesRequest, v1alpha1.BatchDeletePoliciesResponse](
+			httpClient,
+			baseURL+AuthzServiceBatchDeletePoliciesProcedure,
+			opts...,
+		),
 		filterEntities: connect_go.NewClient[v1alpha1.FilterEntitiesRequest, v1alpha1.FilterEntitiesResponse](
 			httpClient,
 			baseURL+AuthzServiceFilterEntitiesProcedure,
@@ -113,12 +122,13 @@ func NewAuthzServiceClient(httpClient connect_go.HTTPClient, baseURL string, opt
 
 // authzServiceClient implements AuthzServiceClient.
 type authzServiceClient struct {
-	batchPutEntity    *connect_go.Client[v1alpha1.BatchPutEntityRequest, v1alpha1.BatchPutEntityResponse]
-	batchDeleteEntity *connect_go.Client[v1alpha1.BatchDeleteEntityRequest, v1alpha1.BatchDeleteEntityResponse]
-	batchPutPolicy    *connect_go.Client[v1alpha1.BatchPutPolicyRequest, v1alpha1.BatchPutPolicyResponse]
-	batchAuthorize    *connect_go.Client[v1alpha1.BatchAuthorizeRequest, v1alpha1.BatchAuthorizeResponse]
-	listPolicies      *connect_go.Client[v1alpha1.ListPoliciesRequest, v1alpha1.ListPoliciesResponse]
-	filterEntities    *connect_go.Client[v1alpha1.FilterEntitiesRequest, v1alpha1.FilterEntitiesResponse]
+	batchPutEntity      *connect_go.Client[v1alpha1.BatchPutEntityRequest, v1alpha1.BatchPutEntityResponse]
+	batchDeleteEntity   *connect_go.Client[v1alpha1.BatchDeleteEntityRequest, v1alpha1.BatchDeleteEntityResponse]
+	batchPutPolicy      *connect_go.Client[v1alpha1.BatchPutPolicyRequest, v1alpha1.BatchPutPolicyResponse]
+	batchAuthorize      *connect_go.Client[v1alpha1.BatchAuthorizeRequest, v1alpha1.BatchAuthorizeResponse]
+	listPolicies        *connect_go.Client[v1alpha1.ListPoliciesRequest, v1alpha1.ListPoliciesResponse]
+	batchDeletePolicies *connect_go.Client[v1alpha1.BatchDeletePoliciesRequest, v1alpha1.BatchDeletePoliciesResponse]
+	filterEntities      *connect_go.Client[v1alpha1.FilterEntitiesRequest, v1alpha1.FilterEntitiesResponse]
 }
 
 // BatchPutEntity calls commonfate.authz.v1alpha1.AuthzService.BatchPutEntity.
@@ -146,6 +156,11 @@ func (c *authzServiceClient) ListPolicies(ctx context.Context, req *connect_go.R
 	return c.listPolicies.CallUnary(ctx, req)
 }
 
+// BatchDeletePolicies calls commonfate.authz.v1alpha1.AuthzService.BatchDeletePolicies.
+func (c *authzServiceClient) BatchDeletePolicies(ctx context.Context, req *connect_go.Request[v1alpha1.BatchDeletePoliciesRequest]) (*connect_go.Response[v1alpha1.BatchDeletePoliciesResponse], error) {
+	return c.batchDeletePolicies.CallUnary(ctx, req)
+}
+
 // FilterEntities calls commonfate.authz.v1alpha1.AuthzService.FilterEntities.
 func (c *authzServiceClient) FilterEntities(ctx context.Context, req *connect_go.Request[v1alpha1.FilterEntitiesRequest]) (*connect_go.Response[v1alpha1.FilterEntitiesResponse], error) {
 	return c.filterEntities.CallUnary(ctx, req)
@@ -162,6 +177,7 @@ type AuthzServiceHandler interface {
 	// run multiple authorization decisions and returns allow + deny for each.
 	BatchAuthorize(context.Context, *connect_go.Request[v1alpha1.BatchAuthorizeRequest]) (*connect_go.Response[v1alpha1.BatchAuthorizeResponse], error)
 	ListPolicies(context.Context, *connect_go.Request[v1alpha1.ListPoliciesRequest]) (*connect_go.Response[v1alpha1.ListPoliciesResponse], error)
+	BatchDeletePolicies(context.Context, *connect_go.Request[v1alpha1.BatchDeletePoliciesRequest]) (*connect_go.Response[v1alpha1.BatchDeletePoliciesResponse], error)
 	// Query for entities matching filter conditions.
 	FilterEntities(context.Context, *connect_go.Request[v1alpha1.FilterEntitiesRequest]) (*connect_go.Response[v1alpha1.FilterEntitiesResponse], error)
 }
@@ -197,6 +213,11 @@ func NewAuthzServiceHandler(svc AuthzServiceHandler, opts ...connect_go.HandlerO
 		svc.ListPolicies,
 		opts...,
 	)
+	authzServiceBatchDeletePoliciesHandler := connect_go.NewUnaryHandler(
+		AuthzServiceBatchDeletePoliciesProcedure,
+		svc.BatchDeletePolicies,
+		opts...,
+	)
 	authzServiceFilterEntitiesHandler := connect_go.NewUnaryHandler(
 		AuthzServiceFilterEntitiesProcedure,
 		svc.FilterEntities,
@@ -214,6 +235,8 @@ func NewAuthzServiceHandler(svc AuthzServiceHandler, opts ...connect_go.HandlerO
 			authzServiceBatchAuthorizeHandler.ServeHTTP(w, r)
 		case AuthzServiceListPoliciesProcedure:
 			authzServiceListPoliciesHandler.ServeHTTP(w, r)
+		case AuthzServiceBatchDeletePoliciesProcedure:
+			authzServiceBatchDeletePoliciesHandler.ServeHTTP(w, r)
 		case AuthzServiceFilterEntitiesProcedure:
 			authzServiceFilterEntitiesHandler.ServeHTTP(w, r)
 		default:
@@ -243,6 +266,10 @@ func (UnimplementedAuthzServiceHandler) BatchAuthorize(context.Context, *connect
 
 func (UnimplementedAuthzServiceHandler) ListPolicies(context.Context, *connect_go.Request[v1alpha1.ListPoliciesRequest]) (*connect_go.Response[v1alpha1.ListPoliciesResponse], error) {
 	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("commonfate.authz.v1alpha1.AuthzService.ListPolicies is not implemented"))
+}
+
+func (UnimplementedAuthzServiceHandler) BatchDeletePolicies(context.Context, *connect_go.Request[v1alpha1.BatchDeletePoliciesRequest]) (*connect_go.Response[v1alpha1.BatchDeletePoliciesResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("commonfate.authz.v1alpha1.AuthzService.BatchDeletePolicies is not implemented"))
 }
 
 func (UnimplementedAuthzServiceHandler) FilterEntities(context.Context, *connect_go.Request[v1alpha1.FilterEntitiesRequest]) (*connect_go.Response[v1alpha1.FilterEntitiesResponse], error) {

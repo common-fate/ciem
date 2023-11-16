@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package commonfate.authz.v1alpha1;
 
+
 import "google/protobuf/struct.proto";
 import "commonfate/authz/v1alpha1/entity.proto";
 
@@ -33,6 +34,9 @@ service AuthzService {
     // rpc LookupPrincipal(LookupPrincipalRequest) returns (LookupPrincipalResponse) {}
 
     rpc ListPolicies(ListPoliciesRequest) returns (ListPoliciesResponse) {}
+
+
+    rpc BatchDeletePolicies(BatchDeletePoliciesRequest) returns (BatchDeletePoliciesResponse) {}
 
     // Query for entities matching filter conditions.
     rpc FilterEntities(FilterEntitiesRequest) returns (FilterEntitiesResponse) {}
@@ -117,6 +121,12 @@ message BatchPutPolicyRequest {
 }
 
 message BatchPutPolicyResponse {}
+
+message BatchDeletePoliciesRequest {
+    repeated string policies = 1;
+}
+
+message BatchDeletePoliciesResponse {}
 
 message ListEntitiesRequest {
     // Filter entities for a particular type
