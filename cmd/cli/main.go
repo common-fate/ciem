@@ -6,6 +6,9 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/common-fate/ciem/cmd/cli/command"
+	"github.com/common-fate/ciem/cmd/cli/command/access"
+	"github.com/common-fate/ciem/cmd/cli/command/entities"
+	"github.com/common-fate/ciem/cmd/cli/command/policy"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/clierr"
 	"github.com/urfave/cli/v2"
@@ -34,6 +37,9 @@ func main() {
 			&command.Auth,
 			&command.List,
 			&command.Request,
+			&policy.Command,
+			&entities.Command,
+			&access.Command,
 		},
 	}
 	clio.SetLevelFromEnv("CF_LOG")

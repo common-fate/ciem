@@ -1,0 +1,58 @@
+[
+  {
+    "uid": {
+      "type": "User",
+      "id": "chris"
+    },
+    "attrs": {},
+    "parents": []
+  },
+  {
+    "uid": {
+      "type": "User",
+      "id": "josh"
+    },
+    "attrs": {},
+    "parents": []
+  },
+  {
+    "uid": {
+      "type": "Vault",
+      "id": "test"
+    },
+    "attrs": {},
+    "parents": [
+      {
+        "type": "Folder",
+        "id": "test"
+      }
+    ]
+  },
+  {
+    "uid": {
+      "type": "Vault",
+      "id": "other"
+    },
+    "attrs": {},
+    "parents": [
+      {
+        "type": "Folder",
+        "id": "prod"
+      }
+    ]
+  },
+
+  {
+    "uid": {
+      "type": "Vault",
+      "id": "three"
+    },
+    "attrs": {},
+    "parents": [
+      {
+        "type": "Folder",
+        "id": "prod"
+      }
+    ]
+  }
+]
