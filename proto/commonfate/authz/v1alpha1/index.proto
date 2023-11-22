@@ -4,6 +4,7 @@ package commonfate.authz.v1alpha1;
 
 import "google/protobuf/struct.proto";
 import "commonfate/authz/v1alpha1/entity.proto";
+import "commonfate/authz/v1alpha1/authz.proto";
 
 
 
@@ -19,6 +20,28 @@ service IndexService {
 
     // // look up which principals could access a particular resource
     // rpc LookupPrincipal(LookupPrincipalRequest) returns (LookupPrincipalResponse) {}
+
+    // Simulate policy changes prior to applying them.
+    rpc Simulate(SimulateRequest) returns (SimulateResponse) {}
+}
+
+message Diff {
+    repeated Relation added = 1;
+    repeated Relation removed = 2;
+}
+
+message Relation {
+    UID principal = 1;
+    UID action = 2;
+    UID resource = 3;
+}
+
+message SimulateRequest {
+    repeated Policy policies = 1;
+}
+
+message SimulateResponse {
+    Diff diff = 1;
 }
 
 message StartIndexJobRequest {}

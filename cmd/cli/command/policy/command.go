@@ -7,5 +7,6 @@ var Command = cli.Command{
 	Subcommands: []*cli.Command{
 		&applyCommand,
 		&indexCommand,
+		&simulateCommand,
 	},
 }

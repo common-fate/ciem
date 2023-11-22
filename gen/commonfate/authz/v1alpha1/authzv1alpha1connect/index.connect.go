@@ -39,6 +39,8 @@ const (
 	// IndexServiceLookupResourcesProcedure is the fully-qualified name of the IndexService's
 	// LookupResources RPC.
 	IndexServiceLookupResourcesProcedure = "/commonfate.authz.v1alpha1.IndexService/LookupResources"
+	// IndexServiceSimulateProcedure is the fully-qualified name of the IndexService's Simulate RPC.
+	IndexServiceSimulateProcedure = "/commonfate.authz.v1alpha1.IndexService/Simulate"
 )
 
 // IndexServiceClient is a client for the commonfate.authz.v1alpha1.IndexService service.
@@ -48,6 +50,8 @@ type IndexServiceClient interface {
 	StartIndexJob(context.Context, *connect_go.Request[v1alpha1.StartIndexJobRequest]) (*connect_go.Response[v1alpha1.StartIndexJobResponse], error)
 	// look up which resources a particular principal can access
 	LookupResources(context.Context, *connect_go.Request[v1alpha1.LookupResourcesRequest]) (*connect_go.Response[v1alpha1.LookupResourcesResponse], error)
+	// Simulate policy changes prior to applying them.
+	Simulate(context.Context, *connect_go.Request[v1alpha1.SimulateRequest]) (*connect_go.Response[v1alpha1.SimulateResponse], error)
 }
 
 // NewIndexServiceClient constructs a client for the commonfate.authz.v1alpha1.IndexService service.
@@ -70,6 +74,11 @@ func NewIndexServiceClient(httpClient connect_go.HTTPClient, baseURL string, opt
 			baseURL+IndexServiceLookupResourcesProcedure,
 			opts...,
 		),
+		simulate: connect_go.NewClient[v1alpha1.SimulateRequest, v1alpha1.SimulateResponse](
+			httpClient,
+			baseURL+IndexServiceSimulateProcedure,
+			opts...,
+		),
 	}
 }
 
@@ -77,6 +86,7 @@ func NewIndexServiceClient(httpClient connect_go.HTTPClient, baseURL string, opt
 type indexServiceClient struct {
 	startIndexJob   *connect_go.Client[v1alpha1.StartIndexJobRequest, v1alpha1.StartIndexJobResponse]
 	lookupResources *connect_go.Client[v1alpha1.LookupResourcesRequest, v1alpha1.LookupResourcesResponse]
+	simulate        *connect_go.Client[v1alpha1.SimulateRequest, v1alpha1.SimulateResponse]
 }
 
 // StartIndexJob calls commonfate.authz.v1alpha1.IndexService.StartIndexJob.
@@ -89,6 +99,11 @@ func (c *indexServiceClient) LookupResources(ctx context.Context, req *connect_g
 	return c.lookupResources.CallUnary(ctx, req)
 }
 
+// Simulate calls commonfate.authz.v1alpha1.IndexService.Simulate.
+func (c *indexServiceClient) Simulate(ctx context.Context, req *connect_go.Request[v1alpha1.SimulateRequest]) (*connect_go.Response[v1alpha1.SimulateResponse], error) {
+	return c.simulate.CallUnary(ctx, req)
+}
+
 // IndexServiceHandler is an implementation of the commonfate.authz.v1alpha1.IndexService service.
 type IndexServiceHandler interface {
 	// Manually trigger an indexing job.
@@ -96,6 +111,8 @@ type IndexServiceHandler interface {
 	StartIndexJob(context.Context, *connect_go.Request[v1alpha1.StartIndexJobRequest]) (*connect_go.Response[v1alpha1.StartIndexJobResponse], error)
 	// look up which resources a particular principal can access
 	LookupResources(context.Context, *connect_go.Request[v1alpha1.LookupResourcesRequest]) (*connect_go.Response[v1alpha1.LookupResourcesResponse], error)
+	// Simulate policy changes prior to applying them.
+	Simulate(context.Context, *connect_go.Request[v1alpha1.SimulateRequest]) (*connect_go.Response[v1alpha1.SimulateResponse], error)
 }
 
 // NewIndexServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -114,12 +131,19 @@ func NewIndexServiceHandler(svc IndexServiceHandler, opts ...connect_go.HandlerO
 		svc.LookupResources,
 		opts...,
 	)
+	indexServiceSimulateHandler := connect_go.NewUnaryHandler(
+		IndexServiceSimulateProcedure,
+		svc.Simulate,
+		opts...,
+	)
 	return "/commonfate.authz.v1alpha1.IndexService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case IndexServiceStartIndexJobProcedure:
 			indexServiceStartIndexJobHandler.ServeHTTP(w, r)
 		case IndexServiceLookupResourcesProcedure:
 			indexServiceLookupResourcesHandler.ServeHTTP(w, r)
+		case IndexServiceSimulateProcedure:
+			indexServiceSimulateHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -135,4 +159,8 @@ func (UnimplementedIndexServiceHandler) StartIndexJob(context.Context, *connect_
 
 func (UnimplementedIndexServiceHandler) LookupResources(context.Context, *connect_go.Request[v1alpha1.LookupResourcesRequest]) (*connect_go.Response[v1alpha1.LookupResourcesResponse], error) {
 	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("commonfate.authz.v1alpha1.IndexService.LookupResources is not implemented"))
+}
+
+func (UnimplementedIndexServiceHandler) Simulate(context.Context, *connect_go.Request[v1alpha1.SimulateRequest]) (*connect_go.Response[v1alpha1.SimulateResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("commonfate.authz.v1alpha1.IndexService.Simulate is not implemented"))
 }
