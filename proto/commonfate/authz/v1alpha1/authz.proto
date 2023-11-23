@@ -5,6 +5,8 @@ package commonfate.authz.v1alpha1;
 import "google/protobuf/struct.proto";
 import "commonfate/authz/v1alpha1/entity.proto";
 
+
+
 // The API for the authz service.
 //
 // authz is a globally-distributed, highly available entity store and authorization API.
@@ -50,9 +52,6 @@ service AuthzService {
     // run multiple authorization decisions and returns allow + deny for each.
     rpc BatchAuthorize(BatchAuthorizeRequest) returns (BatchAuthorizeResponse) {}
 
-    // look up which resources a particular principal can access
-    rpc LookupResources(LookupResourcesRequest) returns (LookupResourcesResponse) {}
-
     // // look up which principals could access a particular resource
     // rpc LookupPrincipal(LookupPrincipalRequest) returns (LookupPrincipalResponse) {}
 
@@ -63,25 +62,6 @@ service AuthzService {
 
     // Query for entity by UID.
     rpc GetEntity(GetEntityRequest) returns (GetEntityResponse) {}
-}
-
-message LookupResourcesRequest {
-    string universe = 1;
-    string environment = 2;
-
-    // The principal to look up accessible resources for.
-    UID principal = 3;
-
-    // Filter entities for a particular type
-    string resource_type = 4;
-
-    // The token for the next page.
-    string page_token = 5;
-}
-
-message LookupResourcesResponse {
-    repeated Entity entities = 1;
-    string next_page_token = 2;
 }
 
 message BatchDeleteEntityRequest {

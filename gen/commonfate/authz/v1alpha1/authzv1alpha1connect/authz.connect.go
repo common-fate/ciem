@@ -45,9 +45,6 @@ const (
 	// AuthzServiceBatchAuthorizeProcedure is the fully-qualified name of the AuthzService's
 	// BatchAuthorize RPC.
 	AuthzServiceBatchAuthorizeProcedure = "/commonfate.authz.v1alpha1.AuthzService/BatchAuthorize"
-	// AuthzServiceLookupResourcesProcedure is the fully-qualified name of the AuthzService's
-	// LookupResources RPC.
-	AuthzServiceLookupResourcesProcedure = "/commonfate.authz.v1alpha1.AuthzService/LookupResources"
 	// AuthzServiceListPoliciesProcedure is the fully-qualified name of the AuthzService's ListPolicies
 	// RPC.
 	AuthzServiceListPoliciesProcedure = "/commonfate.authz.v1alpha1.AuthzService/ListPolicies"
@@ -68,8 +65,6 @@ type AuthzServiceClient interface {
 	BatchPutPolicy(context.Context, *connect_go.Request[v1alpha1.BatchPutPolicyRequest]) (*connect_go.Response[v1alpha1.BatchPutPolicyResponse], error)
 	// run multiple authorization decisions and returns allow + deny for each.
 	BatchAuthorize(context.Context, *connect_go.Request[v1alpha1.BatchAuthorizeRequest]) (*connect_go.Response[v1alpha1.BatchAuthorizeResponse], error)
-	// look up which resources a particular principal can access
-	LookupResources(context.Context, *connect_go.Request[v1alpha1.LookupResourcesRequest]) (*connect_go.Response[v1alpha1.LookupResourcesResponse], error)
 	ListPolicies(context.Context, *connect_go.Request[v1alpha1.ListPoliciesRequest]) (*connect_go.Response[v1alpha1.ListPoliciesResponse], error)
 	// Query for entities matching filter conditions.
 	FilterEntities(context.Context, *connect_go.Request[v1alpha1.FilterEntitiesRequest]) (*connect_go.Response[v1alpha1.FilterEntitiesResponse], error)
@@ -107,11 +102,6 @@ func NewAuthzServiceClient(httpClient connect_go.HTTPClient, baseURL string, opt
 			baseURL+AuthzServiceBatchAuthorizeProcedure,
 			opts...,
 		),
-		lookupResources: connect_go.NewClient[v1alpha1.LookupResourcesRequest, v1alpha1.LookupResourcesResponse](
-			httpClient,
-			baseURL+AuthzServiceLookupResourcesProcedure,
-			opts...,
-		),
 		listPolicies: connect_go.NewClient[v1alpha1.ListPoliciesRequest, v1alpha1.ListPoliciesResponse](
 			httpClient,
 			baseURL+AuthzServiceListPoliciesProcedure,
@@ -136,7 +126,6 @@ type authzServiceClient struct {
 	batchDeleteEntity *connect_go.Client[v1alpha1.BatchDeleteEntityRequest, v1alpha1.BatchDeleteEntityResponse]
 	batchPutPolicy    *connect_go.Client[v1alpha1.BatchPutPolicyRequest, v1alpha1.BatchPutPolicyResponse]
 	batchAuthorize    *connect_go.Client[v1alpha1.BatchAuthorizeRequest, v1alpha1.BatchAuthorizeResponse]
-	lookupResources   *connect_go.Client[v1alpha1.LookupResourcesRequest, v1alpha1.LookupResourcesResponse]
 	listPolicies      *connect_go.Client[v1alpha1.ListPoliciesRequest, v1alpha1.ListPoliciesResponse]
 	filterEntities    *connect_go.Client[v1alpha1.FilterEntitiesRequest, v1alpha1.FilterEntitiesResponse]
 	getEntity         *connect_go.Client[v1alpha1.GetEntityRequest, v1alpha1.GetEntityResponse]
@@ -160,11 +149,6 @@ func (c *authzServiceClient) BatchPutPolicy(ctx context.Context, req *connect_go
 // BatchAuthorize calls commonfate.authz.v1alpha1.AuthzService.BatchAuthorize.
 func (c *authzServiceClient) BatchAuthorize(ctx context.Context, req *connect_go.Request[v1alpha1.BatchAuthorizeRequest]) (*connect_go.Response[v1alpha1.BatchAuthorizeResponse], error) {
 	return c.batchAuthorize.CallUnary(ctx, req)
-}
-
-// LookupResources calls commonfate.authz.v1alpha1.AuthzService.LookupResources.
-func (c *authzServiceClient) LookupResources(ctx context.Context, req *connect_go.Request[v1alpha1.LookupResourcesRequest]) (*connect_go.Response[v1alpha1.LookupResourcesResponse], error) {
-	return c.lookupResources.CallUnary(ctx, req)
 }
 
 // ListPolicies calls commonfate.authz.v1alpha1.AuthzService.ListPolicies.
@@ -192,8 +176,6 @@ type AuthzServiceHandler interface {
 	BatchPutPolicy(context.Context, *connect_go.Request[v1alpha1.BatchPutPolicyRequest]) (*connect_go.Response[v1alpha1.BatchPutPolicyResponse], error)
 	// run multiple authorization decisions and returns allow + deny for each.
 	BatchAuthorize(context.Context, *connect_go.Request[v1alpha1.BatchAuthorizeRequest]) (*connect_go.Response[v1alpha1.BatchAuthorizeResponse], error)
-	// look up which resources a particular principal can access
-	LookupResources(context.Context, *connect_go.Request[v1alpha1.LookupResourcesRequest]) (*connect_go.Response[v1alpha1.LookupResourcesResponse], error)
 	ListPolicies(context.Context, *connect_go.Request[v1alpha1.ListPoliciesRequest]) (*connect_go.Response[v1alpha1.ListPoliciesResponse], error)
 	// Query for entities matching filter conditions.
 	FilterEntities(context.Context, *connect_go.Request[v1alpha1.FilterEntitiesRequest]) (*connect_go.Response[v1alpha1.FilterEntitiesResponse], error)
@@ -227,11 +209,6 @@ func NewAuthzServiceHandler(svc AuthzServiceHandler, opts ...connect_go.HandlerO
 		svc.BatchAuthorize,
 		opts...,
 	)
-	authzServiceLookupResourcesHandler := connect_go.NewUnaryHandler(
-		AuthzServiceLookupResourcesProcedure,
-		svc.LookupResources,
-		opts...,
-	)
 	authzServiceListPoliciesHandler := connect_go.NewUnaryHandler(
 		AuthzServiceListPoliciesProcedure,
 		svc.ListPolicies,
@@ -257,8 +234,6 @@ func NewAuthzServiceHandler(svc AuthzServiceHandler, opts ...connect_go.HandlerO
 			authzServiceBatchPutPolicyHandler.ServeHTTP(w, r)
 		case AuthzServiceBatchAuthorizeProcedure:
 			authzServiceBatchAuthorizeHandler.ServeHTTP(w, r)
-		case AuthzServiceLookupResourcesProcedure:
-			authzServiceLookupResourcesHandler.ServeHTTP(w, r)
 		case AuthzServiceListPoliciesProcedure:
 			authzServiceListPoliciesHandler.ServeHTTP(w, r)
 		case AuthzServiceFilterEntitiesProcedure:
@@ -288,10 +263,6 @@ func (UnimplementedAuthzServiceHandler) BatchPutPolicy(context.Context, *connect
 
 func (UnimplementedAuthzServiceHandler) BatchAuthorize(context.Context, *connect_go.Request[v1alpha1.BatchAuthorizeRequest]) (*connect_go.Response[v1alpha1.BatchAuthorizeResponse], error) {
 	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("commonfate.authz.v1alpha1.AuthzService.BatchAuthorize is not implemented"))
-}
-
-func (UnimplementedAuthzServiceHandler) LookupResources(context.Context, *connect_go.Request[v1alpha1.LookupResourcesRequest]) (*connect_go.Response[v1alpha1.LookupResourcesResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("commonfate.authz.v1alpha1.AuthzService.LookupResources is not implemented"))
 }
 
 func (UnimplementedAuthzServiceHandler) ListPolicies(context.Context, *connect_go.Request[v1alpha1.ListPoliciesRequest]) (*connect_go.Response[v1alpha1.ListPoliciesResponse], error) {
