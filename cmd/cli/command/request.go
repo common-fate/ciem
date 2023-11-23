@@ -3,7 +3,7 @@ package command
 import (
 	"github.com/bufbuild/connect-go"
 	"github.com/common-fate/ciem/config"
-	accessv1alpha1 "github.com/common-fate/ciem/gen/commonfate/cloud/access/v1alpha1"
+	accessv1alpha1 "github.com/common-fate/ciem/gen/commonfate/access/v1alpha1"
 	"github.com/common-fate/ciem/service/access"
 	"github.com/common-fate/ciem/service/request"
 	"github.com/common-fate/clio"

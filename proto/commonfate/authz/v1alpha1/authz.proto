@@ -2,10 +2,33 @@ syntax = "proto3";
 
 package commonfate.authz.v1alpha1;
 
-
 import "google/protobuf/struct.proto";
 import "commonfate/authz/v1alpha1/entity.proto";
 
+// The API for the authz service.
+//
+// authz is a globally-distributed, highly available entity store and authorization API.
+// Entity data and policies are written to authz, and the service indexes permissions to determine
+// what resources each principal can access.
+//
+// Reads and writes to authz are eventually consistent.
+//
+// This API is intended to be used internally by other Common Fate applications and is not intended to be
+// called directly by users.
+//
+// Throughout API endpoints you'll see references to 'universe' and 'environment'.
+//
+// A Universe is a global namespace for entities which provides isolation between resources. All entities belong to a single universe only.
+// Universes are used in development by Common Fate to run a single instance of the authz services which can serve multiple isolated entity graphs.
+// Usually we'd refer to these as 'namespaces', but to avoid confusion with Cedar namespaces they are called Universes.
+//
+// There are no API endpoints to create universes - they will be created automatically by the service if they do not exist.
+//
+// An environment is a set of authorization policies which grant access to the resources in a particular universe. Universes may have multiple Environments.
+// Each environment is indexed separately.
+// The typical use case for Environments is to allow policy changes to be previewed without impacting production policy evaluation.
+//
+// Currently the service only supports a single Universe, called 'default', and a single Environment, called 'production'.
 service AuthzService {
     // creates or updates entities for a particular policy store in the authorization service.
     rpc BatchPutEntity(BatchPutEntityRequest) returns (BatchPutEntityResponse) {}
@@ -27,56 +50,94 @@ service AuthzService {
     // run multiple authorization decisions and returns allow + deny for each.
     rpc BatchAuthorize(BatchAuthorizeRequest) returns (BatchAuthorizeResponse) {}
 
-    // // look up which resources a particular principal can access
-    // rpc LookupResources(LookupResourcesRequest) returns (LookupResourcesResponse) {}
+    // look up which resources a particular principal can access
+    rpc LookupResources(LookupResourcesRequest) returns (LookupResourcesResponse) {}
 
     // // look up which principals could access a particular resource
     // rpc LookupPrincipal(LookupPrincipalRequest) returns (LookupPrincipalResponse) {}
 
     rpc ListPolicies(ListPoliciesRequest) returns (ListPoliciesResponse) {}
 
-
-    rpc BatchDeletePolicies(BatchDeletePoliciesRequest) returns (BatchDeletePoliciesResponse) {}
-
     // Query for entities matching filter conditions.
     rpc FilterEntities(FilterEntitiesRequest) returns (FilterEntitiesResponse) {}
+
+    // Query for entity by UID.
+    rpc GetEntity(GetEntityRequest) returns (GetEntityResponse) {}
+}
+
+message LookupResourcesRequest {
+    string universe = 1;
+    string environment = 2;
+
+    // The principal to look up accessible resources for.
+    UID principal = 3;
+
+    // Filter entities for a particular type
+    string resource_type = 4;
+
+    // The token for the next page.
+    string page_token = 5;
+}
+
+message LookupResourcesResponse {
+    repeated Entity entities = 1;
+    string next_page_token = 2;
 }
 
 message BatchDeleteEntityRequest {
-    repeated UID entities = 1;
+    string universe = 1;
+    repeated UID entities = 2;
 }
+
 
 message BatchDeleteEntityResponse {}
 
 message FilterEntitiesRequest {
+    string universe = 1;
+
     // Filter entities for a particular type
-    string type = 1;
+    string type = 2;
 
     // Filter entities by their direct parents.
     // Specifying multiple parents will be treated as an AND operation,
     // and return entities matching all of the provided parent IDs.
-    repeated UID direct_parents = 2;
+    repeated UID direct_parents = 3;
 
     // Filter entities by their attributes.
-    repeated Attribute attribute_equals = 3;
+    repeated Attribute attribute_equals = 4;
 
     // The token for the next page.
-    string page_token = 4;
+    string page_token = 5;
 }
+
 
 message FilterEntitiesResponse {
     repeated Entity entities = 1;
     string next_page_token = 2;
 }
-
+message GetEntityRequest {
+    string universe = 1;
+    UID entity = 2;
+}
+message GetEntityResponse {
+    Entity entity = 1;
+}
 message AuthorizationRequest {
     UID principal = 1;
     UID action = 2;
     UID resource = 3;
+    // A client side identifier for the authorization request.
+    // The client_key will be included in the corresponding decision for the
+    // particular request made.
+    // 
+    // Useful when calling BatchAuthorize to match the decisions with the requests.
+    string client_key = 4;
 }
 
 message BatchAuthorizeRequest {
-    repeated AuthorizationRequest requests = 1;
+    string universe = 1;
+    string environment = 2;
+    repeated AuthorizationRequest requests = 3;
 }
 
 message Decision {
@@ -84,6 +145,8 @@ message Decision {
     AuthorizationRequest request = 2;
     bool allowed = 3;
     Diagnostics diagnostics = 4;
+    // The client-side identifier for the request specified in AuthorizationRequest.
+    string client_key = 5;
 }
 
 message BatchAuthorizeResponse {
@@ -91,16 +154,19 @@ message BatchAuthorizeResponse {
 }
 
 message AuthorizeRequest {
-    UID principal = 1;
-    UID action = 2;
-    UID resource = 3;
+    string universe = 1;
+    string environment = 2;
+    repeated AuthorizationRequest requests = 3;
 }
 
 message AuthorizeResponse {
-    bool allowed = 1;
+    Decision decision = 1;
 }
 
 message ListPoliciesRequest {
+    string universe = 1;
+    string environment = 2;
+
      // The token for the next page.
      string page_token = 4;
 }
@@ -111,28 +177,27 @@ message ListPoliciesResponse {
 }
 
 message BatchPutEntityRequest {
-    repeated Entity entities = 1;
+    string universe = 1;
+    repeated Entity entities = 2;
 }
 
 message BatchPutEntityResponse {}
 
 message BatchPutPolicyRequest {
-    repeated Policy policies = 1;
+    string universe = 1;
+    string environment = 2;
+    repeated Policy policies = 3;
 }
 
 message BatchPutPolicyResponse {}
 
-message BatchDeletePoliciesRequest {
-    repeated string policies = 1;
-}
-
-message BatchDeletePoliciesResponse {}
-
 message ListEntitiesRequest {
-    // Filter entities for a particular type
-    string type = 1;
+    string universe = 1;
 
-    string page = 2;
+    // Filter entities for a particular type
+    string type = 2;
+
+    string page = 3;
 }
 
 message ListEntitiesResponse {
@@ -142,8 +207,10 @@ message ListEntitiesResponse {
 }
 
 message Policy {
+    // ID of the policy.
     string id = 1;
-    string policy = 2;
+    // Cedar code for the policy.
+    string cedar = 2;
 }
 
 message Diagnostics {
