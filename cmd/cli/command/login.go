@@ -8,7 +8,7 @@ import (
 
 var Login = cli.Command{
 	Name:  "login",
-	Usage: "Log in to Common Fate Cloud",
+	Usage: "Log in to Common Fate",
 	Action: func(c *cli.Context) error {
 		cfg, err := config.LoadDefault(c.Context)
 		if err != nil {
@@ -23,7 +23,7 @@ var Login = cli.Command{
 
 var Logout = cli.Command{
 	Name:  "logout",
-	Usage: "Log out of Common Fate Cloud",
+	Usage: "Log out of Common Fate",
 	Action: func(c *cli.Context) error {
 		cfg, err := config.LoadDefault(c.Context)
 		if err != nil {

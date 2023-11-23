@@ -32,7 +32,7 @@ func WithKeyring(k keyring.Keyring) func(o *Opts) {
 // The context is the authentication context to use.
 // This is usually 'default' and in future can be
 // expanded to allow CLI users to switch between
-// separate Common Fate Cloud tenancies.
+// separate Common Fate tenancies.
 func New(opts Opts) Storage {
 	return Storage{
 		keyring: cfKeyring{keyring: opts.Keyring},
