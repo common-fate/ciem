@@ -24,6 +24,7 @@ type Context struct {
 	// the name of the context is the key of the toml entry
 	name         string
 	APIURL       string `toml:"api_url,omitempty" json:"api_url,omitempty"`
+	AccessURL    string `toml:"access_url,omitempty" json:"access_url,omitempty"`
 	OIDCIssuer   string `toml:"oidc_issuer,omitempty" json:"oidc_issuer,omitempty"`
 	OIDCClientID string `toml:"oidc_client_id,omitempty" json:"oidc_client_id,omitempty"`
 

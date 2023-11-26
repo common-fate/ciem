@@ -49,6 +49,9 @@ const (
 	ResourceServiceListResourcesForProviderProcedure = "/commonfate.access.v1alpha1.ResourceService/ListResourcesForProvider"
 	// AccessServiceGrantProcedure is the fully-qualified name of the AccessService's Grant RPC.
 	AccessServiceGrantProcedure = "/commonfate.access.v1alpha1.AccessService/Grant"
+	// AccessServiceQueryEntitlementsProcedure is the fully-qualified name of the AccessService's
+	// QueryEntitlements RPC.
+	AccessServiceQueryEntitlementsProcedure = "/commonfate.access.v1alpha1.AccessService/QueryEntitlements"
 	// ControlPlaneServiceGetExistingAccessRequestProcedure is the fully-qualified name of the
 	// ControlPlaneService's GetExistingAccessRequest RPC.
 	ControlPlaneServiceGetExistingAccessRequestProcedure = "/commonfate.access.v1alpha1.ControlPlaneService/GetExistingAccessRequest"
@@ -219,6 +222,8 @@ type AccessServiceClient interface {
 	// This method is used by the Common Fate CLI in commands like 'cf exec gcp -- <command>' to ensure access
 	// is provisioned prior to running a command.
 	Grant(context.Context, *connect_go.Request[v1alpha1.GrantRequest]) (*connect_go.Response[v1alpha1.GrantResponse], error)
+	// Query for JIT entitlements available to the user.
+	QueryEntitlements(context.Context, *connect_go.Request[v1alpha1.QueryEntitlementsRequest]) (*connect_go.Response[v1alpha1.QueryEntitlementsResponse], error)
 }
 
 // NewAccessServiceClient constructs a client for the commonfate.access.v1alpha1.AccessService
@@ -236,17 +241,28 @@ func NewAccessServiceClient(httpClient connect_go.HTTPClient, baseURL string, op
 			baseURL+AccessServiceGrantProcedure,
 			opts...,
 		),
+		queryEntitlements: connect_go.NewClient[v1alpha1.QueryEntitlementsRequest, v1alpha1.QueryEntitlementsResponse](
+			httpClient,
+			baseURL+AccessServiceQueryEntitlementsProcedure,
+			opts...,
+		),
 	}
 }
 
 // accessServiceClient implements AccessServiceClient.
 type accessServiceClient struct {
-	grant *connect_go.Client[v1alpha1.GrantRequest, v1alpha1.GrantResponse]
+	grant             *connect_go.Client[v1alpha1.GrantRequest, v1alpha1.GrantResponse]
+	queryEntitlements *connect_go.Client[v1alpha1.QueryEntitlementsRequest, v1alpha1.QueryEntitlementsResponse]
 }
 
 // Grant calls commonfate.access.v1alpha1.AccessService.Grant.
 func (c *accessServiceClient) Grant(ctx context.Context, req *connect_go.Request[v1alpha1.GrantRequest]) (*connect_go.Response[v1alpha1.GrantResponse], error) {
 	return c.grant.CallUnary(ctx, req)
+}
+
+// QueryEntitlements calls commonfate.access.v1alpha1.AccessService.QueryEntitlements.
+func (c *accessServiceClient) QueryEntitlements(ctx context.Context, req *connect_go.Request[v1alpha1.QueryEntitlementsRequest]) (*connect_go.Response[v1alpha1.QueryEntitlementsResponse], error) {
+	return c.queryEntitlements.CallUnary(ctx, req)
 }
 
 // AccessServiceHandler is an implementation of the commonfate.access.v1alpha1.AccessService
@@ -263,6 +279,8 @@ type AccessServiceHandler interface {
 	// This method is used by the Common Fate CLI in commands like 'cf exec gcp -- <command>' to ensure access
 	// is provisioned prior to running a command.
 	Grant(context.Context, *connect_go.Request[v1alpha1.GrantRequest]) (*connect_go.Response[v1alpha1.GrantResponse], error)
+	// Query for JIT entitlements available to the user.
+	QueryEntitlements(context.Context, *connect_go.Request[v1alpha1.QueryEntitlementsRequest]) (*connect_go.Response[v1alpha1.QueryEntitlementsResponse], error)
 }
 
 // NewAccessServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -276,10 +294,17 @@ func NewAccessServiceHandler(svc AccessServiceHandler, opts ...connect_go.Handle
 		svc.Grant,
 		opts...,
 	)
+	accessServiceQueryEntitlementsHandler := connect_go.NewUnaryHandler(
+		AccessServiceQueryEntitlementsProcedure,
+		svc.QueryEntitlements,
+		opts...,
+	)
 	return "/commonfate.access.v1alpha1.AccessService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AccessServiceGrantProcedure:
 			accessServiceGrantHandler.ServeHTTP(w, r)
+		case AccessServiceQueryEntitlementsProcedure:
+			accessServiceQueryEntitlementsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -291,6 +316,10 @@ type UnimplementedAccessServiceHandler struct{}
 
 func (UnimplementedAccessServiceHandler) Grant(context.Context, *connect_go.Request[v1alpha1.GrantRequest]) (*connect_go.Response[v1alpha1.GrantResponse], error) {
 	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("commonfate.access.v1alpha1.AccessService.Grant is not implemented"))
+}
+
+func (UnimplementedAccessServiceHandler) QueryEntitlements(context.Context, *connect_go.Request[v1alpha1.QueryEntitlementsRequest]) (*connect_go.Response[v1alpha1.QueryEntitlementsResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("commonfate.access.v1alpha1.AccessService.QueryEntitlements is not implemented"))
 }
 
 // ControlPlaneServiceClient is a client for the commonfate.access.v1alpha1.ControlPlaneService

@@ -3,6 +3,8 @@ syntax = "proto3";
 package commonfate.access.v1alpha1;
 
 import "commonfate/control/attest/v1alpha1/attestation.proto";
+import "commonfate/authz/v1alpha1/entity.proto";
+import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 
 service UserManagementService {
@@ -28,6 +30,91 @@ service AccessService {
   // This method is used by the Common Fate CLI in commands like 'cf exec gcp -- <command>' to ensure access
   // is provisioned prior to running a command.
   rpc Grant(GrantRequest) returns (GrantResponse) {}
+
+  // Query for JIT entitlements available to the user.
+  rpc QueryEntitlements(QueryEntitlementsRequest) returns (QueryEntitlementsResponse) {}
+}
+
+enum JITStatus {
+  JIT_STATUS_UNSPECIFIED = 0;
+
+  // The entitlement is currently granted to the principal.
+  JIT_STATUS_ACTIVE = 1;
+
+  // The entitlement is not granted to the principal.
+  JIT_STATUS_INACTIVE = 2;
+}
+
+message QueryEntitlementsRequest {
+  // If provided, filters entitlements for a particular principal
+  commonfate.authz.v1alpha1.UID principal = 1;
+
+  // If provided, filters entitlements for a particular JIT status
+  JITStatus jit_status = 2;
+
+   // The token for the next page.
+   string page_token = 10;
+}
+
+message QueryEntitlementsResponse {
+  repeated Entitlement entitlements = 1;
+  string next_page_token = 2;
+}
+
+
+message Entitlement {
+  // ID is just used internally and isn't really shown to users except for debugging purposes.
+  // users refer to entitlements by the target and role, rather than the internal ID.
+  string id = 1;
+
+  // The principal this entitlement grants access to
+  commonfate.authz.v1alpha1.UID principal = 2;
+
+  // The particular resource which this entitlement gives access to
+  commonfate.authz.v1alpha1.UID target = 3;
+
+  // A human-friendly name for the target, such as the AWS account name.
+  string target_name = 4;
+
+  // The particular role this entitlement gives access to
+  commonfate.authz.v1alpha1.UID role = 5;
+
+  // A human-friendly name for the role.
+  string role_name = 6;
+
+  // For providers which support it (like AWS IAM Identity Center), an ID of a resource representing
+  // the entitlement assignment to the user. For example, in IAM Identity Center this is an AccountAssignment resource.
+  commonfate.authz.v1alpha1.UID assignment = 7;
+
+  // Details about JIT access. Only present on JIT Entitlements.
+  // If nil, the entitlement is a persistent entitlement.
+  // Currently all Entitlements are JIT Entitlements.
+  // In future we may show users persistent entitlements which were assigned outside
+  // of Common Fate JIT.
+  JITEntitlementDetails jit = 8;
+}
+
+message JITEntitlementDetails {
+  // the JIT workflow associated with the entitlement.
+  string workflow_id = 1;
+
+  // Whether the entitlement is currently assigned to the principal.
+  // For JIT Entitlements, an entitlement may be inactive.
+  // This means that it is available for request, but is not actually assigned
+  // to the user at the particular moment.
+  JITStatus status = 2;
+
+  // The permitted access duration.
+  google.protobuf.Duration duration = 3;
+
+  // Whether access will be automatically approved.
+  bool auto_approved = 4;
+
+  // Whether extending access is permitted.
+  bool extension_allowed = 5;
+
+  // For active JIT entitlements, the duration from now that the access is due to expire.
+  google.protobuf.Duration expires_in = 6;
 }
 
 // ControlPlaneService is the RPC service running in the control plane 
@@ -61,8 +148,13 @@ message GrantRequest {
   reserved 1;
   reserved "principal";
 
-  string action = 2;
-  EntityUID resource = 3;
+  // The resource to grant the principal access to.
+  commonfate.authz.v1alpha1.UID target = 3;
+
+  // The role to grant the principal access to the resource with.
+  commonfate.authz.v1alpha1.UID role = 2;
+
+  // Optional justification as to why access is required.
   Justification justification = 4;
 }
 

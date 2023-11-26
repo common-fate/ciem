@@ -1,12 +1,10 @@
-package entities
+package workflow
 
 import "github.com/urfave/cli/v2"
 
 var Command = cli.Command{
-	Name: "entities",
+	Name: "workflow",
 	Subcommands: []*cli.Command{
-		&putCommand,
-		&deleteCommand,
-		&getCommand,
+		&createCommand,
 	},
 }

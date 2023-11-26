@@ -1,7 +1,7 @@
 [
   {
     "uid": {
-      "type": "User",
+      "type": "Core::User",
       "id": "chris"
     },
     "attrs": {},
@@ -9,50 +9,81 @@
   },
   {
     "uid": {
-      "type": "User",
-      "id": "josh"
+      "type": "Core::UserEmail",
+      "id": "chris@commonfate.io"
+    },
+    "attrs": {},
+    "parents": [
+      {
+        "type": "Core::User",
+        "id": "chris"
+      }
+    ]
+  },
+  {
+    "uid": {
+      "type": "AWS::Account",
+      "id": "123456789012"
     },
     "attrs": {},
     "parents": []
   },
   {
     "uid": {
-      "type": "Vault",
-      "id": "test"
+      "type": "AWS::SSO::PermissionSet",
+      "id": "AdministratorAccess"
     },
     "attrs": {},
-    "parents": [
-      {
-        "type": "Folder",
-        "id": "test"
-      }
-    ]
+    "parents": []
   },
   {
     "uid": {
-      "type": "Vault",
-      "id": "other"
+      "type": "GCP::Project",
+      "id": "demo-project"
     },
     "attrs": {},
-    "parents": [
-      {
-        "type": "Folder",
-        "id": "prod"
-      }
-    ]
+    "parents": []
   },
-
   {
     "uid": {
-      "type": "Vault",
-      "id": "three"
+      "type": "GCP::Role",
+      "id": "roles/editor"
     },
     "attrs": {},
-    "parents": [
-      {
-        "type": "Folder",
-        "id": "prod"
+    "parents": []
+  },
+  {
+    "uid": {
+      "type": "JIT::Availability",
+      "id": "av_234"
+    },
+    "attrs": {
+      "target": {
+        "__entity": { "type": "GCP::Project", "id": "demo-project" }
+      },
+      "role": {
+        "__entity": {
+          "type": "GCP::Role",
+          "id": "roles/editor"
+        }
       }
-    ]
+    }
+  },
+  {
+    "uid": {
+      "type": "JIT::Availability",
+      "id": "av_123"
+    },
+    "attrs": {
+      "target": {
+        "__entity": { "type": "AWS::Account", "id": "123456789012" }
+      },
+      "role": {
+        "__entity": {
+          "type": "AWS::SSO::PermissionSet",
+          "id": "AdministratorAccess"
+        }
+      }
+    }
   }
 ]

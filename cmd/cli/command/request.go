@@ -4,6 +4,7 @@ import (
 	"github.com/bufbuild/connect-go"
 	"github.com/common-fate/ciem/config"
 	accessv1alpha1 "github.com/common-fate/ciem/gen/commonfate/access/v1alpha1"
+	authzv1alpha1 "github.com/common-fate/ciem/gen/commonfate/authz/v1alpha1"
 	"github.com/common-fate/ciem/service/access"
 	"github.com/common-fate/ciem/service/request"
 	"github.com/common-fate/clio"
@@ -23,10 +24,18 @@ var Request = cli.Command{
 
 var gcpRequest = cli.Command{
 	Name:  "gcp",
-	Usage: "Request access to a GCP entitlement",
+	Usage: "Request access to a GCP entitlements",
+	Subcommands: []*cli.Command{
+		&gcpProjectRequest,
+	},
+}
+
+var gcpProjectRequest = cli.Command{
+	Name:  "project",
+	Usage: "Request access to a GCP Project",
 	Flags: []cli.Flag{
-		&cli.StringFlag{Name: "project"},
-		&cli.StringFlag{Name: "role"},
+		&cli.StringFlag{Name: "id", Required: true},
+		&cli.StringFlag{Name: "role", Required: true},
 	},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
@@ -39,10 +48,13 @@ var gcpRequest = cli.Command{
 		client := access.NewFromConfig(cfg)
 
 		res, err := client.Grant(ctx, connect.NewRequest(&accessv1alpha1.GrantRequest{
-			Action: c.String("role"),
-			Resource: &accessv1alpha1.EntityUID{
+			Role: &authzv1alpha1.UID{
+				Type: "GCP::Role",
+				Id:   c.String("role"),
+			},
+			Target: &authzv1alpha1.UID{
 				Type: "GCP::Project",
-				Id:   c.String("project"),
+				Id:   c.String("id"),
 			},
 		}))
 		if err != nil {

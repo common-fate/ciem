@@ -26,6 +26,13 @@ service ConfigService {
     rpc ReadPermissionMapping(ReadPermissionMappingRequest) returns (ReadPermissionMappingResponse) {}
     rpc UpdatePermissionMapping(UpdatePermissionMappingRequest) returns (UpdatePermissionMappingResponse) {}
     rpc DeletePermissionMapping(DeletePermissionMappingRequest) returns (DeletePermissionMappingResponse) {}
+
+    rpc CreateSchedule(CreateScheduleRequest) returns (CreateScheduleResponse) {}
+    rpc ReadSchedule(ReadScheduleRequest) returns (ReadScheduleResponse) {}
+    rpc UpdateSchedule(UpdateScheduleRequest) returns (UpdateScheduleResponse) {}
+    rpc DeleteSchedule(DeleteScheduleRequest) returns (DeleteScheduleResponse) {}
+
+    rpc ReadPagerDutySchedules(ReadPagerDutySchedulesRequest) returns (ReadPagerDutySchedulesResponse) {}
 }
 
 
@@ -266,5 +273,53 @@ message DeletePermissionMappingRequest {
 }
 
 message DeletePermissionMappingResponse {
+    string id = 1;
+}
+
+message ReadPagerDutySchedulesRequest {
+    string id = 1;
+}
+
+message ReadPagerDutySchedulesResponse {
+    string id = 1;
+    string name = 2;
+}
+
+
+message CreateScheduleRequest {
+    string id = 1;
+    string name = 2;
+}
+
+message CreateScheduleResponse {
+    string id = 1;
+    string name = 2;
+
+}
+
+message ReadScheduleRequest {
+    string id = 1;
+}
+
+message ReadScheduleResponse {
+    string id = 1;
+    string name = 2;
+}
+
+message UpdateScheduleRequest {
+    string id = 1;
+    string name = 2;
+}
+
+message UpdateScheduleResponse {
+    string id = 1;
+    string name = 2;
+}
+
+message DeleteScheduleRequest {
+    string id = 1;
+}
+
+message DeleteScheduleResponse {
     string id = 1;
 }
