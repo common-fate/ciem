@@ -3,15 +3,10 @@ syntax = "proto3";
 package commonfate.access.v1alpha1;
 
 import "commonfate/control/attest/v1alpha1/attestation.proto";
+import "commonfate/access/v1alpha1/access_request.proto";
+import "commonfate/authz/v1alpha1/entity.proto";
+import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
-
-service UserManagementService {
-  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse) {}
-}
-
-service ResourceService {
-  rpc ListResourcesForProvider(ListResourcesForProviderRequest) returns (ListResourcesForProviderResponse) {}
-}
 
 // AccessService is the Access Handler's user-facing API.
 // Users call this API to ensure that they have access to entitlements.
@@ -28,32 +23,91 @@ service AccessService {
   // This method is used by the Common Fate CLI in commands like 'cf exec gcp -- <command>' to ensure access
   // is provisioned prior to running a command.
   rpc Grant(GrantRequest) returns (GrantResponse) {}
+
+  // Query for JIT entitlements available to the user.
+  rpc QueryEntitlements(QueryEntitlementsRequest) returns (QueryEntitlementsResponse) {}
 }
 
-// ControlPlaneService is the RPC service running in the control plane 
-// which is called by the Access Handlers.
-service ControlPlaneService {
-  // GetExistingAccessRequest checks if there is an existing access request for the particular entitlement.
-  // It returns a nil response if no access request exists.
-  rpc GetExistingAccessRequest(GetExistingAccessRequestRequest) returns (GetExistingAccessRequestResponse) {}
+enum JITStatus {
+  JIT_STATUS_UNSPECIFIED = 0;
+
+  // The entitlement is currently granted to the principal.
+  JIT_STATUS_ACTIVE = 1;
+
+  // The entitlement is not granted to the principal.
+  JIT_STATUS_INACTIVE = 2;
 }
 
-service AccessRequestService {
-  rpc ListAccessRequests(ListAccessRequestsRequest) returns (ListAccessRequestsResponse) {}
-  rpc GetAccessRequest(GetAccessRequestRequest) returns (GetAccessRequestResponse) {}
-  rpc RevokeAccessRequest(RevokeAccessRequestRequest) returns (RevokeAccessRequestResponse) {}
-  rpc CancelAccessRequest(CancelAccessRequestRequest) returns (CancelAccessRequestResponse) {}
-  rpc ReviewAccessRequest(ReviewAccessRequestRequest) returns (ReviewAccessRequestResponse) {}
+message QueryEntitlementsRequest {
+  // If provided, filters entitlements for a particular principal
+  commonfate.authz.v1alpha1.UID principal = 1;
+
+  // If provided, filters entitlements for a particular JIT status
+  JITStatus jit_status = 2;
+
+   // The token for the next page.
+   string page_token = 10;
 }
 
-message GetExistingAccessRequestRequest {
-  EntityUID principal = 1;
-  string action = 2;
-  EntityUID resource = 3;
+message QueryEntitlementsResponse {
+  repeated Entitlement entitlements = 1;
+  string next_page_token = 2;
 }
 
-message GetExistingAccessRequestResponse {
-  optional AccessRequest access_request = 1;
+
+message Entitlement {
+  // ID is just used internally and isn't really shown to users except for debugging purposes.
+  // users refer to entitlements by the target and role, rather than the internal ID.
+  string id = 1;
+
+  // The principal this entitlement grants access to
+  commonfate.authz.v1alpha1.UID principal = 2;
+
+  // The particular resource which this entitlement gives access to
+  commonfate.authz.v1alpha1.UID target = 3;
+
+  // A human-friendly name for the target, such as the AWS account name.
+  string target_name = 4;
+
+  // The particular role this entitlement gives access to
+  commonfate.authz.v1alpha1.UID role = 5;
+
+  // A human-friendly name for the role.
+  string role_name = 6;
+
+  // For providers which support it (like AWS IAM Identity Center), an ID of a resource representing
+  // the entitlement assignment to the user. For example, in IAM Identity Center this is an AccountAssignment resource.
+  commonfate.authz.v1alpha1.UID assignment = 7;
+
+  // Details about JIT access. Only present on JIT Entitlements.
+  // If nil, the entitlement is a persistent entitlement.
+  // Currently all Entitlements are JIT Entitlements.
+  // In future we may show users persistent entitlements which were assigned outside
+  // of Common Fate JIT.
+  JITEntitlementDetails jit = 8;
+}
+
+message JITEntitlementDetails {
+  // the JIT workflow associated with the entitlement.
+  string workflow_id = 1;
+
+  // Whether the entitlement is currently assigned to the principal.
+  // For JIT Entitlements, an entitlement may be inactive.
+  // This means that it is available for request, but is not actually assigned
+  // to the user at the particular moment.
+  JITStatus status = 2;
+
+  // The permitted access duration.
+  google.protobuf.Duration duration = 3;
+
+  // Whether access will be automatically approved.
+  bool auto_approved = 4;
+
+  // Whether extending access is permitted.
+  bool extension_allowed = 5;
+
+  // For active JIT entitlements, the duration from now that the access is due to expire.
+  google.protobuf.Duration expires_in = 6;
 }
 
 message GrantRequest {
@@ -61,8 +115,13 @@ message GrantRequest {
   reserved 1;
   reserved "principal";
 
-  string action = 2;
-  EntityUID resource = 3;
+  // The resource to grant the principal access to.
+  commonfate.authz.v1alpha1.UID target = 3;
+
+  // The role to grant the principal access to the resource with.
+  commonfate.authz.v1alpha1.UID role = 2;
+
+  // Optional justification as to why access is required.
   Justification justification = 4;
 }
 
@@ -100,153 +159,7 @@ message GrantResponse {
   optional google.protobuf.Timestamp expires_at = 5;
 }
 
-message ListAccessRequestsRequest {
-    optional string page = 1;
-    optional int32 limit = 2;
-}
-
-message ListAccessRequestsResponse {
-  repeated AccessRequest access_requests = 1;
-  optional string next_page = 2;
-}
-
-message GetAccessRequestRequest {
-  // The ID of the Access Request.
-  string id = 1;
-}
-
-message GetAccessRequestResponse {
-  AccessRequest access_request = 1;
-}
-
-message EntityUID {
-  string type = 1;
-  string id = 2;
-}
-
-message Entity {
-  EntityUID uid = 1;
-  string name = 2;
-}
-
-// A request to be given entitlements allowing <Action> to be performed on <Resource>.
-//
-// For example, if the action is 'Admin', and the resource is AWS::Account::123456789012,
-// This request is for entitlements allowing Admin access to the account 123456789012.
-message AccessRequest {
-  // The ID of the Access Request.
-  string id = 1;
-
-  // Batch ID of the Access Request. Access Requests created in the same 
-  // API call have the same Batch ID.
-  string batch_id = 2;
-
-  // The resource being requested.
-  Entity resource = 3;
-
-  // The permissions being requested, such as "View" or "Admin".
-  string action = 4;
-
-  // The user or service account that requested the access.
-  Entity requestor = 5;
-
-  // The status of the Access Request.
-  RequestStatus status = 6;
-}
-
-enum RequestStatus {
-  REQUEST_STATUS_UNSPECIFIED = 0;
-  // Awaiting a manual review.
-  REQUEST_STATUS_PENDING_APPROVAL = 9;
-  // Being provisioned against the cloud provider.
-  REQUEST_STATUS_PROVISIONING = 2;
-  // The entitlement the request grants access to is currently active. 
-  REQUEST_STATUS_ACTIVE = 1;
-  // Being deprovisioned and removed from the cloud provider.
-  REQUEST_STATUS_DEPROVISIONING = 3;
-
-  // No longer active. Requests may be inactive due to several reasons, such as:
-  // - the request was cancelled by the user
-  // - the request was revoked by an administrator
-  // - the request has expired
-  REQUEST_STATUS_INACTIVE = 7;
-
-  // The Access Request encountered a fatal error.
-  REQUEST_STATUS_ERROR = 5;
-}
-
-message ListResourcesForProviderRequest {
-  EntitlementProvider provider = 1;
-  // currently unimplemented
-  optional string page = 2;
-  // currently unimplemented
-  optional int32 limit = 3;
-}
-
-message ListResourcesForProviderResponse {
-  repeated Entity resources = 1;
-  // currently unimplemented
-  optional string next_page = 2;
-}
-
-
 message Justification {
   optional string reason = 1;
   optional commonfate.control.attest.v1alpha1.Attestation device_attestation = 2;
-}
-
-enum EntitlementProvider {
-  ENTITLEMENT_PROVIDER_UNSPECIFIED = 0;
-  ENTITLEMENT_PROVIDER_AWS_IDC = 1;
-  ENTITLEMENT_PROVIDER_GCP = 2;
-}
-
-message ListUsersRequest {
-  optional int32 page = 1;
-  optional int32 limit = 2;
-}
-
-message ListUsersResponse {
-  repeated User users = 1;
-  int32 current_page = 2;
-  optional int32 next_page = 3;
-  optional int32 previous_page = 4;
-}
-
-message User {
-  string id = 1;
-  string primary_email = 2;
-  string first_name = 3;
-  string last_name = 4;
-  string avatar = 5;
-}
-
-message RevokeAccessRequestRequest {
-  // The ID of the Access Request.
-  string id = 1;
-}
-
-message RevokeAccessRequestResponse {
-}
-
-message CancelAccessRequestRequest {
-  // The ID of the Access Request.
-  string id = 1;
-}
-
-message CancelAccessRequestResponse {
-}
-
-enum RequestReviewDecision {
-  REQUEST_REVIEW_DECISION_UNSPECIFIED = 0;
-  REQUEST_REVIEW_DECISION_APPROVE = 1;
-  REQUEST_REVIEW_DECISION_CLOSE = 2;
-}
-message ReviewAccessRequestRequest {
-  // The ID of the Access Request.
-  string id = 1;
-  RequestReviewDecision decision = 2;
-}
-
-message ReviewAccessRequestResponse {
 }

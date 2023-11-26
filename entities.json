@@ -1,7 +1,7 @@
 [
   {
     "uid": {
-      "type": "User",
+      "type": "Core::User",
       "id": "chris"
     },
     "attrs": {},
@@ -9,49 +9,104 @@
   },
   {
     "uid": {
-      "type": "User",
-      "id": "josh"
+      "type": "Core::UserEmail",
+      "id": "chris@commonfate.io"
+    },
+    "attrs": {},
+    "parents": [
+      {
+        "type": "Core::User",
+        "id": "chris"
+      }
+    ]
+  },
+  {
+    "uid": {
+      "type": "AWS::Account",
+      "id": "123456789012"
     },
     "attrs": {},
     "parents": []
   },
   {
     "uid": {
-      "type": "Vault",
-      "id": "test"
+      "type": "AWS::SSO::PermissionSet",
+      "id": "AdministratorAccess"
     },
     "attrs": {},
+    "parents": []
+  },
+  {
+    "uid": {
+      "type": "GCP::Project",
+      "id": "demo-project"
+    },
+    "attrs": {},
+    "parents": []
+  },
+  {
+    "uid": {
+      "type": "GCP::Role",
+      "id": "roles/editor"
+    },
+    "attrs": {},
+    "parents": []
+  },
+  {
+    "uid": {
+      "type": "JIT::Workflow",
+      "id": "wf_123"
+    },
+    "priority": 100,
+    "access_duration": 300000
+  },
+  {
+    "uid": {
+      "type": "JIT::Availability",
+      "id": "av_234"
+    },
+    "attrs": {
+      "target": {
+        "__entity": { "type": "GCP::Project", "id": "demo-project" }
+      },
+      "role": {
+        "__entity": {
+          "type": "GCP::Role",
+          "id": "roles/editor"
+        }
+      },
+      "priority": 100,
+      "access_duration": 300000
+    },
     "parents": [
       {
-        "type": "Folder",
-        "id": "test"
+        "type": "JIT::Workflow",
+        "id": "wf_123"
       }
     ]
   },
   {
     "uid": {
-      "type": "Vault",
-      "id": "other"
+      "type": "JIT::Availability",
+      "id": "av_123"
     },
-    "attrs": {},
+    "attrs": {
+      "target": {
+        "__entity": { "type": "AWS::Account", "id": "123456789012" }
+      },
+      "role": {
+        "__entity": {
+          "type": "AWS::SSO::PermissionSet",
+          "id": "AdministratorAccess"
+        }
+      },
+      "priority": 100,
+      "access_duration": 300000
+    },
     "parents": [
       {
-        "type": "Folder",
-        "id": "prod"
-      }
-    ]
-  },
-
-  {
-    "uid": {
-      "type": "Vault",
-      "id": "three"
-    },
-    "attrs": {},
-    "parents": [
-      {
-        "type": "Folder",
-        "id": "prod"
+        "type": "JIT::Workflow",
+        "id": "wf_123"
       }
     ]
   }

@@ -2,6 +2,7 @@ package authz
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/bufbuild/connect-go"
@@ -44,16 +45,32 @@ func (c *Client) BatchPutEntityJSON(ctx context.Context, input BatchPutEntityJSO
 }
 
 func transformJSONToEntity(e EntityJSON) (*authzv1alpha1.Entity, error) {
+	attrs, err := transformAttrs(e.Attrs)
+	if err != nil {
+		return nil, err
+	}
+
 	res := authzv1alpha1.Entity{
 		Uid:        e.UID.ToAPI(),
-		Attributes: []*authzv1alpha1.Attribute{},
+		Attributes: attrs,
 		Parents:    []*authzv1alpha1.UID{},
 	}
 
-	for k, v := range e.Attrs {
+	for _, v := range e.Parents {
+		res.Parents = append(res.Parents, v.ToAPI())
+	}
+
+	return &res, nil
+}
+
+func transformAttrs(attrs map[string]any) ([]*authzv1alpha1.Attribute, error) {
+	res := []*authzv1alpha1.Attribute{}
+
+	for k, v := range attrs {
+
 		switch val := v.(type) {
 		case string:
-			res.Attributes = append(res.Attributes, &authzv1alpha1.Attribute{
+			res = append(res, &authzv1alpha1.Attribute{
 				Key: k,
 				Value: &authzv1alpha1.Value{
 					Value: &authzv1alpha1.Value_Str{
@@ -63,7 +80,7 @@ func transformJSONToEntity(e EntityJSON) (*authzv1alpha1.Entity, error) {
 			})
 
 		case int:
-			res.Attributes = append(res.Attributes, &authzv1alpha1.Attribute{
+			res = append(res, &authzv1alpha1.Attribute{
 				Key: k,
 				Value: &authzv1alpha1.Value{
 					Value: &authzv1alpha1.Value_Long{
@@ -71,14 +88,73 @@ func transformJSONToEntity(e EntityJSON) (*authzv1alpha1.Entity, error) {
 					},
 				},
 			})
+		case float64:
+			res = append(res, &authzv1alpha1.Attribute{
+				Key: k,
+				Value: &authzv1alpha1.Value{
+					Value: &authzv1alpha1.Value_Long{
+						Long: int64(val),
+					},
+				},
+			})
+
+		case map[string]any:
+			entityMap, ok := val["__entity"]
+			if ok {
+				entity, ok := entityMap.(map[string]any)
+				if !ok {
+					return nil, errors.New("could not parse __entity reference")
+				}
+				typ := entity["type"]
+				if typ == "" {
+					return nil, errors.New("could not parse __entity reference: type was empty")
+				}
+				typStr, ok := typ.(string)
+				if !ok {
+					return nil, errors.New("could not parse __entity reference: type was not string")
+				}
+
+				id := entity["id"]
+				if typ == "" {
+					return nil, errors.New("could not parse __entity reference: id was empty")
+				}
+				idStr, ok := id.(string)
+				if !ok {
+					return nil, errors.New("could not parse __entity reference: id was not string")
+				}
+
+				res = append(res, &authzv1alpha1.Attribute{
+					Key: k,
+					Value: &authzv1alpha1.Value{
+						Value: &authzv1alpha1.Value_Entity{
+							Entity: &authzv1alpha1.UID{
+								Type: typStr,
+								Id:   idStr,
+							},
+						},
+					},
+				})
+			} else {
+				record, err := transformAttrs(val)
+				if err != nil {
+					return nil, err
+				}
+				res = append(res, &authzv1alpha1.Attribute{
+					Key: k,
+					Value: &authzv1alpha1.Value{
+						Value: &authzv1alpha1.Value_Record{
+							Record: &authzv1alpha1.Record{
+								Attributes: record,
+							},
+						},
+					},
+				})
+			}
+
 		default:
-			return nil, fmt.Errorf("unhandled attribute type: %s", k)
+			return nil, fmt.Errorf("unhandled attribute type: %s (%T)", k, v)
 		}
 	}
 
-	for _, v := range e.Parents {
-		res.Parents = append(res.Parents, v.ToAPI())
-	}
-
-	return &res, nil
+	return res, nil
 }

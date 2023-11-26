@@ -12,13 +12,18 @@ message Value {
         string str = 1;
         bool bool = 2;
         int64 long = 3;
-        // Attribute record = 4;
-        // Set set = 5;
+        UID entity = 4;
+        Record record = 5;
+        Set set = 6;
     }
 }
 
+message Record {
+    repeated Attribute attributes = 1;
+}
+
 message Set {
-    repeated Value values = 5;
+    repeated Value values = 1;
 }
 
 message UID {

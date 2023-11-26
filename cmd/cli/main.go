@@ -8,6 +8,7 @@ import (
 	"github.com/common-fate/ciem/cmd/cli/command"
 	"github.com/common-fate/ciem/cmd/cli/command/access"
 	"github.com/common-fate/ciem/cmd/cli/command/entities"
+	"github.com/common-fate/ciem/cmd/cli/command/jit"
 	"github.com/common-fate/ciem/cmd/cli/command/policy"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/clierr"
@@ -40,6 +41,7 @@ func main() {
 			&policy.Command,
 			&entities.Command,
 			&access.Command,
+			&jit.Command,
 		},
 	}
 	clio.SetLevelFromEnv("CF_LOG")

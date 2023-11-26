@@ -89,6 +89,21 @@ const (
 	// ConfigServiceDeletePermissionMappingProcedure is the fully-qualified name of the ConfigService's
 	// DeletePermissionMapping RPC.
 	ConfigServiceDeletePermissionMappingProcedure = "/commonfate.control.config.v1alpha1.ConfigService/DeletePermissionMapping"
+	// ConfigServiceCreateScheduleProcedure is the fully-qualified name of the ConfigService's
+	// CreateSchedule RPC.
+	ConfigServiceCreateScheduleProcedure = "/commonfate.control.config.v1alpha1.ConfigService/CreateSchedule"
+	// ConfigServiceReadScheduleProcedure is the fully-qualified name of the ConfigService's
+	// ReadSchedule RPC.
+	ConfigServiceReadScheduleProcedure = "/commonfate.control.config.v1alpha1.ConfigService/ReadSchedule"
+	// ConfigServiceUpdateScheduleProcedure is the fully-qualified name of the ConfigService's
+	// UpdateSchedule RPC.
+	ConfigServiceUpdateScheduleProcedure = "/commonfate.control.config.v1alpha1.ConfigService/UpdateSchedule"
+	// ConfigServiceDeleteScheduleProcedure is the fully-qualified name of the ConfigService's
+	// DeleteSchedule RPC.
+	ConfigServiceDeleteScheduleProcedure = "/commonfate.control.config.v1alpha1.ConfigService/DeleteSchedule"
+	// ConfigServiceReadPagerDutySchedulesProcedure is the fully-qualified name of the ConfigService's
+	// ReadPagerDutySchedules RPC.
+	ConfigServiceReadPagerDutySchedulesProcedure = "/commonfate.control.config.v1alpha1.ConfigService/ReadPagerDutySchedules"
 )
 
 // ConfigServiceClient is a client for the commonfate.control.config.v1alpha1.ConfigService service.
@@ -113,6 +128,11 @@ type ConfigServiceClient interface {
 	ReadPermissionMapping(context.Context, *connect_go.Request[v1alpha1.ReadPermissionMappingRequest]) (*connect_go.Response[v1alpha1.ReadPermissionMappingResponse], error)
 	UpdatePermissionMapping(context.Context, *connect_go.Request[v1alpha1.UpdatePermissionMappingRequest]) (*connect_go.Response[v1alpha1.UpdatePermissionMappingResponse], error)
 	DeletePermissionMapping(context.Context, *connect_go.Request[v1alpha1.DeletePermissionMappingRequest]) (*connect_go.Response[v1alpha1.DeletePermissionMappingResponse], error)
+	CreateSchedule(context.Context, *connect_go.Request[v1alpha1.CreateScheduleRequest]) (*connect_go.Response[v1alpha1.CreateScheduleResponse], error)
+	ReadSchedule(context.Context, *connect_go.Request[v1alpha1.ReadScheduleRequest]) (*connect_go.Response[v1alpha1.ReadScheduleResponse], error)
+	UpdateSchedule(context.Context, *connect_go.Request[v1alpha1.UpdateScheduleRequest]) (*connect_go.Response[v1alpha1.UpdateScheduleResponse], error)
+	DeleteSchedule(context.Context, *connect_go.Request[v1alpha1.DeleteScheduleRequest]) (*connect_go.Response[v1alpha1.DeleteScheduleResponse], error)
+	ReadPagerDutySchedules(context.Context, *connect_go.Request[v1alpha1.ReadPagerDutySchedulesRequest]) (*connect_go.Response[v1alpha1.ReadPagerDutySchedulesResponse], error)
 }
 
 // NewConfigServiceClient constructs a client for the
@@ -226,6 +246,31 @@ func NewConfigServiceClient(httpClient connect_go.HTTPClient, baseURL string, op
 			baseURL+ConfigServiceDeletePermissionMappingProcedure,
 			opts...,
 		),
+		createSchedule: connect_go.NewClient[v1alpha1.CreateScheduleRequest, v1alpha1.CreateScheduleResponse](
+			httpClient,
+			baseURL+ConfigServiceCreateScheduleProcedure,
+			opts...,
+		),
+		readSchedule: connect_go.NewClient[v1alpha1.ReadScheduleRequest, v1alpha1.ReadScheduleResponse](
+			httpClient,
+			baseURL+ConfigServiceReadScheduleProcedure,
+			opts...,
+		),
+		updateSchedule: connect_go.NewClient[v1alpha1.UpdateScheduleRequest, v1alpha1.UpdateScheduleResponse](
+			httpClient,
+			baseURL+ConfigServiceUpdateScheduleProcedure,
+			opts...,
+		),
+		deleteSchedule: connect_go.NewClient[v1alpha1.DeleteScheduleRequest, v1alpha1.DeleteScheduleResponse](
+			httpClient,
+			baseURL+ConfigServiceDeleteScheduleProcedure,
+			opts...,
+		),
+		readPagerDutySchedules: connect_go.NewClient[v1alpha1.ReadPagerDutySchedulesRequest, v1alpha1.ReadPagerDutySchedulesResponse](
+			httpClient,
+			baseURL+ConfigServiceReadPagerDutySchedulesProcedure,
+			opts...,
+		),
 	}
 }
 
@@ -251,6 +296,11 @@ type configServiceClient struct {
 	readPermissionMapping   *connect_go.Client[v1alpha1.ReadPermissionMappingRequest, v1alpha1.ReadPermissionMappingResponse]
 	updatePermissionMapping *connect_go.Client[v1alpha1.UpdatePermissionMappingRequest, v1alpha1.UpdatePermissionMappingResponse]
 	deletePermissionMapping *connect_go.Client[v1alpha1.DeletePermissionMappingRequest, v1alpha1.DeletePermissionMappingResponse]
+	createSchedule          *connect_go.Client[v1alpha1.CreateScheduleRequest, v1alpha1.CreateScheduleResponse]
+	readSchedule            *connect_go.Client[v1alpha1.ReadScheduleRequest, v1alpha1.ReadScheduleResponse]
+	updateSchedule          *connect_go.Client[v1alpha1.UpdateScheduleRequest, v1alpha1.UpdateScheduleResponse]
+	deleteSchedule          *connect_go.Client[v1alpha1.DeleteScheduleRequest, v1alpha1.DeleteScheduleResponse]
+	readPagerDutySchedules  *connect_go.Client[v1alpha1.ReadPagerDutySchedulesRequest, v1alpha1.ReadPagerDutySchedulesResponse]
 }
 
 // CreateIDP calls commonfate.control.config.v1alpha1.ConfigService.CreateIDP.
@@ -363,6 +413,32 @@ func (c *configServiceClient) DeletePermissionMapping(ctx context.Context, req *
 	return c.deletePermissionMapping.CallUnary(ctx, req)
 }
 
+// CreateSchedule calls commonfate.control.config.v1alpha1.ConfigService.CreateSchedule.
+func (c *configServiceClient) CreateSchedule(ctx context.Context, req *connect_go.Request[v1alpha1.CreateScheduleRequest]) (*connect_go.Response[v1alpha1.CreateScheduleResponse], error) {
+	return c.createSchedule.CallUnary(ctx, req)
+}
+
+// ReadSchedule calls commonfate.control.config.v1alpha1.ConfigService.ReadSchedule.
+func (c *configServiceClient) ReadSchedule(ctx context.Context, req *connect_go.Request[v1alpha1.ReadScheduleRequest]) (*connect_go.Response[v1alpha1.ReadScheduleResponse], error) {
+	return c.readSchedule.CallUnary(ctx, req)
+}
+
+// UpdateSchedule calls commonfate.control.config.v1alpha1.ConfigService.UpdateSchedule.
+func (c *configServiceClient) UpdateSchedule(ctx context.Context, req *connect_go.Request[v1alpha1.UpdateScheduleRequest]) (*connect_go.Response[v1alpha1.UpdateScheduleResponse], error) {
+	return c.updateSchedule.CallUnary(ctx, req)
+}
+
+// DeleteSchedule calls commonfate.control.config.v1alpha1.ConfigService.DeleteSchedule.
+func (c *configServiceClient) DeleteSchedule(ctx context.Context, req *connect_go.Request[v1alpha1.DeleteScheduleRequest]) (*connect_go.Response[v1alpha1.DeleteScheduleResponse], error) {
+	return c.deleteSchedule.CallUnary(ctx, req)
+}
+
+// ReadPagerDutySchedules calls
+// commonfate.control.config.v1alpha1.ConfigService.ReadPagerDutySchedules.
+func (c *configServiceClient) ReadPagerDutySchedules(ctx context.Context, req *connect_go.Request[v1alpha1.ReadPagerDutySchedulesRequest]) (*connect_go.Response[v1alpha1.ReadPagerDutySchedulesResponse], error) {
+	return c.readPagerDutySchedules.CallUnary(ctx, req)
+}
+
 // ConfigServiceHandler is an implementation of the commonfate.control.config.v1alpha1.ConfigService
 // service.
 type ConfigServiceHandler interface {
@@ -386,6 +462,11 @@ type ConfigServiceHandler interface {
 	ReadPermissionMapping(context.Context, *connect_go.Request[v1alpha1.ReadPermissionMappingRequest]) (*connect_go.Response[v1alpha1.ReadPermissionMappingResponse], error)
 	UpdatePermissionMapping(context.Context, *connect_go.Request[v1alpha1.UpdatePermissionMappingRequest]) (*connect_go.Response[v1alpha1.UpdatePermissionMappingResponse], error)
 	DeletePermissionMapping(context.Context, *connect_go.Request[v1alpha1.DeletePermissionMappingRequest]) (*connect_go.Response[v1alpha1.DeletePermissionMappingResponse], error)
+	CreateSchedule(context.Context, *connect_go.Request[v1alpha1.CreateScheduleRequest]) (*connect_go.Response[v1alpha1.CreateScheduleResponse], error)
+	ReadSchedule(context.Context, *connect_go.Request[v1alpha1.ReadScheduleRequest]) (*connect_go.Response[v1alpha1.ReadScheduleResponse], error)
+	UpdateSchedule(context.Context, *connect_go.Request[v1alpha1.UpdateScheduleRequest]) (*connect_go.Response[v1alpha1.UpdateScheduleResponse], error)
+	DeleteSchedule(context.Context, *connect_go.Request[v1alpha1.DeleteScheduleRequest]) (*connect_go.Response[v1alpha1.DeleteScheduleResponse], error)
+	ReadPagerDutySchedules(context.Context, *connect_go.Request[v1alpha1.ReadPagerDutySchedulesRequest]) (*connect_go.Response[v1alpha1.ReadPagerDutySchedulesResponse], error)
 }
 
 // NewConfigServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -494,6 +575,31 @@ func NewConfigServiceHandler(svc ConfigServiceHandler, opts ...connect_go.Handle
 		svc.DeletePermissionMapping,
 		opts...,
 	)
+	configServiceCreateScheduleHandler := connect_go.NewUnaryHandler(
+		ConfigServiceCreateScheduleProcedure,
+		svc.CreateSchedule,
+		opts...,
+	)
+	configServiceReadScheduleHandler := connect_go.NewUnaryHandler(
+		ConfigServiceReadScheduleProcedure,
+		svc.ReadSchedule,
+		opts...,
+	)
+	configServiceUpdateScheduleHandler := connect_go.NewUnaryHandler(
+		ConfigServiceUpdateScheduleProcedure,
+		svc.UpdateSchedule,
+		opts...,
+	)
+	configServiceDeleteScheduleHandler := connect_go.NewUnaryHandler(
+		ConfigServiceDeleteScheduleProcedure,
+		svc.DeleteSchedule,
+		opts...,
+	)
+	configServiceReadPagerDutySchedulesHandler := connect_go.NewUnaryHandler(
+		ConfigServiceReadPagerDutySchedulesProcedure,
+		svc.ReadPagerDutySchedules,
+		opts...,
+	)
 	return "/commonfate.control.config.v1alpha1.ConfigService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ConfigServiceCreateIDPProcedure:
@@ -536,6 +642,16 @@ func NewConfigServiceHandler(svc ConfigServiceHandler, opts ...connect_go.Handle
 			configServiceUpdatePermissionMappingHandler.ServeHTTP(w, r)
 		case ConfigServiceDeletePermissionMappingProcedure:
 			configServiceDeletePermissionMappingHandler.ServeHTTP(w, r)
+		case ConfigServiceCreateScheduleProcedure:
+			configServiceCreateScheduleHandler.ServeHTTP(w, r)
+		case ConfigServiceReadScheduleProcedure:
+			configServiceReadScheduleHandler.ServeHTTP(w, r)
+		case ConfigServiceUpdateScheduleProcedure:
+			configServiceUpdateScheduleHandler.ServeHTTP(w, r)
+		case ConfigServiceDeleteScheduleProcedure:
+			configServiceDeleteScheduleHandler.ServeHTTP(w, r)
+		case ConfigServiceReadPagerDutySchedulesProcedure:
+			configServiceReadPagerDutySchedulesHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -623,4 +739,24 @@ func (UnimplementedConfigServiceHandler) UpdatePermissionMapping(context.Context
 
 func (UnimplementedConfigServiceHandler) DeletePermissionMapping(context.Context, *connect_go.Request[v1alpha1.DeletePermissionMappingRequest]) (*connect_go.Response[v1alpha1.DeletePermissionMappingResponse], error) {
 	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("commonfate.control.config.v1alpha1.ConfigService.DeletePermissionMapping is not implemented"))
+}
+
+func (UnimplementedConfigServiceHandler) CreateSchedule(context.Context, *connect_go.Request[v1alpha1.CreateScheduleRequest]) (*connect_go.Response[v1alpha1.CreateScheduleResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("commonfate.control.config.v1alpha1.ConfigService.CreateSchedule is not implemented"))
+}
+
+func (UnimplementedConfigServiceHandler) ReadSchedule(context.Context, *connect_go.Request[v1alpha1.ReadScheduleRequest]) (*connect_go.Response[v1alpha1.ReadScheduleResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("commonfate.control.config.v1alpha1.ConfigService.ReadSchedule is not implemented"))
+}
+
+func (UnimplementedConfigServiceHandler) UpdateSchedule(context.Context, *connect_go.Request[v1alpha1.UpdateScheduleRequest]) (*connect_go.Response[v1alpha1.UpdateScheduleResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("commonfate.control.config.v1alpha1.ConfigService.UpdateSchedule is not implemented"))
+}
+
+func (UnimplementedConfigServiceHandler) DeleteSchedule(context.Context, *connect_go.Request[v1alpha1.DeleteScheduleRequest]) (*connect_go.Response[v1alpha1.DeleteScheduleResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("commonfate.control.config.v1alpha1.ConfigService.DeleteSchedule is not implemented"))
+}
+
+func (UnimplementedConfigServiceHandler) ReadPagerDutySchedules(context.Context, *connect_go.Request[v1alpha1.ReadPagerDutySchedulesRequest]) (*connect_go.Response[v1alpha1.ReadPagerDutySchedulesResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("commonfate.control.config.v1alpha1.ConfigService.ReadPagerDutySchedules is not implemented"))
 }
