@@ -6,5 +6,5 @@ import (
 )
 
 func NewFromConfig(cfg *config.Context) accessv1alpha1connect.AccessRequestServiceClient {
-	return accessv1alpha1connect.NewAccessRequestServiceClient(cfg.HTTPClient, cfg.APIURL)
+	return accessv1alpha1connect.NewAccessRequestServiceClient(cfg.HTTPClient, cfg.AccessURL)
 }

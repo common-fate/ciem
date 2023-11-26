@@ -67,6 +67,7 @@ func transformAttrs(attrs map[string]any) ([]*authzv1alpha1.Attribute, error) {
 	res := []*authzv1alpha1.Attribute{}
 
 	for k, v := range attrs {
+
 		switch val := v.(type) {
 		case string:
 			res = append(res, &authzv1alpha1.Attribute{
@@ -87,6 +88,16 @@ func transformAttrs(attrs map[string]any) ([]*authzv1alpha1.Attribute, error) {
 					},
 				},
 			})
+		case float64:
+			res = append(res, &authzv1alpha1.Attribute{
+				Key: k,
+				Value: &authzv1alpha1.Value{
+					Value: &authzv1alpha1.Value_Long{
+						Long: int64(val),
+					},
+				},
+			})
+
 		case map[string]any:
 			entityMap, ok := val["__entity"]
 			if ok {
@@ -141,7 +152,7 @@ func transformAttrs(attrs map[string]any) ([]*authzv1alpha1.Attribute, error) {
 			}
 
 		default:
-			return nil, fmt.Errorf("unhandled attribute type: %s", k)
+			return nil, fmt.Errorf("unhandled attribute type: %s (%T)", k, v)
 		}
 	}
 

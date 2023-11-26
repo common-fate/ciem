@@ -54,6 +54,14 @@
   },
   {
     "uid": {
+      "type": "JIT::Workflow",
+      "id": "wf_123"
+    },
+    "priority": 100,
+    "access_duration": 300000
+  },
+  {
+    "uid": {
       "type": "JIT::Availability",
       "id": "av_234"
     },
@@ -66,8 +74,16 @@
           "type": "GCP::Role",
           "id": "roles/editor"
         }
+      },
+      "priority": 100,
+      "access_duration": 300000
+    },
+    "parents": [
+      {
+        "type": "JIT::Workflow",
+        "id": "wf_123"
       }
-    }
+    ]
   },
   {
     "uid": {
@@ -83,7 +99,15 @@
           "type": "AWS::SSO::PermissionSet",
           "id": "AdministratorAccess"
         }
+      },
+      "priority": 100,
+      "access_duration": 300000
+    },
+    "parents": [
+      {
+        "type": "JIT::Workflow",
+        "id": "wf_123"
       }
-    }
+    ]
   }
 ]

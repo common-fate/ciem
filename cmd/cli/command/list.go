@@ -82,7 +82,7 @@ var allCommand = cli.Command{
 					}
 				}
 
-				w.Row(formatUID(e.Target), e.TargetName, e.RoleName, status)
+				w.Row(formatUID(e.Target), e.TargetName, formatUID(e.Role), status)
 			}
 
 			err = w.Flush()
