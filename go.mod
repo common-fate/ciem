@@ -17,7 +17,7 @@ require (
 	github.com/urfave/cli/v2 v2.25.7
 	github.com/zitadel/oidc/v2 v2.11.0
 	go.uber.org/zap v1.26.0
-	golang.org/x/net v0.16.0
+	golang.org/x/net v0.17.0
 	golang.org/x/oauth2 v0.13.0
 	golang.org/x/sync v0.4.0
 	google.golang.org/protobuf v1.31.0
