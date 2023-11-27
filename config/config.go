@@ -10,6 +10,7 @@ import (
 	"github.com/common-fate/clio/clierr"
 	"github.com/zitadel/oidc/v2/pkg/client/rp"
 	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/clientcredentials"
 )
 
 type Config struct {
@@ -22,11 +23,13 @@ type Config struct {
 
 type Context struct {
 	// the name of the context is the key of the toml entry
-	name         string
-	APIURL       string `toml:"api_url,omitempty" json:"api_url,omitempty"`
-	AccessURL    string `toml:"access_url,omitempty" json:"access_url,omitempty"`
-	OIDCIssuer   string `toml:"oidc_issuer,omitempty" json:"oidc_issuer,omitempty"`
-	OIDCClientID string `toml:"oidc_client_id,omitempty" json:"oidc_client_id,omitempty"`
+	name                       string
+	APIURL                     string  `toml:"api_url,omitempty" json:"api_url,omitempty"`
+	AccessURL                  string  `toml:"access_url,omitempty" json:"access_url,omitempty"`
+	OIDCIssuer                 string  `toml:"oidc_issuer,omitempty" json:"oidc_issuer,omitempty"`
+	OIDCClientID               string  `toml:"oidc_client_id,omitempty" json:"oidc_client_id,omitempty"`
+	ServiceAccountClientID     *string `toml:"service_account_client_id,omitempty" json:"service_account_client_id,omitempty"`
+	ServiceAccountClientSecret *string `toml:"service_account_client_secret,omitempty" json:"service_account_client_secret,omitempty"`
 
 	// HTTPClient is filled in by calling Initialize()
 	HTTPClient *http.Client
@@ -56,6 +59,20 @@ func (c *Context) Initialize(ctx context.Context) error {
 	})
 
 	oauthconf := p.OAuthConfig()
+
+	if c.ServiceAccountClientID != nil {
+		cfg := clientcredentials.Config{
+			ClientID:     *c.ServiceAccountClientID,
+			ClientSecret: *c.ServiceAccountClientSecret,
+			Scopes:       []string{"openid", "email"},
+			AuthStyle:    oauth2.AuthStyleAutoDetect,
+			TokenURL:     c.APIURL,
+		}
+
+		client := cfg.Client(ctx)
+		c.HTTPClient = client
+		return nil
+	}
 
 	tok, err := c.TokenStore.Token()
 	if err != nil {
