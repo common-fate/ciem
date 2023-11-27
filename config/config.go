@@ -69,8 +69,18 @@ func (c *Context) Initialize(ctx context.Context) error {
 			TokenURL:     c.APIURL,
 		}
 
-		client := cfg.Client(ctx)
-		c.HTTPClient = client
+		tok, err := cfg.Token(ctx)
+		if err != nil {
+			return err
+		}
+
+		src := &tokenstore.NotifyRefreshTokenSource{
+			New:       oauthconf.TokenSource(ctx, tok),
+			T:         tok,
+			SaveToken: c.TokenStore.Save,
+		}
+
+		c.HTTPClient = oauth2.NewClient(ctx, src)
 		return nil
 	}
 
