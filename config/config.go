@@ -64,23 +64,16 @@ func (c *Context) Initialize(ctx context.Context) error {
 		cfg := clientcredentials.Config{
 			ClientID:     *c.ServiceAccountClientID,
 			ClientSecret: *c.ServiceAccountClientSecret,
-			Scopes:       []string{"openid", "email"},
-			AuthStyle:    oauth2.AuthStyleAutoDetect,
-			TokenURL:     c.APIURL,
+			Scopes:       []string{"cf.client/read", "cf.client/write"},
+			TokenURL:     c.AccessURL + "/oauth2/token",
 		}
 
-		tok, err := cfg.Token(ctx)
+		_, err := cfg.Token(ctx)
 		if err != nil {
 			return err
 		}
 
-		src := &tokenstore.NotifyRefreshTokenSource{
-			New:       oauthconf.TokenSource(ctx, tok),
-			T:         tok,
-			SaveToken: c.TokenStore.Save,
-		}
-
-		c.HTTPClient = oauth2.NewClient(ctx, src)
+		c.HTTPClient = cfg.Client(ctx)
 		return nil
 	}
 

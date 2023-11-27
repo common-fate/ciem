@@ -34,7 +34,9 @@ func LoadDefault(ctx context.Context) (*Context, error) {
 }
 
 type ServiceAccount struct {
-	APIURL       string
+	APIURL    string
+	IssuerURL string
+
 	ClientId     string
 	ClientSecret string
 }
@@ -51,6 +53,7 @@ func NewServiceAccount(ctx context.Context, ServiceAccount ServiceAccount) (*Con
 	}
 
 	current.APIURL = ServiceAccount.APIURL
+	current.AccessURL = ServiceAccount.IssuerURL
 	current.ServiceAccountClientID = &ServiceAccount.ClientId
 	current.ServiceAccountClientSecret = &ServiceAccount.ClientSecret
 
