@@ -33,6 +33,39 @@ func LoadDefault(ctx context.Context) (*Context, error) {
 	return current, nil
 }
 
+type ServiceAccount struct {
+	APIURL    string
+	IssuerURL string
+
+	ClientId     string
+	ClientSecret string
+}
+
+func NewServiceAccount(ctx context.Context, ServiceAccount ServiceAccount) (*Context, error) {
+	cfg, err := load()
+	if err != nil {
+		return nil, err
+	}
+
+	current, err := cfg.Current()
+	if err != nil {
+		return nil, err
+	}
+
+	current.APIURL = ServiceAccount.APIURL
+	current.AccessURL = ServiceAccount.IssuerURL
+	current.ServiceAccountClientID = &ServiceAccount.ClientId
+	current.ServiceAccountClientSecret = &ServiceAccount.ClientSecret
+
+	err = current.Initialize(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return current, nil
+
+}
+
 func load() (*Config, error) {
 	// if COMMON_FATE_CIEM_CONFIG_FILE is set, use a custom file path
 	// for the config file location.
