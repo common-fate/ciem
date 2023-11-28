@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/common-fate/ciem/config"
-	"github.com/common-fate/ciem/loginflow"
+	"github.com/common-fate/sdk/config"
+	"github.com/common-fate/sdk/loginflow"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/oauth2"
 )
