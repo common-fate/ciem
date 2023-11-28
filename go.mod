@@ -5,7 +5,7 @@ go 1.21.3
 require (
 	github.com/bufbuild/connect-go v1.10.0
 	github.com/common-fate/clio v1.2.3
-	github.com/common-fate/sdk v0.0.0-20231128143837-2589b9d0caff
+	github.com/common-fate/sdk v0.0.0-20231128202850-3027036428d1
 	github.com/fatih/color v1.16.0
 	github.com/stretchr/testify v1.8.4
 	github.com/urfave/cli/v2 v2.25.7

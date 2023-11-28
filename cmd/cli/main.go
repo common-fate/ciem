@@ -17,10 +17,10 @@ import (
 
 func main() {
 	app := &cli.App{
-		Name:      "ciem",
+		Name:      "cf",
 		Writer:    os.Stderr,
 		Usage:     "https://commonfate.io",
-		UsageText: "ciem [options] [command]",
+		UsageText: "cf [options] [command]",
 		Flags: []cli.Flag{
 			&cli.StringFlag{Name: "api-url", Usage: "override the Common Fate API URL"},
 			&cli.BoolFlag{Name: "verbose", Usage: "Enable verbose logging, effectively sets environment variable CF_LOG=DEBUG"},
