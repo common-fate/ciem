@@ -7,11 +7,10 @@ import (
 	"os"
 
 	"github.com/bufbuild/connect-go"
-	"github.com/common-fate/ciem/config"
-	accessv1alpha1 "github.com/common-fate/ciem/gen/commonfate/access/v1alpha1"
-	authzv1alpha1 "github.com/common-fate/ciem/gen/commonfate/authz/v1alpha1"
-	"github.com/common-fate/ciem/service/access"
 	"github.com/common-fate/ciem/table"
+	"github.com/common-fate/sdk/config"
+	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
+	"github.com/common-fate/sdk/service/access"
 	"github.com/urfave/cli/v2"
 )
 
@@ -82,7 +81,7 @@ var allCommand = cli.Command{
 					}
 				}
 
-				w.Row(formatUID(e.Target), e.TargetName, formatUID(e.Role), status)
+				w.Row(e.Target.Uid.Display(), e.Target.Name, e.Role.Name, status)
 			}
 
 			err = w.Flush()
@@ -113,7 +112,7 @@ var allCommand = cli.Command{
 					expiresIn = e.Jit.ExpiresIn.AsDuration().String()
 				}
 
-				w.Row(formatUID(e.Target), e.TargetName, e.RoleName, status, duration, expiresIn)
+				w.Row(e.Target.Uid.Display(), e.Target.Name, e.Role.Name, status, duration, expiresIn)
 			}
 
 			err = w.Flush()
@@ -133,10 +132,6 @@ var allCommand = cli.Command{
 
 		return nil
 	},
-}
-
-func formatUID(uid *authzv1alpha1.UID) string {
-	return fmt.Sprintf(`%s::%s`, uid.Type, uid.Id)
 }
 
 var gcpList = cli.Command{

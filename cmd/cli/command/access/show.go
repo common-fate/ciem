@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	"github.com/bufbuild/connect-go"
-	authzv1alpha1 "github.com/common-fate/ciem/gen/commonfate/authz/v1alpha1"
-	"github.com/common-fate/ciem/service/index"
 	"github.com/common-fate/ciem/table"
+	authzv1alpha1 "github.com/common-fate/sdk/gen/commonfate/authz/v1alpha1"
+	"github.com/common-fate/sdk/service/authz/index"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/net/http2"
 )

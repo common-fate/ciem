@@ -2,9 +2,9 @@ package policy
 
 import (
 	"github.com/bufbuild/connect-go"
-	authzv1alpha1 "github.com/common-fate/ciem/gen/commonfate/authz/v1alpha1"
-	"github.com/common-fate/ciem/service/index"
 	"github.com/common-fate/clio"
+	authzv1alpha1 "github.com/common-fate/sdk/gen/commonfate/authz/v1alpha1"
+	"github.com/common-fate/sdk/service/authz/index"
 	"github.com/urfave/cli/v2"
 )
 

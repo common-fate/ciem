@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/common-fate/ciem/service/authz"
+	"github.com/common-fate/sdk/service/authz"
 	"github.com/urfave/cli/v2"
 )
 
@@ -13,7 +13,10 @@ var getCommand = cli.Command{
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
 
-		client := authz.NewClient(newInsecureClient(), "http://127.0.0.1:5050")
+		client := authz.NewClient(authz.Opts{
+			HTTPClient: newInsecureClient(),
+			BaseURL:    "http://127.0.0.1:5050",
+		})
 
 		entities, err := client.FilterEntities(ctx, authz.FilterEntitiesInput{})
 		if err != nil {

@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/bufbuild/connect-go"
-	authzv1alpha1 "github.com/common-fate/ciem/gen/commonfate/authz/v1alpha1"
-	"github.com/common-fate/ciem/service/index"
+	authzv1alpha1 "github.com/common-fate/sdk/gen/commonfate/authz/v1alpha1"
+	"github.com/common-fate/sdk/service/authz/index"
 	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 )
@@ -54,7 +54,7 @@ var simulateCommand = cli.Command{
 			fmt.Println(green("The following access relationships would be added by this change:\n"))
 
 			for _, rel := range res.Msg.Diff.Added {
-				fmt.Printf(green("+  %s\t>\t%s\t>\t%s\n"), formatUID(rel.Principal), formatUID(rel.Action), formatUID(rel.Resource))
+				fmt.Printf(green("+  %s\t>\t%s\t>\t%s\n"), rel.Principal.Display(), rel.Action.Display(), rel.Resource.Display())
 			}
 
 			if len(res.Msg.Diff.Added) > 0 {
@@ -67,14 +67,10 @@ var simulateCommand = cli.Command{
 			fmt.Println(red("The following access relationships would be removed by this change:\n"))
 
 			for _, rel := range res.Msg.Diff.Removed {
-				fmt.Printf(red("-  %s\t>\t%s\t>\t%s\n"), formatUID(rel.Principal), formatUID(rel.Action), formatUID(rel.Resource))
+				fmt.Printf(red("-  %s\t>\t%s\t>\t%s\n"), rel.Principal.Display(), rel.Action.Display(), rel.Resource.Display())
 			}
 		}
 
 		return nil
 	},
-}
-
-func formatUID(uid *authzv1alpha1.UID) string {
-	return fmt.Sprintf(`%s::%s`, uid.Type, uid.Id)
 }

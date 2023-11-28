@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/bufbuild/connect-go"
-	"github.com/common-fate/ciem/config"
-	configv1alpha1 "github.com/common-fate/ciem/gen/commonfate/control/config/v1alpha1"
-	"github.com/common-fate/ciem/service/control/config/jitworkflow"
+	"github.com/common-fate/sdk/config"
+	configv1alpha1 "github.com/common-fate/sdk/gen/commonfate/control/config/v1alpha1"
+	"github.com/common-fate/sdk/service/control/config/jitworkflow"
 	"github.com/urfave/cli/v2"
 	"google.golang.org/protobuf/types/known/durationpb"
 )

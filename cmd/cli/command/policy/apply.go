@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/common-fate/ciem/service/authz"
 	"github.com/common-fate/clio"
+	"github.com/common-fate/sdk/service/authz"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/net/http2"
 )
@@ -26,7 +26,10 @@ var applyCommand = cli.Command{
 		// 	return err
 		// }
 
-		client := authz.NewClient(newInsecureClient(), "http://127.0.0.1:5050")
+		client := authz.NewClient(authz.Opts{
+			HTTPClient: newInsecureClient(),
+			BaseURL:    "http://127.0.0.1:5050",
+		})
 
 		f, err := os.ReadFile(c.Path("file"))
 		if err != nil {
