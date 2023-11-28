@@ -2,7 +2,7 @@ package request
 
 import (
 	"github.com/bufbuild/connect-go"
-	"github.com/common-fate/ciem/cmd/cli/command/request/access"
+	"github.com/common-fate/ciem/cmd/cli/command/jit/request/access"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/sdk/config"
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"

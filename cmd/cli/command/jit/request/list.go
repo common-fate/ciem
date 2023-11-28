@@ -1,7 +1,6 @@
 package request
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -12,11 +11,8 @@ import (
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
 	"github.com/common-fate/sdk/service/access/request"
 	"github.com/urfave/cli/v2"
+	"google.golang.org/protobuf/encoding/protojson"
 )
-
-type RequestsResponse struct {
-	Requests []*accessv1alpha1.AccessRequest `json:"requests"`
-}
 
 var list = cli.Command{
 	Name:  "list",
@@ -32,8 +28,8 @@ var list = cli.Command{
 			return err
 		}
 
-		all := RequestsResponse{
-			Requests: []*accessv1alpha1.AccessRequest{},
+		all := accessv1alpha1.QueryAccessRequestsResponse{
+			AccessRequests: []*accessv1alpha1.AccessRequest{},
 		}
 
 		client := request.NewFromConfig(cfg)
@@ -52,7 +48,7 @@ var list = cli.Command{
 				return err
 			}
 
-			all.Requests = append(all.Requests, res.Msg.AccessRequests...)
+			all.AccessRequests = append(all.AccessRequests, res.Msg.AccessRequests...)
 
 			if res.Msg.NextPageToken == "" {
 				done = true
@@ -67,7 +63,7 @@ var list = cli.Command{
 			w := table.New(os.Stdout)
 			w.Columns("ID", "PRINCIPAL", "ROLE", "TARGET", "STATUS")
 
-			for _, r := range all.Requests {
+			for _, r := range all.AccessRequests {
 				for _, g := range r.Grants {
 					w.Row(r.Id, g.Principal.Display(), g.Role.Display(), g.Target.Display(), g.Status.String())
 				}
@@ -82,7 +78,7 @@ var list = cli.Command{
 			w := table.New(os.Stdout)
 			w.Columns("ID", "GRANT", "PRINCIPAL", "ROLE", "TARGET", "STATUS")
 
-			for _, r := range all.Requests {
+			for _, r := range all.AccessRequests {
 				for _, g := range r.Grants {
 					w.Row(r.Id, g.Id, g.Principal.Display(), g.Role.Display(), g.Target.Display(), g.Status.String())
 				}
@@ -94,7 +90,7 @@ var list = cli.Command{
 			}
 
 		case "json":
-			resJSON, err := json.Marshal(all)
+			resJSON, err := protojson.Marshal(&all)
 			if err != nil {
 				return err
 			}

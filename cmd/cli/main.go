@@ -10,7 +10,6 @@ import (
 	"github.com/common-fate/ciem/cmd/cli/command/entities"
 	"github.com/common-fate/ciem/cmd/cli/command/jit"
 	"github.com/common-fate/ciem/cmd/cli/command/policy"
-	"github.com/common-fate/ciem/cmd/cli/command/request"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/clierr"
 	"github.com/urfave/cli/v2"
@@ -37,8 +36,6 @@ func main() {
 			&command.Login,
 			&command.Logout,
 			&command.Auth,
-			&command.List,
-			&request.Command,
 			&policy.Command,
 			&entities.Command,
 			&access.Command,
