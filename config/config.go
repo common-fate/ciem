@@ -68,11 +68,6 @@ func (c *Context) Initialize(ctx context.Context) error {
 			TokenURL:     c.AccessURL + "/oauth2/token",
 		}
 
-		_, err := cfg.Token(ctx)
-		if err != nil {
-			return err
-		}
-
 		c.HTTPClient = cfg.Client(ctx)
 		return nil
 	}
