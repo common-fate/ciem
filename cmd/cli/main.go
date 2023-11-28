@@ -43,6 +43,7 @@ func main() {
 			&entities.Command,
 			&access.Command,
 			&jit.Command,
+			&command.Configure,
 		},
 	}
 	clio.SetLevelFromEnv("CF_LOG")
