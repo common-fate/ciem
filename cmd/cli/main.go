@@ -10,7 +10,6 @@ import (
 	"github.com/common-fate/ciem/cmd/cli/command/entities"
 	"github.com/common-fate/ciem/cmd/cli/command/jit"
 	"github.com/common-fate/ciem/cmd/cli/command/policy"
-	"github.com/common-fate/ciem/cmd/cli/command/request"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/clierr"
 	"github.com/urfave/cli/v2"
@@ -18,10 +17,10 @@ import (
 
 func main() {
 	app := &cli.App{
-		Name:      "ciem",
+		Name:      "cf",
 		Writer:    os.Stderr,
 		Usage:     "https://commonfate.io",
-		UsageText: "ciem [options] [command]",
+		UsageText: "cf [options] [command]",
 		Flags: []cli.Flag{
 			&cli.StringFlag{Name: "api-url", Usage: "override the Common Fate API URL"},
 			&cli.BoolFlag{Name: "verbose", Usage: "Enable verbose logging, effectively sets environment variable CF_LOG=DEBUG"},
@@ -37,8 +36,6 @@ func main() {
 			&command.Login,
 			&command.Logout,
 			&command.Auth,
-			&command.List,
-			&request.Command,
 			&policy.Command,
 			&entities.Command,
 			&access.Command,

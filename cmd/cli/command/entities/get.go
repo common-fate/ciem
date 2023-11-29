@@ -18,7 +18,7 @@ var getCommand = cli.Command{
 			BaseURL:    "http://127.0.0.1:5050",
 		})
 
-		entities, err := client.FilterEntities(ctx, authz.FilterEntitiesInput{})
+		entities, err := client.Query(ctx, authz.QueryInput{})
 		if err != nil {
 			return err
 		}
