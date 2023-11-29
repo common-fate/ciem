@@ -1,11 +1,11 @@
 package entities
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/common-fate/sdk/service/authz"
 	"github.com/urfave/cli/v2"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var getCommand = cli.Command{
@@ -23,7 +23,7 @@ var getCommand = cli.Command{
 			return err
 		}
 
-		out, err := json.MarshalIndent(entities.Entities, "", "  ")
+		out, err := protojson.Marshal(entities)
 		if err != nil {
 			return err
 		}

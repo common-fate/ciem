@@ -27,7 +27,7 @@ var closeCommand = cli.Command{
 
 		id := c.String("id")
 
-		res, err := client.ApproveAccessRequest(ctx, connect.NewRequest(&accessv1alpha1.ApproveAccessRequestRequest{
+		res, err := client.CloseAccessRequest(ctx, connect.NewRequest(&accessv1alpha1.CloseAccessRequestRequest{
 			Id: id,
 		}))
 
