@@ -6,6 +6,7 @@ import (
 
 	"github.com/common-fate/clio"
 	"github.com/common-fate/sdk/service/authz"
+	"github.com/common-fate/sdk/service/authz/uid"
 	"github.com/urfave/cli/v2"
 )
 
@@ -35,7 +36,7 @@ var deleteCommand = cli.Command{
 
 		}
 
-		var uids []authz.UID
+		var uids []uid.UID
 
 		for _, e := range entities {
 			uids = append(uids, e.UID)
