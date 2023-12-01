@@ -18,8 +18,6 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-type sprintfunc = func(format string, a ...interface{}) string
-
 var Command = cli.Command{
 	Name:  "access",
 	Usage: "Request access to entitlements",
@@ -85,15 +83,10 @@ var Command = cli.Command{
 			for i, req := range res.Msg.AccessRequests {
 				var reqNode treeprint.Tree
 				if !req.Existing {
-					reqNode = tree.AddMetaBranch("CREATED", "Access Request")
+					reqNode = tree.AddMetaBranch("CREATED ACCESS REQUEST", req.Id)
 				} else {
-					reqNode = tree.AddMetaBranch("EXISTING", "Access Request")
+					reqNode = tree.AddMetaBranch("EXISTING ACCESS REQUEST", req.Id)
 				}
-				detailsNode := reqNode.AddBranch("Details")
-				detailsNode.AddNode(fmt.Sprintf("ID: %s", req.Id))
-				detailsNode.AddNode(fmt.Sprintf("Created: %s", req.CreatedAt.AsTime().Format(time.RFC3339)))
-
-				grantRootNode := reqNode.AddBranch("Grants")
 
 				for gi, g := range req.Grants {
 					titleColor := color.New(color.FgWhite).SprintfFunc()
@@ -107,51 +100,50 @@ var Command = cli.Command{
 						titleColor = color.New(color.FgGreen).SprintfFunc()
 					case accessv1alpha1.GrantStatus_GRANT_STATUS_INACTIVE:
 						titleColor = color.New(color.FgRed).SprintfFunc()
-					case accessv1alpha1.GrantStatus_GRANT_STATUS_ERROR:
-						titleColor = color.New(color.FgRed).SprintfFunc()
 					}
 
-					status := displayGrantStatus(g.Status)
+					status := displayGrantStatus(g)
 
 					grantLabel := titleColor("%s to %s", g.Role.Display(), g.Target.Display())
 
-					grantNode := grantRootNode.AddMetaBranch(titleColor(status), grantLabel)
+					grantNode := reqNode.AddMetaBranch(titleColor(status), grantLabel)
+					// grantNode.AddGap()
 
-					detailsNode := grantNode.AddBranch("Details")
-					detailsNode.AddNode(fmt.Sprintf("ID: %s", g.Id))
-					detailsNode.AddNode(fmt.Sprintf("Target: %s", g.Target.Uid.Display()))
-					detailsNode.AddNode(fmt.Sprintf("Role: %s", g.Role.Uid.Display()))
+					// targetNode := grantNode.AddBranch("Target")
+					// targetNode.AddNode(g.Target.Uid.Display())
+					// grantNode.AddGap()
+					// roleNode := grantNode.AddBranch("Role")
+					// roleNode.AddNode(g.Role.Uid.Display())
 
-					if g.Status == accessv1alpha1.GrantStatus_GRANT_STATUS_ACTIVE && g.ExpiresAt != nil {
-						timingNode := grantNode.AddBranch("Timing")
-						timingNode.AddBranch(fmt.Sprintf("Expires In: %s", time.Until(g.ExpiresAt.AsTime()).Round(time.Second)))
-					}
+					// if g.Status == accessv1alpha1.GrantStatus_GRANT_STATUS_ACTIVE && g.ExpiresAt != nil {
+					// 	timingNode := grantNode.AddBranch("Timing")
+					// 	timingNode.AddBranch(fmt.Sprintf("Expires In: %s", time.Until(g.ExpiresAt.AsTime()).Round(time.Second)))
+					// }
 
-					if g.Status == accessv1alpha1.GrantStatus_GRANT_STATUS_PENDING_APPROVAL && len(g.Reviewers) == 0 {
-						grantNode.AddNode("No Reviewers")
-					}
+					if g.ReviewersPreview != nil {
+						if len(g.ReviewersPreview.Reviewers) == 0 {
+							grantNode.AddNode("No Reviewers")
+						} else {
+							reviewers := grantNode.AddBranch("Reviewers")
+							for _, r := range g.ReviewersPreview.Reviewers {
 
-					if g.Status == accessv1alpha1.GrantStatus_GRANT_STATUS_PENDING_APPROVAL && len(g.Reviewers) > 0 {
-						reviewers := grantNode.AddBranch("Reviewers")
-						for _, r := range g.Reviewers {
-							reviewers.AddNode(r.Display())
+								reviewers.AddNode(r.Display())
+							}
+							// TODO: we can display a prompt like '5 more not shown' etc if the count of reviewers is greater than what the server sent
 						}
 					}
 
-					if len(g.Diagnostics) > 0 {
-						diags := grantNode.AddBranch("Diagnostics")
-						for _, d := range g.Diagnostics {
-							if d.Timestamp.IsValid() {
-								diags.AddMetaNode(displayDiagLevel(d.Level), fmt.Sprintf("%s: %s", d.Timestamp.AsTime().Format(time.RFC3339), d.Message))
-							} else {
-								diags.AddMetaNode(displayDiagLevel(d.Level), d.Message)
-							}
+					if g.RecentActivity != nil && len(g.RecentActivity.Logs) > 0 {
+						diags := grantNode.AddBranch("Activity")
+						for _, d := range g.RecentActivity.Logs {
+							color := colorAction(d.Action)
+							diags.AddMetaNode(color(d.Action), fmt.Sprintf("%s: %s", d.OccurredAt.AsTime().Format(time.RFC3339), d.Message))
 						}
 					}
 
 					// print a gap if there are more grants
 					if gi < len(req.Grants)-1 {
-						grantRootNode.AddGap()
+						reqNode.AddGap()
 					}
 				}
 
@@ -162,6 +154,13 @@ var Command = cli.Command{
 			}
 
 			fmt.Println(tree.String())
+
+			if res.Msg.Warnings != nil {
+				for _, w := range res.Msg.Warnings.Errors {
+					clio.Error(w)
+				}
+			}
+
 		}
 
 		if outputFormat == "json" {
@@ -176,37 +175,61 @@ var Command = cli.Command{
 	},
 }
 
-func displayDiagLevel(lvl accessv1alpha1.DiagnosticLevel) string {
-	switch lvl {
-	case accessv1alpha1.DiagnosticLevel_DIAGNOSTIC_LEVEL_ERROR:
-		c := color.New(color.FgRed).SprintfFunc()
-		return c("ERROR")
-	case accessv1alpha1.DiagnosticLevel_DIAGNOSTIC_LEVEL_WARNING:
-		c := color.New(color.FgYellow).SprintfFunc()
-		return c("WARNING")
-	case accessv1alpha1.DiagnosticLevel_DIAGNOSTIC_LEVEL_INFO:
-		c := color.New(color.FgBlue).SprintfFunc()
-		return c("INFO")
+func colorAction(action string) func(format string, a ...interface{}) string {
+	if action == "grant.approved" {
+		return color.New(color.FgGreen).SprintfFunc()
+	}
+	if action == "grant.self_approved" {
+		return color.New(color.FgGreen).SprintfFunc()
+	}
+	if action == "grant.extended" {
+		return color.New(color.FgGreen).SprintfFunc()
+	}
+	if action == "grant.activated" {
+		return color.New(color.FgBlue).SprintfFunc()
+	}
+	if action == "grant.error" {
+		return color.New(color.FgRed).SprintfFunc()
+	}
+	if action == "grant.cancelled" {
+		return color.New(color.FgRed).SprintfFunc()
+	}
+	if action == "grant.revoked" {
+		return color.New(color.FgRed).SprintfFunc()
+	}
+
+	return color.New(color.FgWhite).SprintfFunc()
+}
+
+func displayGrantStatus(g *accessv1alpha1.Grant) string {
+	if g.Status == accessv1alpha1.GrantStatus_GRANT_STATUS_ACTIVE && g.ExpiresAt != nil && g.ExpiresAt.AsTime().After(time.Now()) {
+		exp := time.Until(g.ExpiresAt.AsTime()).Round(time.Minute)
+		return fmt.Sprintf("Active for next %s", shortDur(exp))
+	}
+
+	switch g.Status {
+	case accessv1alpha1.GrantStatus_GRANT_STATUS_ACTIVE:
+		return "Active"
+	case accessv1alpha1.GrantStatus_GRANT_STATUS_APPROVED:
+		return "Approved"
+	case accessv1alpha1.GrantStatus_GRANT_STATUS_INACTIVE:
+		return "Inactive"
+	case accessv1alpha1.GrantStatus_GRANT_STATUS_PENDING_APPROVAL:
+		return "Pending"
 	}
 
 	return "<UNSPECIFIED STATUS>"
 }
 
-func displayGrantStatus(status accessv1alpha1.GrantStatus) string {
-	switch status {
-	case accessv1alpha1.GrantStatus_GRANT_STATUS_ACTIVE:
-		return "ACTIVE"
-	case accessv1alpha1.GrantStatus_GRANT_STATUS_APPROVED:
-		return "APPROVED"
-	case accessv1alpha1.GrantStatus_GRANT_STATUS_ERROR:
-		return "ERROR"
-	case accessv1alpha1.GrantStatus_GRANT_STATUS_INACTIVE:
-		return "INACTIVE"
-	case accessv1alpha1.GrantStatus_GRANT_STATUS_PENDING_APPROVAL:
-		return "PENDING"
+func shortDur(d time.Duration) string {
+	s := d.String()
+	if strings.HasSuffix(s, "m0s") {
+		s = s[:len(s)-2]
 	}
-
-	return "<UNSPECIFIED STATUS>"
+	if strings.HasSuffix(s, "h0m") {
+		s = s[:len(s)-2]
+	}
+	return s
 }
 
 var gcpRequest = cli.Command{
@@ -265,9 +288,13 @@ var gcpProjectRequest = cli.Command{
 
 			if res.Msg.AccessRequest != nil {
 				for _, g := range res.Msg.AccessRequest.Grants {
+					if g.ReviewersPreview == nil {
+						continue
+					}
+
 					var reviewers []string
 
-					for _, r := range g.Reviewers {
+					for _, r := range g.ReviewersPreview.Reviewers {
 						reviewers = append(reviewers, r.Display())
 					}
 

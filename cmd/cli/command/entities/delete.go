@@ -42,7 +42,9 @@ var deleteCommand = cli.Command{
 			uids = append(uids, e.UID)
 		}
 
-		_, err = client.BatchDeleteEntity(ctx, uids...)
+		_, err = client.BatchDeleteEntity(ctx, authz.BatchDeleteEntityInput{
+			Entities: uids,
+		})
 		if err != nil {
 			return err
 		}
