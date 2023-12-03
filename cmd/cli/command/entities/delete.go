@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/common-fate/clio"
-	"github.com/common-fate/sdk/service/authz"
-	"github.com/common-fate/sdk/service/authz/uid"
+	"github.com/common-fate/sdk/service/entity"
+	"github.com/common-fate/sdk/uid"
 	"github.com/urfave/cli/v2"
 )
 
@@ -18,7 +18,7 @@ var deleteCommand = cli.Command{
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
 
-		client := authz.NewClient(authz.Opts{
+		client := entity.NewClient(entity.Opts{
 			HTTPClient: newInsecureClient(),
 			BaseURL:    "http://127.0.0.1:5050",
 		})
@@ -28,7 +28,7 @@ var deleteCommand = cli.Command{
 			return err
 		}
 
-		var entities []authz.EntityJSON
+		var entities []entity.EntityJSON
 
 		err = json.Unmarshal(f, &entities)
 		if err != nil {
@@ -42,8 +42,8 @@ var deleteCommand = cli.Command{
 			uids = append(uids, e.UID)
 		}
 
-		_, err = client.BatchDeleteEntity(ctx, authz.BatchDeleteEntityInput{
-			Entities: uids,
+		_, err = client.BatchUpdate(ctx, entity.BatchUpdateInput{
+			Delete: uids,
 		})
 		if err != nil {
 			return err

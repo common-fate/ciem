@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"github.com/common-fate/clio"
-	"github.com/common-fate/sdk/service/authz"
+	"github.com/common-fate/sdk/service/entity"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/net/http2"
 )
@@ -21,7 +21,7 @@ var putCommand = cli.Command{
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
 
-		client := authz.NewClient(authz.Opts{
+		client := entity.NewClient(entity.Opts{
 			HTTPClient: newInsecureClient(),
 			BaseURL:    "http://127.0.0.1:5050",
 		})
@@ -31,14 +31,14 @@ var putCommand = cli.Command{
 			return err
 		}
 
-		var entities []authz.EntityJSON
+		var entities []entity.EntityJSON
 
 		err = json.Unmarshal(f, &entities)
 		if err != nil {
 			return err
 		}
 
-		_, err = client.BatchPutEntityJSON(ctx, authz.BatchPutEntityJSONInput{
+		_, err = client.BatchPutJSON(ctx, entity.BatchPutJSONInput{
 			Entities: entities,
 		})
 		if err != nil {

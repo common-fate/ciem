@@ -2,6 +2,7 @@ package request
 
 import (
 	"github.com/bufbuild/connect-go"
+	"github.com/common-fate/ciem/printdiags"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/sdk/config"
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
@@ -36,18 +37,9 @@ var approveCommand = cli.Command{
 			return err
 		}
 
-		for _, g := range res.Msg.Warnings.GrantsPermissionDenied {
-			clio.Warnf("could not approve grant to %s with role %s: permission was denied", g.Target.Display(), g.Role.Display())
-		}
-
-		for _, g := range res.Msg.Warnings.GrantsInvalidStatus {
-			clio.Warnf("could not approve grant to %s with role %s: grant was in an invalid status (%s)", g.Target.Display(), g.Role.Display(), g.Status)
-		}
-
-		if res.Msg.Warnings.OK() {
+		haserrors := printdiags.Print(res.Msg.Diagnostics, nil)
+		if !haserrors {
 			clio.Successf("approved request")
-		} else {
-			clio.Warnf("approved request with warnings")
 		}
 
 		return nil

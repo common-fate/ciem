@@ -2,6 +2,7 @@ package request
 
 import (
 	"github.com/bufbuild/connect-go"
+	"github.com/common-fate/ciem/printdiags"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/sdk/config"
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
@@ -14,6 +15,7 @@ var closeCommand = cli.Command{
 	Usage: "Close an Access Request",
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "id", Required: true},
+		&cli.StringSliceFlag{Name: "grant-id", Usage: "Close specific Grants on the Access Request"},
 	},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
@@ -36,18 +38,9 @@ var closeCommand = cli.Command{
 			return err
 		}
 
-		for _, g := range res.Msg.Warnings.GrantsPermissionDenied {
-			clio.Warnf("could not close grant to %s with role %s: permission was denied", g.Target.Display(), g.Role.Display())
-		}
-
-		for _, g := range res.Msg.Warnings.GrantsInvalidStatus {
-			clio.Warnf("could not close grant to %s with role %s: grant was in an invalid status (%s)", g.Target.Display(), g.Role.Display(), g.Status)
-		}
-
-		if res.Msg.Warnings.OK() {
+		haserrors := printdiags.Print(res.Msg.Diagnostics, nil)
+		if !haserrors {
 			clio.Successf("closed request")
-		} else {
-			clio.Warnf("closed request with warnings")
 		}
 
 		return nil

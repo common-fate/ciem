@@ -6,7 +6,7 @@ import (
 	"github.com/common-fate/clio"
 	"github.com/common-fate/sdk/service/authz"
 	"github.com/common-fate/sdk/service/authz/batchauthz"
-	"github.com/common-fate/sdk/service/authz/uid"
+	"github.com/common-fate/sdk/uid"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
