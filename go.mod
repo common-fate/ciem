@@ -5,8 +5,9 @@ go 1.21.3
 require (
 	github.com/bufbuild/connect-go v1.10.0
 	github.com/common-fate/clio v1.2.3
-	github.com/common-fate/sdk v0.0.0-20231129225507-1d1c65249299
+	github.com/common-fate/sdk v0.0.0-20231203210955-2100c8ad6a8e
 	github.com/fatih/color v1.16.0
+	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.8.4
 	github.com/urfave/cli/v2 v2.25.7
 	go.uber.org/zap v1.26.0
@@ -38,7 +39,6 @@ require (
 	github.com/muhlemmer/gu v0.3.1 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect

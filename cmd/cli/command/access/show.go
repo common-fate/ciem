@@ -12,6 +12,7 @@ import (
 	"github.com/common-fate/ciem/table"
 	authzv1alpha1 "github.com/common-fate/sdk/gen/commonfate/authz/v1alpha1"
 	"github.com/common-fate/sdk/service/authz/index"
+	"github.com/common-fate/sdk/uid"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/net/http2"
 )
@@ -33,13 +34,12 @@ var showUserCommand = cli.Command{
 
 		client := index.NewClient(newInsecureClient(), "http://127.0.0.1:5050")
 
+		id := uid.New("User", c.String("id"))
+
 		res, err := client.LookupResources(ctx, connect.NewRequest(&authzv1alpha1.LookupResourcesRequest{
 			Universe:    "default",
 			Environment: "production",
-			Principal: &authzv1alpha1.UID{
-				Type: "User",
-				Id:   c.String("id"),
-			},
+			Principal:   id.ToAPI(),
 		}))
 		if err != nil {
 			return err

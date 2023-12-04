@@ -8,7 +8,9 @@ import (
 	"github.com/common-fate/ciem/cmd/cli/command"
 	"github.com/common-fate/ciem/cmd/cli/command/access"
 	"github.com/common-fate/ciem/cmd/cli/command/auditlog"
+	"github.com/common-fate/ciem/cmd/cli/command/authz"
 	"github.com/common-fate/ciem/cmd/cli/command/entities"
+	"github.com/common-fate/ciem/cmd/cli/command/identity"
 	"github.com/common-fate/ciem/cmd/cli/command/jit"
 	"github.com/common-fate/ciem/cmd/cli/command/policy"
 	"github.com/common-fate/clio"
@@ -36,9 +38,11 @@ func main() {
 		Commands: []*cli.Command{
 			&command.Login,
 			&command.Logout,
+			&identity.Command,
 			&command.Auth,
 			&policy.Command,
 			&entities.Command,
+			&authz.Command,
 			&access.Command,
 			&auditlog.Command,
 			&jit.Command,
