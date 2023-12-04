@@ -48,7 +48,7 @@ var Configure = cli.Command{
 			APIURL: cfg.ApiUrl,
 			// @TODO add the access and authz urls to the config descovery API
 			AccessURL:    strings.Replace(cfg.ApiUrl, "https://api.", "https://access.", 1),
-			OIDCIssuer:   cfg.OauthAuthority,
+			OIDCIssuer:   strings.TrimSuffix(cfg.OauthAuthority, "/"),
 			OIDCClientID: cfg.CliOAuthClientId,
 		}
 		newConfig.CurrentContext = "default"
