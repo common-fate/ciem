@@ -98,7 +98,7 @@ var Command = cli.Command{
 						titleColor = color.New(color.FgYellow).SprintfFunc()
 					case accessv1alpha1.GrantStatus_GRANT_STATUS_ACTIVE:
 						titleColor = color.New(color.FgGreen).SprintfFunc()
-					case accessv1alpha1.GrantStatus_GRANT_STATUS_INACTIVE:
+					case accessv1alpha1.GrantStatus_GRANT_STATUS_CLOSED:
 						titleColor = color.New(color.FgRed).SprintfFunc()
 					}
 
@@ -173,8 +173,8 @@ func displayGrantStatus(g *accessv1alpha1.Grant) string {
 	switch g.Status {
 	case accessv1alpha1.GrantStatus_GRANT_STATUS_ACTIVE:
 		return "Active"
-	case accessv1alpha1.GrantStatus_GRANT_STATUS_INACTIVE:
-		return "Inactive"
+	case accessv1alpha1.GrantStatus_GRANT_STATUS_CLOSED:
+		return "Closed"
 	case accessv1alpha1.GrantStatus_GRANT_STATUS_PENDING:
 		return "Pending"
 	}

@@ -2,9 +2,13 @@ package policy
 
 import (
 	"crypto/tls"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
+	"path"
+	"path/filepath"
+	"strings"
 
 	"github.com/common-fate/clio"
 	"github.com/common-fate/sdk/service/authz"
@@ -12,43 +16,90 @@ import (
 	"golang.org/x/net/http2"
 )
 
+type policyFile struct {
+	input    authz.PolicySetInput
+	filePath string
+}
+
 var applyCommand = cli.Command{
 	Name: "apply",
 	Flags: []cli.Flag{
-		&cli.PathFlag{Name: "file", Required: true},
-		&cli.StringFlag{Name: "id", Required: true},
+		&cli.StringFlag{Name: "glob", Value: "*.cedar", Usage: "File pattern to match"},
+		&cli.BoolFlag{Name: "dry-run", Usage: "Print policies to apply but don't make any changes"},
 	},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
-
-		// cfg, err := config.LoadDefault(ctx)
-		// if err != nil {
-		// 	return err
-		// }
 
 		client := authz.NewClient(authz.Opts{
 			HTTPClient: newInsecureClient(),
 			BaseURL:    "http://127.0.0.1:5050",
 		})
 
-		f, err := os.ReadFile(c.Path("file"))
+		policysets := map[string]policyFile{}
+
+		pattern := c.String("glob")
+
+		dryRun := c.Bool("dry-run")
+
+		// Find all the files with the specified glob pattern in the current directory
+		files, err := filepath.Glob(pattern)
 		if err != nil {
 			return err
 		}
 
-		_, err = client.BatchPutPolicy(ctx, authz.BatchPutPolicyInput{
-			Policies: []authz.Policy{
-				{
-					ID:    c.String("id"),
-					Cedar: string(f),
+		for _, filePath := range files {
+			// Process the file here or add it to a list
+			clio.Debugf("Found .cedar file:", filePath)
+
+			// use the basename of the file as the ID of the policy
+			baseName := path.Base(filePath)
+			id := strings.TrimSuffix(baseName, path.Ext(baseName))
+
+			if existing, ok := policysets[id]; ok {
+				return fmt.Errorf("found two policies with conflicting filenames (%s and %s): please rename one of the policy files", existing.filePath, filePath)
+			}
+
+			f, err := os.ReadFile(filePath)
+			if err != nil {
+				return err
+			}
+
+			policysets[id] = policyFile{
+				filePath: filePath,
+				input: authz.PolicySetInput{
+					ID:   id,
+					Text: string(f),
 				},
-			},
-		})
+			}
+
+			if dryRun {
+				clio.Infof("would apply %s: %s", id, filePath)
+			} else {
+				clio.Infof("applying %s: %s", id, filePath)
+			}
+		}
+
+		if len(policysets) == 0 {
+			return fmt.Errorf("no policies found matching pattern %s", pattern)
+		}
+
+		if dryRun {
+			// return early and don't apply anything
+			return nil
+		}
+
+		var input authz.BatchPutPolicySetInput
+
+		for _, ps := range policysets {
+			input.PolicySets = append(input.PolicySets, ps.input)
+		}
+
+		_, err = client.BatchPutPolicySet(ctx, input)
 		if err != nil {
 			return err
 		}
 
-		clio.Success("applied policy")
+		clio.Success("applied Policy Sets")
 		return nil
 	},
 }

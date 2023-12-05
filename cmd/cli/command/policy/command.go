@@ -6,7 +6,6 @@ var Command = cli.Command{
 	Name: "policy",
 	Subcommands: []*cli.Command{
 		&applyCommand,
-		&indexCommand,
-		&simulateCommand,
+		&listCommand,
 	},
 }
