@@ -23,8 +23,8 @@ var Command = cli.Command{
 	Name:  "access",
 	Usage: "Request access to entitlements",
 	Flags: []cli.Flag{
-		&cli.StringSliceFlag{Name: "target"},
-		&cli.StringSliceFlag{Name: "role"},
+		&cli.StringSliceFlag{Name: "target", Required: true},
+		&cli.StringSliceFlag{Name: "role", Required: true},
 		&cli.StringFlag{Name: "output", Value: "tree", Usage: "output format ('tree' or 'json')"},
 	},
 
