@@ -11,13 +11,13 @@ import (
 	"strings"
 
 	"github.com/common-fate/clio"
-	"github.com/common-fate/sdk/service/authz"
+	"github.com/common-fate/sdk/service/authz/policyset"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/net/http2"
 )
 
 type policyFile struct {
-	input    authz.PolicySetInput
+	input    policyset.Input
 	filePath string
 }
 
@@ -30,7 +30,7 @@ var applyCommand = cli.Command{
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
 
-		client := authz.NewClient(authz.Opts{
+		client := policyset.NewClient(policyset.Opts{
 			HTTPClient: newInsecureClient(),
 			BaseURL:    "http://127.0.0.1:5050",
 		})
@@ -66,7 +66,7 @@ var applyCommand = cli.Command{
 
 			policysets[id] = policyFile{
 				filePath: filePath,
-				input: authz.PolicySetInput{
+				input: policyset.Input{
 					ID:   id,
 					Text: string(f),
 				},
@@ -88,13 +88,13 @@ var applyCommand = cli.Command{
 			return nil
 		}
 
-		var input authz.BatchPutPolicySetInput
+		var input policyset.BatchPutInput
 
 		for _, ps := range policysets {
 			input.PolicySets = append(input.PolicySets, ps.input)
 		}
 
-		_, err = client.BatchPutPolicySet(ctx, input)
+		_, err = client.BatchPut(ctx, input)
 		if err != nil {
 			return err
 		}

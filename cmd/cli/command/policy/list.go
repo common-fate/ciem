@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/common-fate/sdk/service/authz"
+	"github.com/common-fate/sdk/service/authz/policyset"
 	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 )
@@ -18,16 +18,16 @@ var listCommand = cli.Command{
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
 
-		client := authz.NewClient(authz.Opts{
+		client := policyset.NewClient(policyset.Opts{
 			HTTPClient: newInsecureClient(),
 			BaseURL:    "http://127.0.0.1:5050",
 		})
 
-		var out authz.ListPolicySetsOutput
+		var out policyset.ListOutput
 
-		call := client.ListPolicySetsRequest(authz.ListPolicySetsInput{})
+		call := client.ListPolicySetsRequest(policyset.ListInput{})
 
-		err := call.Pages(ctx, func(lpso authz.ListPolicySetsOutput) error {
+		err := call.Pages(ctx, func(lpso policyset.ListOutput) error {
 			out.PolicySets = append(out.PolicySets, lpso.PolicySets...)
 			return nil
 		})
