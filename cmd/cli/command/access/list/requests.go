@@ -1,4 +1,4 @@
-package request
+package list
 
 import (
 	"errors"
@@ -14,9 +14,10 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-var list = cli.Command{
-	Name:  "list",
-	Usage: "List Access Requests",
+var requestsCommand = cli.Command{
+	Name:    "requests",
+	Aliases: []string{"request"},
+	Usage:   "List Access Requests",
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "output", Value: "table", Usage: "output format ('table', 'wide', or 'json')"},
 	},

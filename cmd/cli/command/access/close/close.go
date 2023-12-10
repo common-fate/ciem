@@ -1,4 +1,4 @@
-package request
+package close
 
 import (
 	"github.com/bufbuild/connect-go"
@@ -10,8 +10,16 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var closeCommand = cli.Command{
+var Command = cli.Command{
 	Name:  "close",
+	Usage: "Perform a 'close' action on resources such as Access Requests",
+	Subcommands: []*cli.Command{
+		&requestCommand,
+	},
+}
+
+var requestCommand = cli.Command{
+	Name:  "request",
 	Usage: "Close an Access Request",
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "id", Required: true},
@@ -44,6 +52,5 @@ var closeCommand = cli.Command{
 		}
 
 		return nil
-
 	},
 }

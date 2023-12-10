@@ -1,4 +1,4 @@
-package request
+package approve
 
 import (
 	"github.com/bufbuild/connect-go"
@@ -10,8 +10,16 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var approveCommand = cli.Command{
+var Command = cli.Command{
 	Name:  "approve",
+	Usage: "Perform an 'approve' action on resources such as Access Requests",
+	Subcommands: []*cli.Command{
+		&requestCommand,
+	},
+}
+
+var requestCommand = cli.Command{
+	Name:  "request",
 	Usage: "Approve an Access Request",
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "id", Required: true},

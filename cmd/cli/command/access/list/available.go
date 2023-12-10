@@ -1,4 +1,4 @@
-package available
+package list
 
 import (
 	"errors"
@@ -15,9 +15,10 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-var listCommand = cli.Command{
-	Name:    "list",
-	Aliases: []string{"ls"},
+var availableCommand = cli.Command{
+	Name:    "available",
+	Usage:   "List available entitlements that access can be requested to",
+	Aliases: []string{"av"},
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "output", Value: "table", Usage: "output format ('table', 'wide', or 'json')"},
 	},

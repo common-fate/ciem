@@ -9,9 +9,8 @@ import (
 	"github.com/common-fate/ciem/cmd/cli/command/access"
 	"github.com/common-fate/ciem/cmd/cli/command/auditlog"
 	"github.com/common-fate/ciem/cmd/cli/command/authz"
-	"github.com/common-fate/ciem/cmd/cli/command/entities"
+	"github.com/common-fate/ciem/cmd/cli/command/entity"
 	"github.com/common-fate/ciem/cmd/cli/command/identity"
-	"github.com/common-fate/ciem/cmd/cli/command/jit"
 	"github.com/common-fate/ciem/cmd/cli/command/policy"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/clierr"
@@ -41,11 +40,10 @@ func main() {
 			&identity.Command,
 			&command.Auth,
 			&policy.Command,
-			&entities.Command,
+			&entity.Command,
 			&authz.Command,
 			&access.Command,
 			&auditlog.Command,
-			&jit.Command,
 			&command.Configure,
 		},
 	}

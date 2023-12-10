@@ -1,4 +1,4 @@
-package entities
+package entity
 
 import (
 	"fmt"
@@ -8,10 +8,11 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-var getCommand = cli.Command{
-	Name: "get",
+var listCommand = cli.Command{
+	Name: "list",
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "type", Usage: "entity type to load", Required: true},
+		&cli.BoolFlag{Name: "include-archived"},
 	},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
@@ -24,13 +25,17 @@ var getCommand = cli.Command{
 		var all entity.ListOutput
 
 		call := client.ListRequest(entity.ListInput{
-			Type: c.String("type"),
+			Type:            c.String("type"),
+			IncludeArchived: c.Bool("include-archived"),
 		})
 
-		call.Pages(ctx, func(lo *entity.ListOutput) error {
+		err := call.Pages(ctx, func(lo *entity.ListOutput) error {
 			all.Entities = append(all.Entities, lo.Entities...)
 			return nil
 		})
+		if err != nil {
+			return err
+		}
 
 		out, err := protojson.Marshal(&all)
 		if err != nil {

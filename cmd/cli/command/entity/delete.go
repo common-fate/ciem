@@ -1,9 +1,6 @@
-package entities
+package entity
 
 import (
-	"encoding/json"
-	"os"
-
 	"github.com/common-fate/clio"
 	"github.com/common-fate/sdk/service/entity"
 	"github.com/common-fate/sdk/uid"
@@ -13,7 +10,7 @@ import (
 var deleteCommand = cli.Command{
 	Name: "delete",
 	Flags: []cli.Flag{
-		&cli.PathFlag{Name: "file", Required: true},
+		&cli.StringSliceFlag{Name: "eid", Usage: "Entity ID to delete"},
 	},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
@@ -23,33 +20,24 @@ var deleteCommand = cli.Command{
 			BaseURL:    "http://127.0.0.1:5050",
 		})
 
-		f, err := os.ReadFile(c.Path("file"))
-		if err != nil {
-			return err
-		}
-
-		var entities []entity.EntityJSON
-
-		err = json.Unmarshal(f, &entities)
-		if err != nil {
-			return err
-
-		}
-
 		var uids []uid.UID
 
-		for _, e := range entities {
-			uids = append(uids, e.UID)
+		for _, e := range c.StringSlice("eid") {
+			id, err := uid.Parse(e)
+			if err != nil {
+				return err
+			}
+			uids = append(uids, id)
 		}
 
-		_, err = client.BatchUpdate(ctx, entity.BatchUpdateInput{
+		_, err := client.BatchUpdate(ctx, entity.BatchUpdateInput{
 			Delete: uids,
 		})
 		if err != nil {
 			return err
 		}
 
-		clio.Successf("deleted %v entities", len(entities))
+		clio.Successf("deleted %v entities", len(uids))
 		return nil
 	},
 }
