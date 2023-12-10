@@ -2,8 +2,8 @@ package entity
 
 import (
 	"github.com/common-fate/clio"
+	"github.com/common-fate/sdk/eid"
 	"github.com/common-fate/sdk/service/entity"
-	"github.com/common-fate/sdk/uid"
 	"github.com/urfave/cli/v2"
 )
 
@@ -20,10 +20,10 @@ var deleteCommand = cli.Command{
 			BaseURL:    "http://127.0.0.1:5050",
 		})
 
-		var uids []uid.UID
+		var uids []eid.EID
 
 		for _, e := range c.StringSlice("eid") {
-			id, err := uid.Parse(e)
+			id, err := eid.Parse(e)
 			if err != nil {
 				return err
 			}

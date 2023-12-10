@@ -62,7 +62,7 @@ var availableCommand = cli.Command{
 			w.Columns("TARGET", "NAME", "ROLE", "DURATION")
 
 			for _, e := range all.Availabilities {
-				w.Row(e.Target.Uid.Display(), e.Target.Name, e.Role.Name, e.Duration.AsDuration().String())
+				w.Row(e.Target.Eid.Display(), e.Target.Name, e.Role.Name, e.Duration.AsDuration().String())
 			}
 
 			err = w.Flush()
@@ -75,7 +75,7 @@ var availableCommand = cli.Command{
 			w.Columns("TARGET", "NAME", "ROLE", "DURATION", "PRIORITY")
 
 			for _, e := range all.Availabilities {
-				w.Row(e.Target.Uid.Display(), e.Target.Name, e.Role.Name, e.Duration.AsDuration().String(), strconv.FormatUint(uint64(e.Priority), 10))
+				w.Row(e.Target.Eid.Display(), e.Target.Name, e.Role.Name, e.Duration.AsDuration().String(), strconv.FormatUint(uint64(e.Priority), 10))
 			}
 
 			err = w.Flush()

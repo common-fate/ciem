@@ -13,9 +13,9 @@ import (
 	"github.com/common-fate/ciem/printdiags"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/sdk/config"
+	"github.com/common-fate/sdk/eid"
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
 	"github.com/common-fate/sdk/service/access"
-	"github.com/common-fate/sdk/uid"
 	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -112,10 +112,10 @@ var ensureCommand = cli.Command{
 
 			// tree := treeprint.New()
 
-			names := map[uid.UID]string{}
+			names := map[eid.EID]string{}
 
 			for _, g := range res.Msg.Grants {
-				names[uid.New("Access::Grant", g.Grant.Id)] = g.Grant.Name
+				names[eid.New("Access::Grant", g.Grant.Id)] = g.Grant.Name
 
 				exp := "<invalid expiry>"
 

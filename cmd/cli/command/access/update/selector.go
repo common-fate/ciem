@@ -7,9 +7,9 @@ import (
 	"github.com/common-fate/ciem/printdiags"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/sdk/config"
+	"github.com/common-fate/sdk/eid"
 	configv1alpha1 "github.com/common-fate/sdk/gen/commonfate/control/config/v1alpha1"
 	"github.com/common-fate/sdk/service/control/config/accessselector"
-	"github.com/common-fate/sdk/uid"
 	"github.com/urfave/cli/v2"
 )
 
@@ -30,7 +30,7 @@ var selectorCommand = cli.Command{
 			return err
 		}
 
-		belongingTo, err := uid.Parse(c.String("belonging-to"))
+		belongingTo, err := eid.Parse(c.String("belonging-to"))
 		if err != nil {
 			return err
 		}

@@ -13,9 +13,9 @@ import (
 	"github.com/bufbuild/connect-go"
 	"github.com/common-fate/ciem/printdiags"
 	"github.com/common-fate/clio"
+	"github.com/common-fate/sdk/eid"
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
 	"github.com/common-fate/sdk/gen/commonfate/access/v1alpha1/accessv1alpha1connect"
-	"github.com/common-fate/sdk/uid"
 	"github.com/fatih/color"
 	"github.com/mattn/go-isatty"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -49,12 +49,12 @@ func dryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.A
 		return false, errors.New("exiting because --output=json was specified: use --output=text to show an interactive prompt, or use --confirm to proceed with the changes")
 	}
 
-	names := map[uid.UID]string{}
+	names := map[eid.EID]string{}
 
 	var hasChanges bool
 
 	for _, g := range res.Msg.Grants {
-		names[uid.New("Access::Grant", g.Grant.Id)] = g.Grant.Name
+		names[eid.New("Access::Grant", g.Grant.Id)] = g.Grant.Name
 
 		exp := "<invalid expiry>"
 
