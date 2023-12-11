@@ -1,10 +1,11 @@
-package policy
+package policyset
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
 
+	"github.com/common-fate/sdk/config"
 	"github.com/common-fate/sdk/service/authz/policyset"
 	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
@@ -18,16 +19,18 @@ var listCommand = cli.Command{
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
 
-		client := policyset.NewClient(policyset.Opts{
-			HTTPClient: newInsecureClient(),
-			BaseURL:    "http://127.0.0.1:5050",
-		})
+		cfg, err := config.LoadDefault(ctx)
+		if err != nil {
+			return err
+		}
+
+		client := policyset.NewFromConfig(cfg)
 
 		var out policyset.ListOutput
 
 		call := client.ListPolicySetsRequest(policyset.ListInput{})
 
-		err := call.Pages(ctx, func(lpso policyset.ListOutput) error {
+		err = call.Pages(ctx, func(lpso policyset.ListOutput) error {
 			out.PolicySets = append(out.PolicySets, lpso.PolicySets...)
 			return nil
 		})

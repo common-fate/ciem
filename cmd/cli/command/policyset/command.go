@@ -1,11 +1,13 @@
-package policy
+package policyset
 
 import "github.com/urfave/cli/v2"
 
 var Command = cli.Command{
-	Name: "policy",
+	Name: "policyset",
 	Subcommands: []*cli.Command{
-		&applyCommand,
+		&createCommand,
 		&listCommand,
+		&updateCommand,
+		&deleteCommand,
 	},
 }

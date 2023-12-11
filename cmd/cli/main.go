@@ -11,7 +11,7 @@ import (
 	"github.com/common-fate/ciem/cmd/cli/command/authz"
 	"github.com/common-fate/ciem/cmd/cli/command/entity"
 	"github.com/common-fate/ciem/cmd/cli/command/identity"
-	"github.com/common-fate/ciem/cmd/cli/command/policy"
+	"github.com/common-fate/ciem/cmd/cli/command/policyset"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/clierr"
 	"github.com/urfave/cli/v2"
@@ -39,7 +39,7 @@ func main() {
 			&command.Logout,
 			&identity.Command,
 			&command.Auth,
-			&policy.Command,
+			&policyset.Command,
 			&entity.Command,
 			&authz.Command,
 			&access.Command,

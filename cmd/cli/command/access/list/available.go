@@ -21,6 +21,7 @@ var availableCommand = cli.Command{
 	Aliases: []string{"av"},
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "output", Value: "table", Usage: "output format ('table', 'wide', or 'json')"},
+		&cli.StringFlag{Name: "selector", Usage: "filter for a particular resource selector"},
 	},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
@@ -38,6 +39,8 @@ var availableCommand = cli.Command{
 		done := false
 		var pageToken string
 
+		selector := c.String("selector")
+
 		for !done {
 			res, err := client.QueryAvailabilities(ctx, connect.NewRequest(&accessv1alpha1.QueryAvailabilitiesRequest{
 				PageToken: pageToken,
@@ -46,7 +49,13 @@ var availableCommand = cli.Command{
 				return err
 			}
 
-			all.Availabilities = append(all.Availabilities, res.Msg.Availabilities...)
+			for _, av := range res.Msg.Availabilities {
+				if selector != "" && av.TargetSelector.Id != selector {
+					continue
+				}
+				all.Availabilities = append(all.Availabilities, av)
+
+			}
 
 			if res.Msg.NextPageToken == "" {
 				done = true
@@ -72,10 +81,10 @@ var availableCommand = cli.Command{
 
 		case "wide":
 			w := table.New(os.Stdout)
-			w.Columns("TARGET", "NAME", "ROLE", "DURATION", "PRIORITY")
+			w.Columns("TARGET", "NAME", "ROLE", "DURATION", "SELECTOR", "PRIORITY")
 
 			for _, e := range all.Availabilities {
-				w.Row(e.Target.Eid.Display(), e.Target.Name, e.Role.Name, e.Duration.AsDuration().String(), strconv.FormatUint(uint64(e.Priority), 10))
+				w.Row(e.Target.Eid.Display(), e.Target.Name, e.Role.Name, e.Duration.AsDuration().String(), e.TargetSelector.Id, strconv.FormatUint(uint64(e.Priority), 10))
 			}
 
 			err = w.Flush()

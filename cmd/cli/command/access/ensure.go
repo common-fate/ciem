@@ -125,7 +125,6 @@ var ensureCommand = cli.Command{
 
 				switch g.Change {
 				case accessv1alpha1.GrantChange_GRANT_CHANGE_ACTIVATED:
-					exp := time.Until(g.Grant.ExpiresAt.AsTime())
 					color.New(color.BgHiGreen).Printf("[ACTIVATED]")
 					color.New(color.FgGreen).Printf(" %s was activated for %s: %s\n", g.Grant.Name, exp, requestURL(apiURL, g.Grant))
 					continue
@@ -137,7 +136,7 @@ var ensureCommand = cli.Command{
 
 				case accessv1alpha1.GrantChange_GRANT_CHANGE_REQUESTED:
 					color.New(color.BgHiYellow, color.FgBlack).Printf("[REQUESTED]")
-					color.New(color.FgYellow).Printf(" %s will require approval: %s\n", g.Grant.Name, requestURL(apiURL, g.Grant))
+					color.New(color.FgYellow).Printf(" %s requires approval: %s\n", g.Grant.Name, requestURL(apiURL, g.Grant))
 					continue
 
 				case accessv1alpha1.GrantChange_GRANT_CHANGE_PROVISIONING_FAILED:

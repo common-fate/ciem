@@ -7,7 +7,7 @@ require (
 	github.com/briandowns/spinner v1.23.0
 	github.com/bufbuild/connect-go v1.10.0
 	github.com/common-fate/clio v1.2.3
-	github.com/common-fate/sdk v0.0.0-20231210113633-ad77e9d5d19c
+	github.com/common-fate/sdk v0.0.0-20231211012012-15ce6c46d2a2
 	github.com/fatih/color v1.16.0
 	github.com/mattn/go-isatty v0.0.20
 	github.com/pkg/errors v0.9.1
