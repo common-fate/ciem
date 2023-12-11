@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/common-fate/clio"
+	"github.com/common-fate/sdk/eid"
 	"github.com/common-fate/sdk/service/authz"
 	"github.com/common-fate/sdk/service/authz/batchauthz"
-	"github.com/common-fate/sdk/uid"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
@@ -22,17 +22,17 @@ var evaluateCommand = cli.Command{
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
 
-		principal, err := uid.Parse(c.String("principal"))
+		principal, err := eid.Parse(c.String("principal"))
 		if err != nil {
 			return errors.Wrap(err, "parsing principal")
 		}
 
-		resource, err := uid.Parse(c.String("resource"))
+		resource, err := eid.Parse(c.String("resource"))
 		if err != nil {
 			return errors.Wrap(err, "parsing resource")
 		}
 
-		action, err := uid.Parse(c.String("action"))
+		action, err := eid.Parse(c.String("action"))
 		if err != nil {
 			return errors.Wrap(err, "parsing action")
 		}

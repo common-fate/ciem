@@ -1,10 +1,10 @@
-package workflow
+package update
 
 import "github.com/urfave/cli/v2"
 
 var Command = cli.Command{
-	Name: "workflow",
+	Name: "update",
 	Subcommands: []*cli.Command{
-		&createCommand,
+		&selectorCommand,
 	},
 }

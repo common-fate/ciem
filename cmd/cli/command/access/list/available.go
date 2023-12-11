@@ -1,4 +1,4 @@
-package available
+package list
 
 import (
 	"errors"
@@ -15,9 +15,10 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-var listCommand = cli.Command{
-	Name:    "list",
-	Aliases: []string{"ls"},
+var availableCommand = cli.Command{
+	Name:    "available",
+	Usage:   "List available entitlements that access can be requested to",
+	Aliases: []string{"av"},
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "output", Value: "table", Usage: "output format ('table', 'wide', or 'json')"},
 	},
@@ -61,7 +62,7 @@ var listCommand = cli.Command{
 			w.Columns("TARGET", "NAME", "ROLE", "DURATION")
 
 			for _, e := range all.Availabilities {
-				w.Row(e.Target.Uid.Display(), e.Target.Name, e.Role.Name, e.Duration.AsDuration().String())
+				w.Row(e.Target.Eid.Display(), e.Target.Name, e.Role.Name, e.Duration.AsDuration().String())
 			}
 
 			err = w.Flush()
@@ -74,7 +75,7 @@ var listCommand = cli.Command{
 			w.Columns("TARGET", "NAME", "ROLE", "DURATION", "PRIORITY")
 
 			for _, e := range all.Availabilities {
-				w.Row(e.Target.Uid.Display(), e.Target.Name, e.Role.Name, e.Duration.AsDuration().String(), strconv.FormatUint(uint64(e.Priority), 10))
+				w.Row(e.Target.Eid.Display(), e.Target.Name, e.Role.Name, e.Duration.AsDuration().String(), strconv.FormatUint(uint64(e.Priority), 10))
 			}
 
 			err = w.Flush()

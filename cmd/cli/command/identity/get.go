@@ -7,9 +7,9 @@ import (
 	"github.com/bufbuild/connect-go"
 	"github.com/common-fate/ciem/treeprint"
 	"github.com/common-fate/sdk/config"
+	"github.com/common-fate/sdk/eid"
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
 	identitysvc "github.com/common-fate/sdk/service/identity"
-	"github.com/common-fate/sdk/uid"
 	"github.com/urfave/cli/v2"
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -38,14 +38,14 @@ var getCommand = cli.Command{
 		output := c.String("output")
 		switch output {
 		case "text":
-			pid := uid.FromAPI(res.Msg.Principal.Uid)
+			pid := eid.FromAPI(res.Msg.Principal.Eid)
 			fmt.Printf("%s (%s)\n", res.Msg.Principal.Display(), pid)
 
 		case "tree":
 			tree := treeprint.New()
 			lastNode := tree
 			for _, link := range res.Msg.Chain {
-				id := uid.FromAPI(link.Id)
+				id := eid.FromAPI(link.Id)
 				if link.Label != "" {
 					lastNode = lastNode.AddMetaBranch(link.Label, id)
 				} else {
