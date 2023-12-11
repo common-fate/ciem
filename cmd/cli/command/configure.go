@@ -45,9 +45,8 @@ var Configure = cli.Command{
 		newConfig := config.Default()
 
 		newConfig.Contexts["default"] = config.Context{
-			APIURL: cfg.ApiUrl,
-			// @TODO add the access and authz urls to the config descovery API
-			AccessURL:    strings.Replace(cfg.ApiUrl, "https://api.", "https://access.", 1),
+			APIURL:       cfg.APIURL,
+			AccessURL:    cfg.AccessAPIUURL,
 			OIDCIssuer:   strings.TrimSuffix(cfg.OauthAuthority, "/"),
 			OIDCClientID: cfg.CliOAuthClientId,
 		}
@@ -67,7 +66,9 @@ type Config struct {
 	OauthClientId    string `json:"oauthClientId"`
 	CliOAuthClientId string `json:"cliOAuthClientId"`
 	OauthAuthority   string `json:"oauthAuthority"`
-	ApiUrl           string `json:"apiUrl"`
+	APIURL           string `json:"apiUrl"`
+	AccessAPIUURL    string `json:"accessApiUrl"`
+	AuthzGraphAPIURL string `json:"authzGraphApiUrl"`
 	TeamName         string `json:"teamName"`
 	FaviconUrl       string `json:"faviconUrl"`
 	IconUrl          string `json:"iconUrl"`
