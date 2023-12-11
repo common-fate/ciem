@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/common-fate/clio"
+	"github.com/common-fate/sdk/config"
 	"github.com/common-fate/sdk/eid"
 	"github.com/common-fate/sdk/service/authz"
 	"github.com/common-fate/sdk/service/authz/batchauthz"
@@ -37,10 +38,12 @@ var evaluateCommand = cli.Command{
 			return errors.Wrap(err, "parsing action")
 		}
 
-		client := authz.NewClient(authz.Opts{
-			HTTPClient: newInsecureClient(),
-			BaseURL:    "http://127.0.0.1:5050",
-		})
+		cfg, err := config.LoadDefault(ctx)
+		if err != nil {
+			return err
+		}
+
+		client := authz.NewFromConfig(cfg)
 
 		batch := batchauthz.New(client.RawClient())
 

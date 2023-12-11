@@ -3,6 +3,7 @@ package entity
 import (
 	"fmt"
 
+	"github.com/common-fate/sdk/config"
 	"github.com/common-fate/sdk/service/entity"
 	"github.com/urfave/cli/v2"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -17,10 +18,12 @@ var listCommand = cli.Command{
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
 
-		client := entity.NewClient(entity.Opts{
-			HTTPClient: newInsecureClient(),
-			BaseURL:    "http://127.0.0.1:5050",
-		})
+		cfg, err := config.LoadDefault(ctx)
+		if err != nil {
+			return err
+		}
+
+		client := entity.NewFromConfig(cfg)
 
 		var all entity.ListOutput
 
@@ -29,7 +32,7 @@ var listCommand = cli.Command{
 			IncludeArchived: c.Bool("include-archived"),
 		})
 
-		err := call.Pages(ctx, func(lo *entity.ListOutput) error {
+		err = call.Pages(ctx, func(lo *entity.ListOutput) error {
 			all.Entities = append(all.Entities, lo.Entities...)
 			return nil
 		})

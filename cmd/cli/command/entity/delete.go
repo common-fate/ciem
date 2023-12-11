@@ -2,6 +2,7 @@ package entity
 
 import (
 	"github.com/common-fate/clio"
+	"github.com/common-fate/sdk/config"
 	"github.com/common-fate/sdk/eid"
 	"github.com/common-fate/sdk/service/entity"
 	"github.com/urfave/cli/v2"
@@ -15,10 +16,12 @@ var deleteCommand = cli.Command{
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
 
-		client := entity.NewClient(entity.Opts{
-			HTTPClient: newInsecureClient(),
-			BaseURL:    "http://127.0.0.1:5050",
-		})
+		cfg, err := config.LoadDefault(ctx)
+		if err != nil {
+			return err
+		}
+
+		client := entity.NewFromConfig(cfg)
 
 		var uids []eid.EID
 
@@ -30,7 +33,7 @@ var deleteCommand = cli.Command{
 			uids = append(uids, id)
 		}
 
-		_, err := client.BatchUpdate(ctx, entity.BatchUpdateInput{
+		_, err = client.BatchUpdate(ctx, entity.BatchUpdateInput{
 			Delete: uids,
 		})
 		if err != nil {
