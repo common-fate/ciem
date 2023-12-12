@@ -25,3 +25,4 @@ gon.cf.arm.hcl
 .env
 
 launch.json
+.DS_Store

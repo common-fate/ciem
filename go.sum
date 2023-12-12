@@ -22,6 +22,10 @@ github.com/common-fate/sdk v0.0.0-20231211230059-b847b4d327d8 h1:QFhd2KxkKA88ij7
 github.com/common-fate/sdk v0.0.0-20231211230059-b847b4d327d8/go.mod h1:u16/09qqao49kNZVMjnj/gpSUhw9kOgi51Tg3vWjEKc=
 github.com/common-fate/sdk v0.0.0-20231212042243-24ae6fc51a3d h1:FG3kGOIMNoZ9PlhKYdueTwwfXfrnJUciXCdKrLPoVEk=
 github.com/common-fate/sdk v0.0.0-20231212042243-24ae6fc51a3d/go.mod h1:u16/09qqao49kNZVMjnj/gpSUhw9kOgi51Tg3vWjEKc=
+github.com/common-fate/sdk v0.0.0-20231212131240-28051d4f9bdc h1:Ghe8Sx2KNMxEZAv7rO+2DHS9Y+Sg+Foyu9fbBFWUrM4=
+github.com/common-fate/sdk v0.0.0-20231212131240-28051d4f9bdc/go.mod h1:u16/09qqao49kNZVMjnj/gpSUhw9kOgi51Tg3vWjEKc=
+github.com/common-fate/sdk v0.0.0-20231212192545-f469bd7d4678 h1:5MEVB2luuqehtGNucuq/CkL1AfkJFhlZP9vLcpBgPJY=
+github.com/common-fate/sdk v0.0.0-20231212192545-f469bd7d4678/go.mod h1:u16/09qqao49kNZVMjnj/gpSUhw9kOgi51Tg3vWjEKc=
 github.com/cpuguy83/go-md2man/v2 v2.0.2 h1:p1EgwI/C7NhT0JmVkwCD2ZBK8j4aeHQX2pMHHBfMQ6w=
 github.com/cpuguy83/go-md2man/v2 v2.0.2/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
 github.com/creack/pty v1.1.17 h1:QeVUsEDNrLBW4tMgZHvxy18sKtr6VI492kBhUfhDJNI=
