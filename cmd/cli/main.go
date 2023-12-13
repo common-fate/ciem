@@ -20,6 +20,7 @@ import (
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/clierr"
 	"github.com/common-fate/sdk/config"
+	"github.com/common-fate/sdk/loginflow"
 	"github.com/urfave/cli/v2"
 )
 
@@ -51,8 +52,8 @@ func main() {
 
 			// prompt for an App URL to load initial config
 			clio.Info("It looks like this is your first time using the Common Fate CLI")
-			clio.Info("To get started, you need to configure the CLI to connect to your teams Common Fate deployment")
-			clio.Info("This is simple, just enter the URL of your deployment, e.g https://common-fate.mycompany.com")
+			clio.Info("To get started, you need to configure the CLI to connect to your team's Common Fate deployment")
+			clio.Info("This is simple, just enter the URL of your deployment, e.g https://commonfate.example.com")
 
 			var u string
 			err = survey.AskOne(&survey.Input{
@@ -71,19 +72,28 @@ func main() {
 			if err != nil {
 				return err
 			}
-			url, err := url.Parse(EnsureURLScheme(u))
+			baseUrl, err := url.Parse(EnsureURLScheme(u))
 			if err != nil {
 				return err
 			}
-			url = url.JoinPath("/config.json")
+			url := baseUrl.JoinPath("/config.json")
 
 			err = command.ConfigureFromURL(url.String())
 			if err != nil {
 				return err
 			}
 			clio.Success("Your CLI has been configured successfully!")
+			clio.Infof("Opening your browser to try and log you in to %s...", baseUrl.String())
 
-			return nil
+			// try and log the user in immediately
+			cfg, err := config.LoadDefault(c.Context)
+			if err != nil {
+				return err
+			}
+
+			lf := loginflow.NewFromConfig(cfg)
+
+			return lf.Login(c.Context)
 		},
 		Commands: []*cli.Command{
 			&command.Login,
