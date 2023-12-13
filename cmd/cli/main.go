@@ -16,6 +16,7 @@ import (
 	"github.com/common-fate/ciem/cmd/cli/command/entity"
 	"github.com/common-fate/ciem/cmd/cli/command/identity"
 	"github.com/common-fate/ciem/cmd/cli/command/policyset"
+	build "github.com/common-fate/ciem/internal"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/clierr"
 	"github.com/common-fate/sdk/config"
@@ -28,6 +29,7 @@ func main() {
 		Writer:    os.Stderr,
 		Usage:     "https://commonfate.io",
 		UsageText: "cf [options] [command]",
+		Version:   build.Version,
 		Flags: []cli.Flag{
 			&cli.StringFlag{Name: "api-url", Usage: "override the Common Fate API URL"},
 			&cli.BoolFlag{Name: "verbose", Usage: "Enable verbose logging, effectively sets environment variable CF_LOG=DEBUG"},
