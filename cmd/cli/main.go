@@ -61,7 +61,6 @@ func main() {
 				if err != nil {
 					return err
 				}
-				clio.Warn(url.Path)
 				if url.Path != "" {
 					return errors.New("URL should not include a path")
 				}
