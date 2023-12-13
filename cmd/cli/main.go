@@ -1,10 +1,14 @@
 package main
 
 import (
+	"errors"
+	"net/url"
 	"os"
+	"strings"
 
 	"go.uber.org/zap"
 
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/common-fate/ciem/cmd/cli/command"
 	"github.com/common-fate/ciem/cmd/cli/command/access"
 	"github.com/common-fate/ciem/cmd/cli/command/auditlog"
@@ -14,6 +18,7 @@ import (
 	"github.com/common-fate/ciem/cmd/cli/command/policyset"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/clierr"
+	"github.com/common-fate/sdk/config"
 	"github.com/urfave/cli/v2"
 )
 
@@ -27,10 +32,55 @@ func main() {
 			&cli.StringFlag{Name: "api-url", Usage: "override the Common Fate API URL"},
 			&cli.BoolFlag{Name: "verbose", Usage: "Enable verbose logging, effectively sets environment variable CF_LOG=DEBUG"},
 		},
-		Before: func(ctx *cli.Context) error {
-			if ctx.Bool("verbose") {
+		Before: func(c *cli.Context) error {
+			if c.Bool("verbose") {
 				clio.SetLevelFromString("debug")
 			}
+
+			if c.Args().First() == "configure" {
+				return nil
+			}
+			_, err := config.LoadDefault(c.Context)
+			if err == nil {
+				return nil
+			}
+
+			clio.Debugw("failed to load config from file, will prompt user to configure", zap.Error(err))
+
+			// prompt for an App URL to load initial config
+			clio.Info("It looks like this is your first time using the Common Fate CLI")
+			clio.Info("To get started, you need to configure the CLI to connect to your teams Common Fate deployment")
+			clio.Info("This is simple, just enter the URL of your deployment, e.g https://common-fate.mycompany.com")
+
+			var u string
+			err = survey.AskOne(&survey.Input{
+				Message: "Enter the URL of your teams Common Fate deployment:",
+			}, &u, survey.WithValidator(func(ans interface{}) error {
+				a := EnsureURLScheme(ans.(string))
+				url, err := url.Parse(a)
+				if err != nil {
+					return err
+				}
+				clio.Warn(url.Path)
+				if url.Path != "" {
+					return errors.New("URL should not include a path")
+				}
+				return nil
+			}))
+			if err != nil {
+				return err
+			}
+			url, err := url.Parse(EnsureURLScheme(u))
+			if err != nil {
+				return err
+			}
+			url = url.JoinPath("/config.json")
+
+			err = command.ConfigureFromURL(url.String())
+			if err != nil {
+				return err
+			}
+			clio.Success("Your CLI has been configured successfully!")
 
 			return nil
 		},
@@ -60,4 +110,12 @@ func main() {
 		}
 		os.Exit(1)
 	}
+}
+
+func EnsureURLScheme(u string) string {
+	if !(strings.HasPrefix(u, "https://") || (strings.HasPrefix(u, "http://"))) {
+		clio.Debugf("URL did not have a scheme so the default https:// will be added")
+		return "https://" + u
+	}
+	return u
 }

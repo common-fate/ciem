@@ -27,37 +27,12 @@ var Configure = cli.Command{
 			return err
 		}
 		url = url.JoinPath("/config.json")
-		res, err := http.DefaultClient.Get(url.String())
+
+		err = ConfigureFromURL(url.String())
 		if err != nil {
 			return err
 		}
-
-		b, err := io.ReadAll(res.Body)
-		if err != nil {
-			return err
-		}
-		var cfg Config
-		err = json.Unmarshal(b, &cfg)
-		if err != nil {
-			return err
-		}
-
-		newConfig := config.Default()
-
-		newConfig.Contexts["default"] = config.Context{
-			APIURL:       cfg.APIURL,
-			AccessURL:    cfg.AccessAPIUURL,
-			OIDCIssuer:   strings.TrimSuffix(cfg.OauthAuthority, "/"),
-			OIDCClientID: cfg.CliOAuthClientId,
-		}
-		newConfig.CurrentContext = "default"
-		err = config.Save(newConfig)
-		if err != nil {
-			return err
-		}
-
 		clio.Success("Successfully updated config")
-
 		return nil
 	},
 }
@@ -67,9 +42,42 @@ type Config struct {
 	CliOAuthClientId string `json:"cliOAuthClientId"`
 	OauthAuthority   string `json:"oauthAuthority"`
 	APIURL           string `json:"apiUrl"`
-	AccessAPIUURL    string `json:"accessApiUrl"`
+	AccessAPIURL     string `json:"accessApiUrl"`
 	AuthzGraphAPIURL string `json:"authzGraphApiUrl"`
 	TeamName         string `json:"teamName"`
 	FaviconUrl       string `json:"faviconUrl"`
 	IconUrl          string `json:"iconUrl"`
+}
+
+func ConfigureFromURL(u string) error {
+	res, err := http.DefaultClient.Get(u)
+	if err != nil {
+		return err
+	}
+
+	b, err := io.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+	var cfg Config
+	err = json.Unmarshal(b, &cfg)
+	if err != nil {
+		return err
+	}
+
+	newConfig := config.Default()
+
+	newConfig.Contexts["default"] = config.Context{
+		APIURL:       cfg.APIURL,
+		AccessURL:    cfg.AccessAPIURL,
+		OIDCIssuer:   strings.TrimSuffix(cfg.OauthAuthority, "/"),
+		OIDCClientID: cfg.CliOAuthClientId,
+	}
+	newConfig.CurrentContext = "default"
+	err = config.Save(newConfig)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
