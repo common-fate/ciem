@@ -121,7 +121,7 @@ func dryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.A
 	if err != nil {
 		return false, err
 	}
-	return true, nil
+	return proceed, nil
 }
 
 func isTerminal(fd uintptr) bool {
