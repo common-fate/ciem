@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/sdk/config"
 	"github.com/urfave/cli/v2"
@@ -17,6 +18,7 @@ var Configure = cli.Command{
 	Name:      "configure",
 	Usage:     "Configure CLI",
 	ArgsUsage: "The frontend url for your deployment",
+	Flags:     []cli.Flag{&cli.StringFlag{Name: "context-name", Value: "default"}},
 	Action: func(c *cli.Context) error {
 		u := c.Args().First()
 		if u == "" {
@@ -28,12 +30,44 @@ var Configure = cli.Command{
 		}
 		url = url.JoinPath("/config.json")
 
-		err = ConfigureFromURL(url.String())
+		err = ConfigureFromURL(url.String(), WithContextName(c.String("context-name")))
 		if err != nil {
 			return err
 		}
 		clio.Success("Successfully updated config")
 		return nil
+	},
+}
+
+var Context = cli.Command{
+	Name:  "context",
+	Usage: "Manage your current CLI context",
+	Subcommands: []*cli.Command{
+		{
+			Name: "switch",
+			Action: func(c *cli.Context) error {
+				contexts, err := config.ListContexts()
+				if err != nil {
+					return err
+				}
+				var context string
+				err = survey.AskOne(&survey.Select{
+					Options: contexts,
+					Message: "select a context",
+				}, &context)
+				if err != nil {
+					return err
+				}
+
+				err = config.SwitchContext(context)
+				if err != nil {
+					return err
+				}
+
+				clio.Successf("Successfully switch context to %s", context)
+				return nil
+			},
+		},
 	},
 }
 
@@ -49,7 +83,24 @@ type Config struct {
 	IconUrl          string `json:"iconUrl"`
 }
 
-func ConfigureFromURL(u string) error {
+type ConfigureFromURLOpts struct {
+	ContextName string
+}
+
+func WithContextName(name string) func(o *ConfigureFromURLOpts) {
+	return func(o *ConfigureFromURLOpts) {
+		o.ContextName = name
+	}
+}
+
+func ConfigureFromURL(u string, opts ...func(o *ConfigureFromURLOpts)) error {
+	confOpts := ConfigureFromURLOpts{
+		ContextName: "default",
+	}
+	for _, f := range opts {
+		f(&confOpts)
+	}
+
 	res, err := http.DefaultClient.Get(u)
 	if err != nil {
 		return err
@@ -67,13 +118,13 @@ func ConfigureFromURL(u string) error {
 
 	newConfig := config.Default()
 
-	newConfig.Contexts["default"] = config.Context{
+	newConfig.Contexts[confOpts.ContextName] = config.Context{
 		APIURL:       cfg.APIURL,
 		AccessURL:    cfg.AccessAPIURL,
 		OIDCIssuer:   strings.TrimSuffix(cfg.OauthAuthority, "/"),
 		OIDCClientID: cfg.CliOAuthClientId,
 	}
-	newConfig.CurrentContext = "default"
+	newConfig.CurrentContext = confOpts.ContextName
 	err = config.Save(newConfig)
 	if err != nil {
 		return err

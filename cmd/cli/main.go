@@ -106,6 +106,7 @@ func main() {
 			&access.Command,
 			&auditlog.Command,
 			&command.Configure,
+			&command.Context,
 		},
 	}
 	clio.SetLevelFromEnv("CF_LOG")
