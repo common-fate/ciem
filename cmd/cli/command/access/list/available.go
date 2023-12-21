@@ -1,6 +1,7 @@
 package list
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/bufbuild/connect-go"
 	"github.com/common-fate/ciem/table"
+	"github.com/common-fate/grab"
 	"github.com/common-fate/sdk/config"
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
 	"github.com/common-fate/sdk/service/access"
@@ -36,32 +38,25 @@ var availableCommand = cli.Command{
 		all := accessv1alpha1.QueryAvailabilitiesResponse{
 			Availabilities: []*accessv1alpha1.Availability{},
 		}
-		done := false
-		var pageToken string
-
-		selector := c.String("selector")
-
-		for !done {
+		availabilities, err := grab.AllPages(ctx, func(ctx context.Context, nextToken *string) ([]*accessv1alpha1.Availability, *string, error) {
 			res, err := client.QueryAvailabilities(ctx, connect.NewRequest(&accessv1alpha1.QueryAvailabilitiesRequest{
-				PageToken: pageToken,
+				PageToken: grab.Value(nextToken),
 			}))
 			if err != nil {
-				return err
+				return nil, nil, err
 			}
+			return res.Msg.Availabilities, &res.Msg.NextPageToken, nil
+		})
+		if err != nil {
+			return err
+		}
 
-			for _, av := range res.Msg.Availabilities {
-				if selector != "" && av.TargetSelector.Id != selector {
-					continue
-				}
-				all.Availabilities = append(all.Availabilities, av)
-
+		selector := c.String("selector")
+		for _, av := range availabilities {
+			if selector != "" && av.TargetSelector.Id != selector {
+				continue
 			}
-
-			if res.Msg.NextPageToken == "" {
-				done = true
-			} else {
-				pageToken = res.Msg.NextPageToken
-			}
+			all.Availabilities = append(all.Availabilities, av)
 		}
 
 		output := c.String("output")

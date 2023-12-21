@@ -49,7 +49,7 @@ var ensureCommand = cli.Command{
 		roles := c.StringSlice("role")
 
 		if len(targets) != len(roles) {
-			return errors.New("you need to provide --role flag for each --target flag. For example:\n'cf jit request access --target AWS::Account::123456789012 --role AdministratorAccess --target OtherAccount --role Developer")
+			return errors.New("you need to provide --role flag for each --target flag. For example:\n'cf access ensure --target AWS::Account::123456789012 --role AdministratorAccess --target OtherAccount --role Developer")
 		}
 
 		apiURL, err := url.Parse(cfg.APIURL)

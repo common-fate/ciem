@@ -18,6 +18,8 @@ github.com/common-fate/clio v1.2.3 h1:hHwUYZjn66qGYDpgANl0EB/92hyi/Jsnd07qB09rvn
 github.com/common-fate/clio v1.2.3/go.mod h1:NkozaS15SA+6Y9zb+82eIj1i41aWShorTqA01GKQ7A8=
 github.com/common-fate/grab v1.1.0 h1:HLZPtltdHScYu6qtt/UC78rvwylCTWuyoZoiQXV4QHc=
 github.com/common-fate/grab v1.1.0/go.mod h1:L0qa03RwqOMZz9PrrWw9eI145i5FQRf+iLtNSJypQvY=
+github.com/common-fate/grab v1.2.0 h1:WODDm02QNE+jQKXq+VbhDD0amTOmaDn8vnA5NVOFnFM=
+github.com/common-fate/grab v1.2.0/go.mod h1:6zH8GckZGFrOKfZzL4Y/2OTvxwFeL6cDtsztM0GGC2Y=
 github.com/common-fate/sdk v0.0.0-20231220055240-32a937c74bf1 h1:yd4YKPCAgfaTygvaGPPxfaU2fOJoki/d5D64qMtjdgk=
 github.com/common-fate/sdk v0.0.0-20231220055240-32a937c74bf1/go.mod h1:MmxpKwAVtrEl6ANF8zllGZ+TI/tT9zVPDweSYDzo3RE=
 github.com/cpuguy83/go-md2man/v2 v2.0.2 h1:p1EgwI/C7NhT0JmVkwCD2ZBK8j4aeHQX2pMHHBfMQ6w=
