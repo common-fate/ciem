@@ -15,6 +15,7 @@ import (
 	"github.com/bufbuild/connect-go"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+
 	"github.com/charmbracelet/lipgloss"
 	"github.com/common-fate/ciem/multiselecttable"
 	"github.com/common-fate/ciem/printdiags"
@@ -204,6 +205,7 @@ var ensureCommand = cli.Command{
 	},
 
 	Action: func(c *cli.Context) error {
+
 		ctx := c.Context
 
 		outputFormat := c.String("output")

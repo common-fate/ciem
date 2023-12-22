@@ -8,6 +8,8 @@ require (
 	github.com/bufbuild/connect-go v1.10.0
 	github.com/charmbracelet/bubbles v0.17.1
 	github.com/charmbracelet/bubbletea v0.25.0
+	github.com/charmbracelet/huh v0.0.0
+	github.com/charmbracelet/huh/spinner v0.0.0
 	github.com/charmbracelet/lipgloss v0.9.1
 	github.com/common-fate/clio v1.2.3
 	github.com/common-fate/grab v1.2.0
@@ -24,11 +26,25 @@ require (
 )
 
 require (
+	github.com/alecthomas/chroma v0.10.0 // indirect
+	github.com/aymerick/douceur v0.2.0 // indirect
+	github.com/catppuccin/go v0.2.0 // indirect
+	github.com/charmbracelet/glamour v0.6.0 // indirect
+	github.com/dlclark/regexp2 v1.10.0 // indirect
+	github.com/gorilla/css v1.0.0 // indirect
+	github.com/microcosm-cc/bluemonday v1.0.25 // indirect
+	github.com/olekukonko/tablewriter v0.0.5 // indirect
+	github.com/yuin/goldmark v1.6.0 // indirect
+	github.com/yuin/goldmark-emoji v1.0.2 // indirect
+)
+
+require (
 	github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4 // indirect
 	github.com/99designs/keyring v1.2.2 // indirect
 	github.com/BurntSushi/toml v1.3.2 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
+	github.com/charmbracelet/x/exp/strings v0.0.0-20231215171016-7ba2b450712d
 	github.com/common-fate/apikit v0.3.0 // indirect
 	github.com/containerd/console v1.0.4-0.20230313162750-1ae8d489ac81 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
@@ -50,7 +66,7 @@ require (
 	github.com/mattn/go-localereader v0.0.1 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
 	github.com/mtibben/percent v0.2.1 // indirect
-	github.com/muesli/ansi v0.0.0-20211018074035-2e021307bc4b // indirect
+	github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/muesli/reflow v0.3.0 // indirect
 	github.com/muesli/termenv v0.15.2 // indirect
@@ -58,7 +74,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/rivo/uniseg v0.2.0 // indirect
+	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	github.com/zitadel/oidc/v2 v2.12.0 // indirect
@@ -74,3 +90,9 @@ require (
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/charmbracelet/huh v0.0.0 => ../huh
+
+replace github.com/charmbracelet/accessibility v0.0.0 => ../huh/accessibility
+
+replace github.com/charmbracelet/huh/spinner v0.0.0 => ../huh/spinner
