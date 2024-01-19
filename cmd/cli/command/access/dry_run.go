@@ -21,7 +21,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-func dryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.AccessServiceClient, req *accessv1alpha1.BatchEnsureRequest, jsonOutput bool) (bool, error) {
+func DryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.AccessServiceClient, req *accessv1alpha1.BatchEnsureRequest, jsonOutput bool) (bool, error) {
 	req.DryRun = true
 
 	si := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
@@ -59,7 +59,7 @@ func dryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.A
 		exp := "<invalid expiry>"
 
 		if g.Grant.ExpiresAt != nil {
-			exp = shortDur(time.Until(g.Grant.ExpiresAt.AsTime()))
+			exp = ShortDur(time.Until(g.Grant.ExpiresAt.AsTime()))
 		}
 
 		if g.Change > 0 {
@@ -69,12 +69,12 @@ func dryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.A
 		switch g.Change {
 		case accessv1alpha1.GrantChange_GRANT_CHANGE_ACTIVATED:
 			color.New(color.BgHiGreen).Printf("[WILL ACTIVATE]")
-			color.New(color.FgGreen).Printf(" %s will be activated for %s: %s\n", g.Grant.Name, exp, requestURL(apiURL, g.Grant))
+			color.New(color.FgGreen).Printf(" %s will be activated for %s: %s\n", g.Grant.Name, exp, RequestURL(apiURL, g.Grant))
 			continue
 
 		case accessv1alpha1.GrantChange_GRANT_CHANGE_EXTENDED:
 			color.New(color.BgBlue).Printf("[WILL EXTEND]")
-			color.New(color.FgBlue).Printf(" %s will be extended for another %s: %s\n", g.Grant.Name, exp, requestURL(apiURL, g.Grant))
+			color.New(color.FgBlue).Printf(" %s will be extended for another %s: %s\n", g.Grant.Name, exp, RequestURL(apiURL, g.Grant))
 			continue
 
 		case accessv1alpha1.GrantChange_GRANT_CHANGE_REQUESTED:
@@ -90,17 +90,17 @@ func dryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.A
 
 		switch g.Grant.Status {
 		case accessv1alpha1.GrantStatus_GRANT_STATUS_ACTIVE:
-			color.New(color.FgGreen).Printf("[ACTIVE] %s is already active for the next %s: %s\n", g.Grant.Name, exp, requestURL(apiURL, g.Grant))
+			color.New(color.FgGreen).Printf("[ACTIVE] %s is already active for the next %s: %s\n", g.Grant.Name, exp, RequestURL(apiURL, g.Grant))
 			continue
 		case accessv1alpha1.GrantStatus_GRANT_STATUS_PENDING:
-			color.New(color.FgWhite).Printf("[PENDING] %s is already pending: %s\n", g.Grant.Name, requestURL(apiURL, g.Grant))
+			color.New(color.FgWhite).Printf("[PENDING] %s is already pending: %s\n", g.Grant.Name, RequestURL(apiURL, g.Grant))
 			continue
 		case accessv1alpha1.GrantStatus_GRANT_STATUS_CLOSED:
-			color.New(color.FgWhite).Printf("[CLOSED] %s is closed but was still returned: %s\n. This is most likely due to an error in Common Fate and should be reported to our team: support@commonfate.io.", g.Grant.Name, requestURL(apiURL, g.Grant))
+			color.New(color.FgWhite).Printf("[CLOSED] %s is closed but was still returned: %s\n. This is most likely due to an error in Common Fate and should be reported to our team: support@commonfate.io.", g.Grant.Name, RequestURL(apiURL, g.Grant))
 			continue
 		}
 
-		color.New(color.FgWhite).Printf("[UNSPECIFIED] %s is in an unspecified status: %s\n. This is most likely due to an error in Common Fate and should be reported to our team: support@commonfate.io.", g.Grant.Name, requestURL(apiURL, g.Grant))
+		color.New(color.FgWhite).Printf("[UNSPECIFIED] %s is in an unspecified status: %s\n. This is most likely due to an error in Common Fate and should be reported to our team: support@commonfate.io.", g.Grant.Name, RequestURL(apiURL, g.Grant))
 	}
 
 	printdiags.Print(res.Msg.Diagnostics, names)
@@ -128,7 +128,7 @@ func isTerminal(fd uintptr) bool {
 	return isatty.IsTerminal(fd) || isatty.IsCygwinTerminal(fd)
 }
 
-func requestURL(apiURL *url.URL, grant *accessv1alpha1.Grant) string {
+func RequestURL(apiURL *url.URL, grant *accessv1alpha1.Grant) string {
 	p := apiURL.JoinPath("access", "requests", grant.AccessRequestId)
 	return p.String()
 }

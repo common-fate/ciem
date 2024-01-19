@@ -80,7 +80,7 @@ var ensureCommand = cli.Command{
 			jsonOutput := c.String("output") == "json"
 
 			// run the dry-run first
-			hasChanges, err := dryRun(ctx, apiURL, client, &req, jsonOutput)
+			hasChanges, err := DryRun(ctx, apiURL, client, &req, jsonOutput)
 			if err != nil {
 				return err
 			}
@@ -120,44 +120,44 @@ var ensureCommand = cli.Command{
 				exp := "<invalid expiry>"
 
 				if g.Grant.ExpiresAt != nil {
-					exp = shortDur(time.Until(g.Grant.ExpiresAt.AsTime()))
+					exp = ShortDur(time.Until(g.Grant.ExpiresAt.AsTime()))
 				}
 
 				switch g.Change {
 				case accessv1alpha1.GrantChange_GRANT_CHANGE_ACTIVATED:
 					color.New(color.BgHiGreen).Printf("[ACTIVATED]")
-					color.New(color.FgGreen).Printf(" %s was activated for %s: %s\n", g.Grant.Name, exp, requestURL(apiURL, g.Grant))
+					color.New(color.FgGreen).Printf(" %s was activated for %s: %s\n", g.Grant.Name, exp, RequestURL(apiURL, g.Grant))
 					continue
 
 				case accessv1alpha1.GrantChange_GRANT_CHANGE_EXTENDED:
 					color.New(color.BgBlue).Printf("[EXTENDED]")
-					color.New(color.FgBlue).Printf(" %s was extended for another %s: %s\n", g.Grant.Name, exp, requestURL(apiURL, g.Grant))
+					color.New(color.FgBlue).Printf(" %s was extended for another %s: %s\n", g.Grant.Name, exp, RequestURL(apiURL, g.Grant))
 					continue
 
 				case accessv1alpha1.GrantChange_GRANT_CHANGE_REQUESTED:
 					color.New(color.BgHiYellow, color.FgBlack).Printf("[REQUESTED]")
-					color.New(color.FgYellow).Printf(" %s requires approval: %s\n", g.Grant.Name, requestURL(apiURL, g.Grant))
+					color.New(color.FgYellow).Printf(" %s requires approval: %s\n", g.Grant.Name, RequestURL(apiURL, g.Grant))
 					continue
 
 				case accessv1alpha1.GrantChange_GRANT_CHANGE_PROVISIONING_FAILED:
 					// shouldn't happen in the dry-run request but handle anyway
-					color.New(color.FgRed).Printf("[ERROR] %s failed provisioning: %s\n", g.Grant.Name, requestURL(apiURL, g.Grant))
+					color.New(color.FgRed).Printf("[ERROR] %s failed provisioning: %s\n", g.Grant.Name, RequestURL(apiURL, g.Grant))
 					continue
 				}
 
 				switch g.Grant.Status {
 				case accessv1alpha1.GrantStatus_GRANT_STATUS_ACTIVE:
-					color.New(color.FgGreen).Printf("[ACTIVE] %s is already active for the next %s: %s\n", g.Grant.Name, exp, requestURL(apiURL, g.Grant))
+					color.New(color.FgGreen).Printf("[ACTIVE] %s is already active for the next %s: %s\n", g.Grant.Name, exp, RequestURL(apiURL, g.Grant))
 					continue
 				case accessv1alpha1.GrantStatus_GRANT_STATUS_PENDING:
-					color.New(color.FgWhite).Printf("[PENDING] %s is already pending: %s\n", g.Grant.Name, requestURL(apiURL, g.Grant))
+					color.New(color.FgWhite).Printf("[PENDING] %s is already pending: %s\n", g.Grant.Name, RequestURL(apiURL, g.Grant))
 					continue
 				case accessv1alpha1.GrantStatus_GRANT_STATUS_CLOSED:
-					color.New(color.FgWhite).Printf("[CLOSED] %s is closed but was still returned: %s\n. This is most likely due to an error in Common Fate and should be reported to our team: support@commonfate.io.", g.Grant.Name, requestURL(apiURL, g.Grant))
+					color.New(color.FgWhite).Printf("[CLOSED] %s is closed but was still returned: %s\n. This is most likely due to an error in Common Fate and should be reported to our team: support@commonfate.io.", g.Grant.Name, RequestURL(apiURL, g.Grant))
 					continue
 				}
 
-				color.New(color.FgWhite).Printf("[UNSPECIFIED] %s is in an unspecified status: %s\n. This is most likely due to an error in Common Fate and should be reported to our team: support@commonfate.io.", g.Grant.Name, requestURL(apiURL, g.Grant))
+				color.New(color.FgWhite).Printf("[UNSPECIFIED] %s is in an unspecified status: %s\n. This is most likely due to an error in Common Fate and should be reported to our team: support@commonfate.io.", g.Grant.Name, RequestURL(apiURL, g.Grant))
 			}
 
 			printdiags.Print(res.Msg.Diagnostics, names)
@@ -176,7 +176,7 @@ var ensureCommand = cli.Command{
 	},
 }
 
-func shortDur(d time.Duration) string {
+func ShortDur(d time.Duration) string {
 	if d > time.Minute {
 		d = d.Round(time.Minute)
 	} else {
