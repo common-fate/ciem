@@ -347,17 +347,13 @@ func CheckDependencies() error {
 }
 
 func GrantedCredentialProcess(commandData CommandData) (aws.Credentials, error) {
-
 	configFile := fmt.Sprintf(`[profile cf-cli]
-sso_session = cf-cli
 sso_account_id = %s
 sso_role_name = %s
-region = %s
-
-[sso-session cf-cli]
 sso_start_url = %s
 sso_region = %s
-`, commandData.GrantOutput.AccountID, commandData.GrantOutput.SSORoleName, commandData.GrantOutput.SSORegion, commandData.GrantOutput.SSOStartURL, commandData.GrantOutput.SSORegion)
+region = %s
+`, commandData.GrantOutput.AccountID, commandData.GrantOutput.SSORoleName, commandData.GrantOutput.SSOStartURL, commandData.GrantOutput.SSORegion, commandData.GrantOutput.SSORegion)
 
 	file, err := os.CreateTemp(os.TempDir(), "")
 	if err != nil {
