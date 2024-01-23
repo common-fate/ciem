@@ -8,8 +8,10 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -20,6 +22,7 @@ import (
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/clierr"
 	"github.com/common-fate/grab"
+	"github.com/common-fate/granted/pkg/assume"
 	"github.com/fatih/color"
 
 	"github.com/common-fate/sdk/config"
@@ -214,70 +217,43 @@ var proxyCommand = cli.Command{
 		if err != nil {
 			return err
 		}
-		_ = creds
-		// sso := cfaws.AwsSsoAssumer{}
-		// profile := &cfaws.Profile{
-		// 	Name:        commandData.GrantOutput.Grant.ID,
-		// 	ProfileType: sso.Type(),
-		// 	AWSConfig: awsConfig.SharedConfig{
 
-		// 		// I have opted to use a named SSO session block here to force a seperate sso login item to be added to the keychain.
-		// 		// due to keychain permissions, if you use the same sso token path as granted cli, it will break the permissions for granted
-		// 		// granted will then lose access to read and write the token and it needs to be deleted manaually via the keychain app
-		// 		// Named sessions usually can be used when you want to login as 2 seperate sso users for teh same start url.
-		// 		// we can use it here to create a seperate entry in the keychain just for the cf cli
-		// 		SSOSessionName: "cf-cli",
-		// 		SSOSession: &awsConfig.SSOSession{
-		// 			Name:        "cf-cli",
-		// 			SSORegion:   commandData.GrantOutput.SSORegion,
-		// 			SSOStartURL: commandData.GrantOutput.SSOStartURL,
-		// 		},
-		// 		SSOAccountID: commandData.GrantOutput.AccountID,
-		// 		SSORoleName:  commandData.GrantOutput.SSORoleName,
-		// 	},
-		// 	Initialised: true,
-		// }
-		// creds, err := profile.SSOLogin(ctx, cfaws.ConfigOpts{ShouldRetryAssuming: grab.Ptr(true)})
-		// if err != nil {
-		// 	return err
-		// }
+		clio.Infof("starting database proxy on port %v", commandData.LocalPort)
+		cmd := exec.Command("aws", formatSSMCommandArgs(commandData)...)
+		clio.Debugw("running aws ssm command", "command", "assume "+strings.Join(formatSSMCommandArgs(commandData), " "))
+		cmd.Stderr = os.Stderr
+		cmd.Stdout = os.Stdout
+		cmd.Stdin = os.Stdin
+		cmd.Env = os.Environ()
+		cmd.Env = append(cmd.Env, assume.EnvKeys(creds, commandData.GrantOutput.InstanceRegion)...)
 
-		// clio.Infof("starting database proxy on port %v", commandData.LocalPort)
-		// cmd := exec.Command("aws", formatSSMCommandArgs(commandData)...)
-		// clio.Debugw("running aws ssm command", "command", "assume "+strings.Join(formatSSMCommandArgs(commandData), " "))
-		// cmd.Stderr = os.Stderr
-		// cmd.Stdout = os.Stdout
-		// cmd.Stdin = os.Stdin
-		// cmd.Env = os.Environ()
-		// cmd.Env = append(cmd.Env, assume.EnvKeys(creds, commandData.GrantOutput.InstanceRegion)...)
+		// Start the command in a separate goroutine
+		err = cmd.Start()
+		if err != nil {
+			return err
+		}
 
-		// // Start the command in a separate goroutine
-		// err = cmd.Start()
-		// if err != nil {
-		// 	return err
-		// }
+		// Set up a channel to receive OS signals
+		sigs := make(chan os.Signal, 1)
+		// Notify sigs on os.Interrupt (Ctrl+C)
+		signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
 
-		// // Set up a channel to receive OS signals
-		// sigs := make(chan os.Signal, 1)
-		// // Notify sigs on os.Interrupt (Ctrl+C)
-		// signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
+		// Wait for a termination signal in a separate goroutine
+		go func() {
+			<-sigs
+			clio.Info("Received interrupt signal, shutting down...")
+			if err := cmd.Process.Signal(os.Interrupt); err != nil {
+				clio.Error("Error sending SIGTERM to process:", err)
+			}
+		}()
 
-		// // Wait for a termination signal in a separate goroutine
-		// go func() {
-		// 	<-sigs
-		// 	clio.Info("Received interrupt signal, shutting down...")
-		// 	if err := cmd.Process.Signal(os.Interrupt); err != nil {
-		// 		clio.Error("Error sending SIGTERM to process:", err)
-		// 	}
-		// }()
-
-		// // Wait for the command to finish
-		// err = cmd.Wait()
-		// if err != nil {
-		// 	clio.Error("Proxy connection failed with error:", err)
-		// } else {
-		// 	clio.Info("Proxy connection closed successfully")
-		// }
+		// Wait for the command to finish
+		err = cmd.Wait()
+		if err != nil {
+			clio.Error("Proxy connection failed with error:", err)
+		} else {
+			clio.Info("Proxy connection closed successfully")
+		}
 		return nil
 	},
 }
