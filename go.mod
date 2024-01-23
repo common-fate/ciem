@@ -4,13 +4,14 @@ go 1.21.3
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.7
+	github.com/aws/aws-sdk-go-v2 v1.22.1
 	github.com/briandowns/spinner v1.23.0
 	github.com/bufbuild/connect-go v1.10.0
 	github.com/common-fate/clio v1.2.3
 	github.com/common-fate/grab v1.2.0
+	github.com/common-fate/granted v0.20.6
 	github.com/common-fate/sdk v0.0.0-20240119025050-76a3c02fc086
 	github.com/fatih/color v1.16.0
-	github.com/lestrrat-go/jwx v1.2.28
 	github.com/mattn/go-isatty v0.0.20
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.8.4
@@ -25,7 +26,6 @@ require (
 	github.com/99designs/keyring v1.2.2 // indirect
 	github.com/BurntSushi/toml v1.3.2 // indirect
 	github.com/alessio/shellescape v1.4.2 // indirect
-	github.com/aws/aws-sdk-go-v2 v1.22.1 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.18.19 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.15.1 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.14.2 // indirect
@@ -39,16 +39,13 @@ require (
 	github.com/aws/smithy-go v1.16.0 // indirect
 	github.com/common-fate/apikit v0.3.0 // indirect
 	github.com/common-fate/awsconfigfile v0.8.0 // indirect
-	github.com/common-fate/granted v0.20.6 // indirect
 	github.com/common-fate/useragent v0.1.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/danieljoos/wincred v1.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
-	github.com/dvsekhvalnov/jose2go v1.5.0 // indirect
+	github.com/dvsekhvalnov/jose2go v1.6.0 // indirect
 	github.com/fatih/structtag v1.2.0 // indirect
 	github.com/go-chi/chi/v5 v5.0.10 // indirect
-	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/godbus/dbus v0.0.0-20190726142602-4481cbc300e2 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/uuid v1.4.0 // indirect
@@ -58,11 +55,6 @@ require (
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b // indirect
 	github.com/joho/godotenv v1.4.0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
-	github.com/lestrrat-go/backoff/v2 v2.0.8 // indirect
-	github.com/lestrrat-go/blackmagic v1.0.2 // indirect
-	github.com/lestrrat-go/httpcc v1.0.1 // indirect
-	github.com/lestrrat-go/iter v1.0.2 // indirect
-	github.com/lestrrat-go/option v1.0.1 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/mtibben/percent v0.2.1 // indirect
