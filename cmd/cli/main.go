@@ -13,6 +13,7 @@ import (
 	"github.com/common-fate/ciem/cmd/cli/command/access"
 	"github.com/common-fate/ciem/cmd/cli/command/auditlog"
 	"github.com/common-fate/ciem/cmd/cli/command/authz"
+	"github.com/common-fate/ciem/cmd/cli/command/aws"
 	"github.com/common-fate/ciem/cmd/cli/command/entity"
 	"github.com/common-fate/ciem/cmd/cli/command/identity"
 	"github.com/common-fate/ciem/cmd/cli/command/policyset"
@@ -107,6 +108,7 @@ func main() {
 			&auditlog.Command,
 			&command.Configure,
 			&command.Context,
+			&aws.Command,
 		},
 	}
 	clio.SetLevelFromEnv("CF_LOG")
