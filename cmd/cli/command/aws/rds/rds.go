@@ -112,7 +112,6 @@ var proxyCommand = cli.Command{
 			clio.Debugw("BatchEnsure response", "response", res)
 
 			names := map[eid.EID]string{}
-
 			for _, g := range res.Msg.Grants {
 				names[eid.New("Access::Grant", g.Grant.Id)] = g.Grant.Name
 
@@ -124,6 +123,7 @@ var proxyCommand = cli.Command{
 				if g.Change > 0 {
 					hasChanges = true
 				}
+
 				switch g.Change {
 
 				case accessv1alpha1.GrantChange_GRANT_CHANGE_ACTIVATED:
@@ -131,6 +131,7 @@ var proxyCommand = cli.Command{
 						color.New(color.BgHiGreen).Printf("[WILL ACTIVATE]")
 						color.New(color.FgGreen).Printf(" %s will be activated for %s: %s\n", g.Grant.Name, exp, accessCmd.RequestURL(apiURL, g.Grant))
 					} else {
+						ensuredGrant = g
 						color.New(color.BgHiGreen).Printf("[ACTIVATED]")
 						color.New(color.FgGreen).Printf(" %s was activated for %s: %s\n", g.Grant.Name, exp, accessCmd.RequestURL(apiURL, g.Grant))
 					}
@@ -140,6 +141,7 @@ var proxyCommand = cli.Command{
 						color.New(color.BgBlue).Printf("[WILL EXTEND]")
 						color.New(color.FgBlue).Printf(" %s will be extended for another %s: %s\n", g.Grant.Name, exp, accessCmd.RequestURL(apiURL, g.Grant))
 					} else {
+						ensuredGrant = g
 						color.New(color.BgBlue).Printf("[EXTENDED]")
 						color.New(color.FgBlue).Printf(" %s was extended for another %s: %s\n", g.Grant.Name, exp, accessCmd.RequestURL(apiURL, g.Grant))
 					}
@@ -166,6 +168,7 @@ var proxyCommand = cli.Command{
 
 				switch g.Grant.Status {
 				case accessv1alpha1.GrantStatus_GRANT_STATUS_ACTIVE:
+					ensuredGrant = g
 					color.New(color.FgGreen).Printf("[ACTIVE] %s is already active for the next %s: %s\n", g.Grant.Name, exp, accessCmd.RequestURL(apiURL, g.Grant))
 					continue
 				case accessv1alpha1.GrantStatus_GRANT_STATUS_PENDING:
@@ -200,14 +203,14 @@ var proxyCommand = cli.Command{
 				req.DryRun = false
 				continue
 			} else {
-				ensuredGrant = res.Msg.Grants[0]
 				break
 			}
 		}
 
 		// if its not yet active, we can just exit the process
-		if ensuredGrant.Grant.Status != accessv1alpha1.GrantStatus_GRANT_STATUS_ACTIVE {
-			return errors.New("grant not yet active, exiting")
+		if ensuredGrant == nil {
+			clio.Debug("exiting because grant status is not active, or a grant was not found")
+			return nil
 		}
 
 		grantsClient := grants.NewFromConfig(cfg)
@@ -253,8 +256,7 @@ var proxyCommand = cli.Command{
 		cmd.Stderr = os.Stderr
 		cmd.Stdout = os.Stdout
 		cmd.Stdin = os.Stdin
-		cmd.Env = os.Environ()
-		cmd.Env = append(cmd.Env, assume.EnvKeys(creds, commandData.GrantOutput.InstanceRegion)...)
+		cmd.Env = PrepareAWSCLIEnv(creds, commandData)
 
 		// Start the command in a separate goroutine
 		err = cmd.Start()
@@ -285,6 +287,39 @@ var proxyCommand = cli.Command{
 		}
 		return nil
 	},
+}
+
+func PrepareAWSCLIEnv(creds aws.Credentials, commandData CommandData) []string {
+	return append(SanitisedEnv(), assume.EnvKeys(creds, commandData.GrantOutput.InstanceRegion)...)
+}
+
+// SanitisedEnv returns the environment variables excluding specific AWS keys.
+// used so that existing aws creds in the terminal are not passed through to downstream programs like the AWS cli
+func SanitisedEnv() []string {
+	// List of AWS keys to remove from the environment.
+	awsKeys := map[string]struct{}{
+		"AWS_ACCESS_KEY_ID":         {},
+		"AWS_SECRET_ACCESS_KEY":     {},
+		"AWS_SESSION_TOKEN":         {},
+		"AWS_PROFILE":               {},
+		"AWS_REGION":                {},
+		"AWS_DEFAULT_REGION":        {},
+		"AWS_SESSION_EXPIRATION":    {},
+		"AWS_CREDENTIAL_EXPIRATION": {},
+	}
+
+	var cleanedEnv []string
+	for _, env := range os.Environ() {
+		// Split the environment variable into key and value
+		parts := strings.SplitN(env, "=", 2)
+		key := parts[0]
+
+		// If the key is not one of the AWS keys, include it in the cleaned environment
+		if _, found := awsKeys[key]; !found {
+			cleanedEnv = append(cleanedEnv, env)
+		}
+	}
+	return cleanedEnv
 }
 
 type CommandData struct {
