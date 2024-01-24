@@ -14,6 +14,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/briandowns/spinner"
 	"github.com/bufbuild/connect-go"
@@ -90,95 +91,123 @@ var proxyCommand = cli.Command{
 					},
 				},
 			},
+			DryRun: !c.Bool("confirm"),
 		}
+		var ensuredGrant *accessv1alpha1.GrantState
+		for {
+			var hasChanges bool
+			si := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+			si.Suffix = grab.If(req.DryRun, " planning access changes...", " ensuring access...")
+			si.Writer = os.Stderr
+			si.Start()
 
-		if !c.Bool("confirm") {
-
-			// run the dry-run first
-			hasChanges, err := accessCmd.DryRun(ctx, apiURL, client, &req, false)
+			res, err := client.BatchEnsure(ctx, connect.NewRequest(&req))
 			if err != nil {
+				si.Stop()
 				return err
 			}
-			if !hasChanges {
-				fmt.Println("no access changes")
-				return nil
-			}
-		}
-		// if we get here, dry-run has passed the user has confirmed they want to proceed.
-		req.DryRun = false
 
-		si := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
-		si.Suffix = " ensuring access..."
-		si.Writer = os.Stderr
-		si.Start()
-
-		res, err := client.BatchEnsure(ctx, connect.NewRequest(&req))
-		if err != nil {
 			si.Stop()
-			return err
+
+			clio.Debugw("BatchEnsure response", "response", res)
+
+			names := map[eid.EID]string{}
+
+			for _, g := range res.Msg.Grants {
+				names[eid.New("Access::Grant", g.Grant.Id)] = g.Grant.Name
+
+				exp := "<invalid expiry>"
+
+				if g.Grant.ExpiresAt != nil {
+					exp = accessCmd.ShortDur(time.Until(g.Grant.ExpiresAt.AsTime()))
+				}
+				if g.Change > 0 {
+					hasChanges = true
+				}
+				switch g.Change {
+
+				case accessv1alpha1.GrantChange_GRANT_CHANGE_ACTIVATED:
+					if req.DryRun {
+						color.New(color.BgHiGreen).Printf("[WILL ACTIVATE]")
+						color.New(color.FgGreen).Printf(" %s will be activated for %s: %s\n", g.Grant.Name, exp, accessCmd.RequestURL(apiURL, g.Grant))
+					} else {
+						color.New(color.BgHiGreen).Printf("[ACTIVATED]")
+						color.New(color.FgGreen).Printf(" %s was activated for %s: %s\n", g.Grant.Name, exp, accessCmd.RequestURL(apiURL, g.Grant))
+					}
+					continue
+				case accessv1alpha1.GrantChange_GRANT_CHANGE_EXTENDED:
+					if req.DryRun {
+						color.New(color.BgBlue).Printf("[WILL EXTEND]")
+						color.New(color.FgBlue).Printf(" %s will be extended for another %s: %s\n", g.Grant.Name, exp, accessCmd.RequestURL(apiURL, g.Grant))
+					} else {
+						color.New(color.BgBlue).Printf("[EXTENDED]")
+						color.New(color.FgBlue).Printf(" %s was extended for another %s: %s\n", g.Grant.Name, exp, accessCmd.RequestURL(apiURL, g.Grant))
+					}
+					continue
+				case accessv1alpha1.GrantChange_GRANT_CHANGE_REQUESTED:
+					if req.DryRun {
+						color.New(color.BgHiYellow, color.FgBlack).Printf("[WILL REQUEST]")
+						color.New(color.FgYellow).Printf(" %s will require approval\n", g.Grant.Name)
+					} else {
+						color.New(color.BgHiYellow, color.FgBlack).Printf("[REQUESTED]")
+						color.New(color.FgYellow).Printf(" %s requires approval: %s\n", g.Grant.Name, accessCmd.RequestURL(apiURL, g.Grant))
+					}
+					continue
+				case accessv1alpha1.GrantChange_GRANT_CHANGE_PROVISIONING_FAILED:
+					if req.DryRun {
+						// shouldn't happen in the dry-run request but handle anyway
+						color.New(color.FgRed).Printf("[ERROR] %s will fail provisioning\n", g.Grant.Name)
+					} else {
+						// shouldn't happen in the dry-run request but handle anyway
+						color.New(color.FgRed).Printf("[ERROR] %s failed provisioning: %s\n", g.Grant.Name, accessCmd.RequestURL(apiURL, g.Grant))
+					}
+					continue
+				}
+
+				switch g.Grant.Status {
+				case accessv1alpha1.GrantStatus_GRANT_STATUS_ACTIVE:
+					color.New(color.FgGreen).Printf("[ACTIVE] %s is already active for the next %s: %s\n", g.Grant.Name, exp, accessCmd.RequestURL(apiURL, g.Grant))
+					continue
+				case accessv1alpha1.GrantStatus_GRANT_STATUS_PENDING:
+					color.New(color.FgWhite).Printf("[PENDING] %s is already pending: %s\n", g.Grant.Name, accessCmd.RequestURL(apiURL, g.Grant))
+					continue
+				case accessv1alpha1.GrantStatus_GRANT_STATUS_CLOSED:
+					color.New(color.FgWhite).Printf("[CLOSED] %s is closed but was still returned: %s\n. This is most likely due to an error in Common Fate and should be reported to our team: support@commonfate.io.", g.Grant.Name, accessCmd.RequestURL(apiURL, g.Grant))
+					continue
+				}
+
+				color.New(color.FgWhite).Printf("[UNSPECIFIED] %s is in an unspecified status: %s\n. This is most likely due to an error in Common Fate and should be reported to our team: support@commonfate.io.", g.Grant.Name, accessCmd.RequestURL(apiURL, g.Grant))
+			}
+
+			printdiags.Print(res.Msg.Diagnostics, names)
+
+			if req.DryRun && hasChanges {
+				if !accessCmd.IsTerminal(os.Stdin.Fd()) {
+					return errors.New("detected a noninteractive terminal: to apply the planned changes please re-run 'cf access ensure' with the --confirm flag")
+				}
+
+				confirm := survey.Confirm{
+					Message: "Apply proposed access changes",
+				}
+				var proceed bool
+				err = survey.AskOne(&confirm, &proceed)
+				if err != nil {
+					return err
+				}
+				if !proceed {
+					clio.Info("no access changes")
+				}
+				req.DryRun = false
+				continue
+			} else {
+				ensuredGrant = res.Msg.Grants[0]
+				break
+			}
 		}
 
-		si.Stop()
-
-		clio.Debugw("BatchEnsure response", "response", res)
-
-		// tree := treeprint.New()
-
-		names := map[eid.EID]string{}
-
-		for _, g := range res.Msg.Grants {
-			names[eid.New("Access::Grant", g.Grant.Id)] = g.Grant.Name
-
-			exp := "<invalid expiry>"
-
-			if g.Grant.ExpiresAt != nil {
-				exp = accessCmd.ShortDur(time.Until(g.Grant.ExpiresAt.AsTime()))
-			}
-
-			switch g.Change {
-			case accessv1alpha1.GrantChange_GRANT_CHANGE_ACTIVATED:
-				color.New(color.BgHiGreen).Printf("[ACTIVATED]")
-				color.New(color.FgGreen).Printf(" %s was activated for %s: %s\n", g.Grant.Name, exp, accessCmd.RequestURL(apiURL, g.Grant))
-				continue
-
-			case accessv1alpha1.GrantChange_GRANT_CHANGE_EXTENDED:
-				color.New(color.BgBlue).Printf("[EXTENDED]")
-				color.New(color.FgBlue).Printf(" %s was extended for another %s: %s\n", g.Grant.Name, exp, accessCmd.RequestURL(apiURL, g.Grant))
-				continue
-
-			case accessv1alpha1.GrantChange_GRANT_CHANGE_REQUESTED:
-				color.New(color.BgHiYellow, color.FgBlack).Printf("[REQUESTED]")
-				color.New(color.FgYellow).Printf(" %s requires approval: %s\n", g.Grant.Name, accessCmd.RequestURL(apiURL, g.Grant))
-				continue
-
-			case accessv1alpha1.GrantChange_GRANT_CHANGE_PROVISIONING_FAILED:
-				// shouldn't happen in the dry-run request but handle anyway
-				color.New(color.FgRed).Printf("[ERROR] %s failed provisioning: %s\n", g.Grant.Name, accessCmd.RequestURL(apiURL, g.Grant))
-				continue
-			}
-
-			switch g.Grant.Status {
-			case accessv1alpha1.GrantStatus_GRANT_STATUS_ACTIVE:
-				color.New(color.FgGreen).Printf("[ACTIVE] %s is already active for the next %s: %s\n", g.Grant.Name, exp, accessCmd.RequestURL(apiURL, g.Grant))
-				continue
-			case accessv1alpha1.GrantStatus_GRANT_STATUS_PENDING:
-				color.New(color.FgWhite).Printf("[PENDING] %s is already pending: %s\n", g.Grant.Name, accessCmd.RequestURL(apiURL, g.Grant))
-				continue
-			case accessv1alpha1.GrantStatus_GRANT_STATUS_CLOSED:
-				color.New(color.FgWhite).Printf("[CLOSED] %s is closed but was still returned: %s\n. This is most likely due to an error in Common Fate and should be reported to our team: support@commonfate.io.", g.Grant.Name, accessCmd.RequestURL(apiURL, g.Grant))
-				continue
-			}
-
-			color.New(color.FgWhite).Printf("[UNSPECIFIED] %s is in an unspecified status: %s\n. This is most likely due to an error in Common Fate and should be reported to our team: support@commonfate.io.", g.Grant.Name, accessCmd.RequestURL(apiURL, g.Grant))
-		}
-
-		printdiags.Print(res.Msg.Diagnostics, names)
-
-		ensuredGrant := res.Msg.Grants[0]
 		// if its not yet active, we can just exit the process
 		if ensuredGrant.Grant.Status != accessv1alpha1.GrantStatus_GRANT_STATUS_ACTIVE {
-			clio.Debug("grant not yet active, exiting")
-			return nil
+			return errors.New("grant not yet active, exiting")
 		}
 
 		grantsClient := grants.NewFromConfig(cfg)

@@ -109,7 +109,7 @@ func DryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.A
 		return false, nil
 	}
 
-	if !isTerminal(os.Stdin.Fd()) {
+	if !IsTerminal(os.Stdin.Fd()) {
 		return false, errors.New("detected a noninteractive terminal: to apply the planned changes please re-run 'cf access ensure' with the --confirm flag")
 	}
 
@@ -124,7 +124,7 @@ func DryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.A
 	return proceed, nil
 }
 
-func isTerminal(fd uintptr) bool {
+func IsTerminal(fd uintptr) bool {
 	return isatty.IsTerminal(fd) || isatty.IsCygwinTerminal(fd)
 }
 
