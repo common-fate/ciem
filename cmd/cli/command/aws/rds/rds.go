@@ -249,7 +249,7 @@ var proxyCommand = cli.Command{
 
 		clio.Infof("starting database proxy on port %v", commandData.LocalPort)
 		cmd := exec.Command("aws", formatSSMCommandArgs(commandData)...)
-		clio.Debugw("running aws ssm command", "command", "assume "+strings.Join(formatSSMCommandArgs(commandData), " "))
+		clio.Debugw("running aws ssm command", "command", "aws "+strings.Join(formatSSMCommandArgs(commandData), " "))
 		cmd.Stderr = os.Stderr
 		cmd.Stdout = os.Stdout
 		cmd.Stdin = os.Stdin
@@ -352,13 +352,14 @@ func CheckDependencies() error {
 }
 
 func GrantedCredentialProcess(commandData CommandData) (aws.Credentials, error) {
-	configFile := fmt.Sprintf(`[profile cf-cli]
+	// the grant id is used for teh profile to avoid issues with the credential cache in granted credential-process, it also gets the benefit of this cache per grant
+	configFile := fmt.Sprintf(`[profile %s]
 sso_account_id = %s
 sso_role_name = %s
 sso_start_url = %s
 sso_region = %s
 region = %s
-`, commandData.GrantOutput.AccountID, commandData.GrantOutput.SSORoleName, commandData.GrantOutput.SSOStartURL, commandData.GrantOutput.SSORegion, commandData.GrantOutput.SSORegion)
+`, commandData.GrantOutput.Grant.ID, commandData.GrantOutput.AccountID, commandData.GrantOutput.SSORoleName, commandData.GrantOutput.SSOStartURL, commandData.GrantOutput.SSORegion, commandData.GrantOutput.SSORegion)
 
 	file, err := os.CreateTemp(os.TempDir(), "")
 	if err != nil {
@@ -366,6 +367,7 @@ region = %s
 	}
 	defer file.Close()
 	defer os.Remove(file.Name())
+	clio.Debugf("temporary config file generated at %s\n\n%s", file.Name(), configFile)
 	_, err = file.Write([]byte(configFile))
 	if err != nil {
 		return aws.Credentials{}, err
@@ -375,7 +377,7 @@ region = %s
 		return aws.Credentials{}, err
 	}
 
-	cmd := exec.Command("granted", "credential-process", "--auto-login", "--profile", "cf-cli")
+	cmd := exec.Command("granted", "credential-process", "--auto-login", "--profile", commandData.GrantOutput.Grant.ID)
 	cmd.Env = append(cmd.Env, os.Environ()...)
 	cmd.Env = append(cmd.Env, "AWS_CONFIG_FILE="+file.Name())
 
