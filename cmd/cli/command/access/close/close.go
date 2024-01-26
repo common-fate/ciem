@@ -2,7 +2,7 @@ package close
 
 import (
 	"github.com/bufbuild/connect-go"
-	"github.com/common-fate/ciem/printdiags"
+	"github.com/common-fate/cli/printdiags"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/sdk/config"
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
