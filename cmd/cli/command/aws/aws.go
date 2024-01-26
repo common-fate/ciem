@@ -1,7 +1,7 @@
 package aws
 
 import (
-	"github.com/common-fate/ciem/cmd/cli/command/aws/rds"
+	"github.com/common-fate/cli/cmd/cli/command/aws/rds"
 	"github.com/urfave/cli/v2"
 )
 

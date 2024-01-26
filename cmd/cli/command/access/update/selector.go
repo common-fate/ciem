@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/bufbuild/connect-go"
-	"github.com/common-fate/ciem/printdiags"
+	"github.com/common-fate/cli/printdiags"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/sdk/config"
 	"github.com/common-fate/sdk/eid"

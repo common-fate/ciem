@@ -1,4 +1,4 @@
-module github.com/common-fate/ciem
+module github.com/common-fate/cli
 
 go 1.21.3
 
