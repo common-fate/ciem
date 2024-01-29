@@ -100,9 +100,13 @@ var ensureCommand = cli.Command{
 
 		res, err := client.BatchEnsure(ctx, connect.NewRequest(&req))
 		if err != nil {
+
 			si.Stop()
 			return err
 		}
+
+		//prints response diag messages
+		printdiags.Print(res.Msg.Diagnostics, nil)
 
 		si.Stop()
 
