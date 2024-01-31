@@ -17,7 +17,8 @@ import (
 	"github.com/common-fate/cli/cmd/cli/command/entity"
 	"github.com/common-fate/cli/cmd/cli/command/identity"
 	"github.com/common-fate/cli/cmd/cli/command/policyset"
-	build "github.com/common-fate/cli/internal"
+	"github.com/common-fate/cli/internal/build"
+
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/clierr"
 	"github.com/common-fate/sdk/config"
