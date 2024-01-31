@@ -14,10 +14,10 @@ import (
 	"syscall"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/briandowns/spinner"
-	"github.com/bufbuild/connect-go"
 	accessCmd "github.com/common-fate/cli/cmd/cli/command/access"
 	"github.com/common-fate/cli/printdiags"
 	"github.com/common-fate/clio"

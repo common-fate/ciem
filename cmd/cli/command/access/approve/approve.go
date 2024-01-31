@@ -1,7 +1,7 @@
 package approve
 
 import (
-	"github.com/bufbuild/connect-go"
+	"connectrpc.com/connect"
 	"github.com/common-fate/cli/printdiags"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/sdk/config"

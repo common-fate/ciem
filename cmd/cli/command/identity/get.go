@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/bufbuild/connect-go"
+	"connectrpc.com/connect"
 	"github.com/common-fate/cli/treeprint"
 	"github.com/common-fate/sdk/config"
 	"github.com/common-fate/sdk/eid"

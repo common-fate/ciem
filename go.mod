@@ -3,14 +3,14 @@ module github.com/common-fate/cli
 go 1.21.3
 
 require (
+	connectrpc.com/connect v1.14.0
 	github.com/AlecAivazis/survey/v2 v2.3.7
 	github.com/aws/aws-sdk-go-v2 v1.22.1
 	github.com/briandowns/spinner v1.23.0
-	github.com/bufbuild/connect-go v1.10.0
 	github.com/common-fate/clio v1.2.3
 	github.com/common-fate/grab v1.2.0
 	github.com/common-fate/granted v0.20.6
-	github.com/common-fate/sdk v0.0.0-20240119025050-76a3c02fc086
+	github.com/common-fate/sdk v1.0.1-0.20240131053938-b1d9b79a4632
 	github.com/fatih/color v1.16.0
 	github.com/mattn/go-isatty v0.0.20
 	github.com/pkg/errors v0.9.1
@@ -18,7 +18,7 @@ require (
 	github.com/urfave/cli/v2 v2.25.7
 	go.uber.org/zap v1.26.0
 	golang.org/x/oauth2 v0.14.0
-	google.golang.org/protobuf v1.31.0
+	google.golang.org/protobuf v1.32.0
 )
 
 require (
@@ -37,6 +37,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.19.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.25.0 // indirect
 	github.com/aws/smithy-go v1.16.0 // indirect
+	github.com/bufbuild/connect-go v1.10.0 // indirect
 	github.com/common-fate/apikit v0.3.0 // indirect
 	github.com/common-fate/awsconfigfile v0.8.0 // indirect
 	github.com/common-fate/useragent v0.1.0 // indirect
