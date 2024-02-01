@@ -43,6 +43,10 @@ func main() {
 				clio.SetLevelFromString("debug")
 			}
 
+			if c.Args().First() == "oss" {
+				return nil
+			}
+
 			if c.Args().First() == "configure" {
 				return nil
 			}
