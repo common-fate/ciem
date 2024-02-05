@@ -26,3 +26,8 @@ gon.cf.arm.hcl
 
 launch.json
 .DS_Store
+node_modules
+.DS_Store
+
+*__debug*
+.env
