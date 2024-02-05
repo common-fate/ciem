@@ -1,7 +1,7 @@
 package deployment
 
 import (
-	"github.com/common-fate/cli/cmd/cli/command/manage/deployment/logs"
+	"github.com/common-fate/cli/cmd/cli/command/deployment/logs"
 	"github.com/urfave/cli/v2"
 )
 
