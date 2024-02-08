@@ -1,5 +1,11 @@
 # @common-fate/cli
 
+## 1.3.1
+
+### Patch Changes
+
+- b71eeec: bump sdk version
+
 ## 1.3.0
 
 ### Minor Changes
