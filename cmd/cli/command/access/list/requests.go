@@ -7,6 +7,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/common-fate/cli/table"
+	"github.com/common-fate/grab"
 	"github.com/common-fate/sdk/config"
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
 	"github.com/common-fate/sdk/service/access/request"
@@ -77,11 +78,15 @@ var requestsCommand = cli.Command{
 
 		case "wide":
 			w := table.New(os.Stdout)
-			w.Columns("ID", "GRANT", "PRINCIPAL", "ROLE", "TARGET", "STATUS")
+			w.Columns("ID", "GRANT", "PRINCIPAL", "ROLE", "TARGET", "STATUS", "REASON")
 
 			for _, r := range all.AccessRequests {
+				var reason string
+				if r.Justification != nil {
+					reason = grab.Value(r.Justification.Reason)
+				}
 				for _, g := range r.Grants {
-					w.Row(r.Id, g.Id, g.Principal.Display(), g.Role.Display(), g.Target.Display(), g.Status.String())
+					w.Row(r.Id, g.Id, g.Principal.Display(), g.Role.Display(), g.Target.Display(), g.Status.String(), reason)
 				}
 			}
 

@@ -146,6 +146,8 @@ github.com/common-fate/sdk v1.0.1-0.20240207224738-828efd02f380 h1:rS8fAWmg31m5t
 github.com/common-fate/sdk v1.0.1-0.20240207224738-828efd02f380/go.mod h1:WJfjdFPhVEcLxo5keKrm3zsXz+eZnxoQ/kh8Ef4EAmc=
 github.com/common-fate/sdk v1.1.0 h1:SXEB6gM88UQNen6y+raKalO9GgipFM6r/FsE6/yJv1A=
 github.com/common-fate/sdk v1.1.0/go.mod h1:WJfjdFPhVEcLxo5keKrm3zsXz+eZnxoQ/kh8Ef4EAmc=
+github.com/common-fate/sdk v1.2.1-0.20240209060637-ba4a037aa567 h1:X8m1lVEkwoS463GK6iUh2fTNF76apsVy7edAw1MJ3o0=
+github.com/common-fate/sdk v1.2.1-0.20240209060637-ba4a037aa567/go.mod h1:WJfjdFPhVEcLxo5keKrm3zsXz+eZnxoQ/kh8Ef4EAmc=
 github.com/common-fate/useragent v0.1.0 h1:RLmkIiJXcOUJAUyXWc/zCaGbrGmlCbHBGMx99ztQ3ZU=
 github.com/common-fate/useragent v0.1.0/go.mod h1:GjXGR6cDiMboDP04qlfDfA5HTbeoRSoNgQWDAyOdW9o=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
