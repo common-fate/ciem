@@ -12,6 +12,7 @@ import (
 	"github.com/briandowns/spinner"
 	"github.com/common-fate/cli/printdiags"
 	"github.com/common-fate/clio"
+	"github.com/common-fate/grab"
 	"github.com/common-fate/sdk/config"
 	"github.com/common-fate/sdk/eid"
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
@@ -28,6 +29,7 @@ var ensureCommand = cli.Command{
 		&cli.StringSliceFlag{Name: "target", Required: true},
 		&cli.StringSliceFlag{Name: "role", Required: true},
 		&cli.StringFlag{Name: "output", Value: "text", Usage: "output format ('text' or 'json')"},
+		&cli.StringFlag{Name: "reason", Value: "text", Usage: "The reason for requesting access"},
 		&cli.BoolFlag{Name: "confirm", Aliases: []string{"y"}, Usage: "skip the confirmation prompt"},
 	},
 
@@ -58,8 +60,12 @@ var ensureCommand = cli.Command{
 		}
 
 		client := access.NewFromConfig(cfg)
-
-		req := accessv1alpha1.BatchEnsureRequest{}
+		reason := c.String("reason")
+		req := accessv1alpha1.BatchEnsureRequest{
+			Justification: &accessv1alpha1.Justification{
+				Reason: grab.If(reason == "", nil, &reason),
+			},
+		}
 
 		for i, target := range targets {
 			req.Entitlements = append(req.Entitlements, &accessv1alpha1.EntitlementInput{
