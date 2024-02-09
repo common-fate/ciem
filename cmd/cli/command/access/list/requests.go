@@ -44,7 +44,7 @@ var requestsCommand = cli.Command{
 		for !done {
 			res, err := client.QueryAccessRequests(ctx, connect.NewRequest(&accessv1alpha1.QueryAccessRequestsRequest{
 				PageToken: pageToken,
-				Order:     grab.If(c.Bool("order-ascending"), entityv1alpha1.Order_ORDER_ASCENDING.Enum().Enum(), entityv1alpha1.Order_ORDER_DESCENDING.Enum().Enum()),
+				Order:     grab.If(c.Bool("order-ascending"), entityv1alpha1.Order_ORDER_ASCENDING.Enum(), entityv1alpha1.Order_ORDER_DESCENDING.Enum()),
 			}))
 			if err != nil {
 				return err
