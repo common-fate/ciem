@@ -1,5 +1,11 @@
 # @common-fate/cli
 
+## 1.4.0
+
+### Minor Changes
+
+- 2095990: Add support for supplying and displaying request reasons
+
 ## 1.3.1
 
 ### Patch Changes
