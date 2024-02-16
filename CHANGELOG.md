@@ -1,5 +1,11 @@
 # @common-fate/cli
 
+## 1.4.1
+
+### Patch Changes
+
+- 18bc17a: Apply upgrade sdk to patched version which fixes an issue with the login command failing due to a nonce mismatch error.
+
 ## 1.4.0
 
 ### Minor Changes
