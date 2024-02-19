@@ -171,9 +171,6 @@ var proxyCommand = cli.Command{
 					ensuredGrant = g
 					color.New(color.FgGreen).Printf("[ACTIVE] %s is already active for the next %s: %s\n", g.Grant.Name, exp, accessCmd.RequestURL(apiURL, g.Grant))
 					continue
-				case accessv1alpha1.GrantStatus_GRANT_STATUS_PROVISIONING:
-					color.New(color.FgGreen).Printf("[PROVISIONING] %s is in the provisioning state which indicates that you tried to activate it before but something may have gone wrong. You can retry activating this grant.\n", g.Grant.Name)
-					continue
 				case accessv1alpha1.GrantStatus_GRANT_STATUS_PENDING:
 					color.New(color.FgWhite).Printf("[PENDING] %s is already pending: %s\n", g.Grant.Name, accessCmd.RequestURL(apiURL, g.Grant))
 					continue
