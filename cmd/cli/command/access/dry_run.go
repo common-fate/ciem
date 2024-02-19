@@ -92,9 +92,6 @@ func DryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.A
 		case accessv1alpha1.GrantStatus_GRANT_STATUS_ACTIVE:
 			color.New(color.FgGreen).Printf("[ACTIVE] %s is already active for the next %s: %s\n", g.Grant.Name, exp, RequestURL(apiURL, g.Grant))
 			continue
-		case accessv1alpha1.GrantStatus_GRANT_STATUS_PROVISIONING:
-			color.New(color.FgGreen).Printf("[PROVISIONING] %s is in the provisioning state which indicates that you tried to activate it before but something may have gone wrong. You can retry activating this grant.\n", g.Grant.Name)
-			continue
 		case accessv1alpha1.GrantStatus_GRANT_STATUS_PENDING:
 			color.New(color.FgWhite).Printf("[PENDING] %s is already pending: %s\n", g.Grant.Name, RequestURL(apiURL, g.Grant))
 			continue
