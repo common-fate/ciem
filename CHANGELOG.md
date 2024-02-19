@@ -1,5 +1,11 @@
 # @common-fate/cli
 
+## 1.5.0
+
+### Minor Changes
+
+- 9cc163a: Revert addition of the provisioning status for grants
+
 ## 1.4.1
 
 ### Patch Changes
