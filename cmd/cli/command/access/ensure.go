@@ -124,7 +124,7 @@ var ensureCommand = cli.Command{
 
 			names := map[eid.EID]string{}
 
-			for _, g := range res.Msg.Grants {
+			for _, g := range res.Msg.Changes {
 				names[eid.New("Access::Grant", g.Grant.Id)] = g.Grant.Name
 
 				exp := "<invalid expiry>"

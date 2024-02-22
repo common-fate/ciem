@@ -53,7 +53,7 @@ func DryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.A
 
 	var hasChanges bool
 
-	for _, g := range res.Msg.Grants {
+	for _, g := range res.Msg.Changes {
 		names[eid.New("Access::Grant", g.Grant.Id)] = g.Grant.Name
 
 		exp := "<invalid expiry>"
