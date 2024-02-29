@@ -29,7 +29,7 @@ var ensureCommand = cli.Command{
 		&cli.StringSliceFlag{Name: "target", Required: true},
 		&cli.StringSliceFlag{Name: "role", Required: true},
 		&cli.StringFlag{Name: "output", Value: "text", Usage: "output format ('text' or 'json')"},
-		&cli.StringFlag{Name: "reason", Value: "text", Usage: "The reason for requesting access"},
+		&cli.StringFlag{Name: "reason", Usage: "The reason for requesting access"},
 		&cli.BoolFlag{Name: "confirm", Aliases: []string{"y"}, Usage: "skip the confirmation prompt"},
 	},
 
