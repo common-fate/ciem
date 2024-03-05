@@ -11,5 +11,6 @@ var Command = cli.Command{
 	Usage:   "Manage your Common Fate Deployment",
 	Subcommands: []*cli.Command{
 		&logs.Command,
+		&diagnosticsCommand,
 	},
 }
