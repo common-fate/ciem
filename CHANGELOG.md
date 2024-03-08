@@ -1,5 +1,15 @@
 # @common-fate/cli
 
+## 1.6.0
+
+### Minor Changes
+
+- 0e23aaf: Add deployment diagnostics commands
+
+### Patch Changes
+
+- 5a925ce: Remove default value for "reason" flag on access ensure command
+
 ## 1.5.0
 
 ### Minor Changes
