@@ -17,6 +17,7 @@ import (
 	"github.com/common-fate/cli/cmd/cli/command/deployment"
 	"github.com/common-fate/cli/cmd/cli/command/entity"
 	"github.com/common-fate/cli/cmd/cli/command/identity"
+	"github.com/common-fate/cli/cmd/cli/command/integration"
 	"github.com/common-fate/cli/cmd/cli/command/policyset"
 	"github.com/common-fate/cli/internal/build"
 	glidecli "github.com/common-fate/glide-cli"
@@ -118,6 +119,7 @@ func main() {
 			&command.Context,
 			&aws.Command,
 			&deployment.Command,
+			&integration.Command,
 		},
 	}
 	clio.SetLevelFromEnv("CF_LOG")
