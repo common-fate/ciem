@@ -4,10 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	"connectrpc.com/connect"
 	"github.com/common-fate/cli/table"
+	"github.com/common-fate/grab"
 	"github.com/common-fate/sdk/config"
 	diagnosticv1alpha1 "github.com/common-fate/sdk/gen/commonfate/control/diagnostic/v1alpha1"
 	"github.com/common-fate/sdk/service/control/diagnostic"
@@ -21,6 +23,7 @@ var diagnosticsCommand = cli.Command{
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "output", Value: "text", Usage: "output format ('text' or 'json')"},
 	},
+	Subcommands: []*cli.Command{&backgroundTasksCommand},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
 
@@ -74,6 +77,93 @@ var diagnosticsCommand = cli.Command{
 
 		case "json":
 			resJSON, err := protojson.Marshal(&all)
+			if err != nil {
+				return err
+			}
+			fmt.Println(string(resJSON))
+		}
+
+		return nil
+	},
+}
+
+func JobStateFromString(state string) (diagnosticv1alpha1.JobState, error) {
+	switch state {
+	case "available":
+		return diagnosticv1alpha1.JobState_JOB_STATE_AVAILABLE, nil
+	case "cancelled":
+		return diagnosticv1alpha1.JobState_JOB_STATE_CANCELLED, nil
+	case "completed":
+		return diagnosticv1alpha1.JobState_JOB_STATE_COMPLETED, nil
+	case "discarded":
+		return diagnosticv1alpha1.JobState_JOB_STATE_DISCARDED, nil
+	case "retryable":
+		return diagnosticv1alpha1.JobState_JOB_STATE_RETRYABLE, nil
+	case "running":
+		return diagnosticv1alpha1.JobState_JOB_STATE_RUNNING, nil
+	case "scheduled":
+		return diagnosticv1alpha1.JobState_JOB_STATE_SCHEDULED, nil
+	default:
+		return diagnosticv1alpha1.JobState_JOB_STATE_UNSPECIFIED, fmt.Errorf("invalid job state: '%s', valid states are ['available','cancelled','completed','discarded','retryable','running','scheduled']", state)
+	}
+}
+
+var backgroundTasksCommand = cli.Command{
+	Name:  "background-tasks",
+	Usage: "Retrieve diagnostics about your deployments background tasks",
+	Flags: []cli.Flag{
+		&cli.StringFlag{Name: "output", Value: "text", Usage: "output format ('text' or 'json')"},
+		&cli.StringSliceFlag{Name: "kinds"},
+		&cli.StringFlag{Name: "state", Required: true, Usage: "valid states are ['available','cancelled','completed','discarded','retryable','running','scheduled']"},
+		&cli.Int64Flag{Name: "count"},
+	},
+	Action: func(c *cli.Context) error {
+		ctx := c.Context
+
+		outputFormat := c.String("output")
+
+		if outputFormat != "text" && outputFormat != "json" {
+			return errors.New("--output flag must be either 'text' or 'json'")
+		}
+
+		state, err := JobStateFromString(c.String("state"))
+		if err != nil {
+			return err
+		}
+
+		cfg, err := config.LoadDefault(ctx)
+		if err != nil {
+			return err
+		}
+
+		client := diagnostic.NewFromConfig(cfg)
+
+		backgroundJobs, err := client.ListBackgroundJobs(ctx, connect.NewRequest(&diagnosticv1alpha1.ListBackgroundJobsRequest{
+			Kinds: c.StringSlice("kinds"),
+			Count: grab.If(c.Int64("count") > 0, grab.Ptr(c.Int64("count")), grab.Ptr(int64(100))),
+			State: state,
+		}))
+		if err != nil {
+			return err
+		}
+
+		switch outputFormat {
+		case "text":
+			fmt.Println("Background Jobs")
+			tbl := table.New(os.Stdout)
+			tbl.Columns("ID", "KIND", "STATE")
+
+			for _, job := range backgroundJobs.Msg.Jobs {
+				tbl.Row(strconv.Itoa(int(job.Id)), job.Kind, job.State)
+			}
+
+			err = tbl.Flush()
+			if err != nil {
+				return err
+			}
+
+		case "json":
+			resJSON, err := protojson.Marshal(backgroundJobs.Msg)
 			if err != nil {
 				return err
 			}
