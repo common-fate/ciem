@@ -9,7 +9,7 @@ require (
 	github.com/briandowns/spinner v1.23.0
 	github.com/common-fate/clio v1.2.3
 	github.com/common-fate/glide-cli v0.6.0
-	github.com/common-fate/grab v1.2.0
+	github.com/common-fate/grab v1.3.0
 	github.com/common-fate/granted v0.20.6
 	github.com/common-fate/sdk v1.9.1-0.20240311040257-580a1adce0a1
 	github.com/fatih/color v1.16.0

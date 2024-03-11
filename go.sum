@@ -134,6 +134,8 @@ github.com/common-fate/glide-cli v0.6.0 h1:MYnODLkK2KthskUNbo6ir7y3xMFGQD9eHvFlB
 github.com/common-fate/glide-cli v0.6.0/go.mod h1:ddp1UKGg0evzweWP2yVif3KTO19JWXg5+LjjmtpeE0U=
 github.com/common-fate/grab v1.2.0 h1:WODDm02QNE+jQKXq+VbhDD0amTOmaDn8vnA5NVOFnFM=
 github.com/common-fate/grab v1.2.0/go.mod h1:6zH8GckZGFrOKfZzL4Y/2OTvxwFeL6cDtsztM0GGC2Y=
+github.com/common-fate/grab v1.3.0 h1:vGNBMfhAVAWtrLuH1stnhL4LsDb73drhegC/060q+Ok=
+github.com/common-fate/grab v1.3.0/go.mod h1:6zH8GckZGFrOKfZzL4Y/2OTvxwFeL6cDtsztM0GGC2Y=
 github.com/common-fate/granted v0.20.6 h1:xdtowltCQU/pN9sROXFUYBp4xvOlCqT1j1t2mLkxt7k=
 github.com/common-fate/granted v0.20.6/go.mod h1:KnTghmwZa5cwg/CCJVzdWMcQNqp1APAQfcA1707vQFs=
 github.com/common-fate/iso8601 v1.1.0 h1:nrej9shsK1aB4IyOAjZl68xGk8yDuUxVwQjoDzxSK2c=
