@@ -12,5 +12,6 @@ var Command = cli.Command{
 	Subcommands: []*cli.Command{
 		&logs.Command,
 		&diagnosticsCommand,
+		&backgroundJobsCommand,
 	},
 }
