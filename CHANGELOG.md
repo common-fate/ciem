@@ -1,5 +1,12 @@
 # @common-fate/cli
 
+## 1.7.0
+
+### Minor Changes
+
+- 0513f58: Adds background task diagnostic command for listing background tasks based on status and kind.
+- 0513f58: Adds background task reset commands which can be use to cancel one or more background tasks.
+
 ## 1.6.0
 
 ### Minor Changes
