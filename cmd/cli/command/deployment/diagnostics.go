@@ -109,8 +109,8 @@ func JobStateFromString(state string) (diagnosticv1alpha1.JobState, error) {
 }
 
 var backgroundTasksCommand = cli.Command{
-	Name:  "background-tasks",
-	Usage: "Retrieve diagnostics about your deployments background tasks",
+	Name:  "background-jobs",
+	Usage: "Retrieve diagnostics about your deployments background jobs",
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "output", Value: "text", Usage: "output format ('text' or 'json')"},
 		&cli.StringSliceFlag{Name: "kinds"},
