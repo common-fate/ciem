@@ -18,10 +18,10 @@ var resetCommand = cli.Command{
 var resetEntraCommand = cli.Command{
 	Name:  "entra",
 	Usage: "Removes all Entra user entities in a deployment",
-	Flags: []cli.Flag{&cli.BoolFlag{Name: "dry", Usage: "using dry run will not remove any entities and return back what will be removed from executing the command", Required: true}},
+	Flags: []cli.Flag{&cli.BoolFlag{Name: "dry-run", Value: true, Usage: "using dry run will not remove any entities and return back what will be removed from executing the command"}},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
-		isDryRun := c.Bool("dry")
+		isDryRun := c.Bool("dry-run")
 		cfg, err := config.LoadDefault(ctx)
 		if err != nil {
 			return err
