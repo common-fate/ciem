@@ -7,5 +7,6 @@ var Command = cli.Command{
 	Aliases: []string{"in"},
 	Subcommands: []*cli.Command{
 		&resetCommand,
+		&deleteOauthTokenCommand,
 	},
 }

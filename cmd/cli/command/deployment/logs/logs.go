@@ -21,5 +21,7 @@ var ServiceNames = []string{
 	"control-plane",
 	"otel-collector",
 	"provisioner",
+	"builtin-provisioner",
 	"web",
+	"worker",
 }
