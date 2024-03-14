@@ -1,5 +1,11 @@
 # @common-fate/cli
 
+## 1.8.0
+
+### Minor Changes
+
+- dd7da7d: Add command to reset entra users in the database so that they may be re-synced
+
 ## 1.7.0
 
 ### Minor Changes
