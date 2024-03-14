@@ -5,7 +5,11 @@ go 1.21.3
 require (
 	connectrpc.com/connect v1.14.0
 	github.com/AlecAivazis/survey/v2 v2.3.7
+	github.com/TylerBrock/saw v0.2.2
 	github.com/aws/aws-sdk-go-v2 v1.24.1
+	github.com/aws/aws-sdk-go-v2/config v1.25.6
+	github.com/aws/aws-sdk-go-v2/service/cloudformation v1.40.2
+	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.31.0
 	github.com/briandowns/spinner v1.23.0
 	github.com/common-fate/clio v1.2.3
 	github.com/common-fate/glide-cli v0.6.0
@@ -19,7 +23,7 @@ require (
 	github.com/urfave/cli/v2 v2.25.7
 	go.uber.org/zap v1.26.0
 	golang.org/x/oauth2 v0.16.0
-	google.golang.org/protobuf v1.32.0
+	google.golang.org/protobuf v1.33.0
 )
 
 require (
@@ -27,20 +31,16 @@ require (
 	github.com/99designs/keyring v1.2.2 // indirect
 	github.com/BurntSushi/toml v1.3.2 // indirect
 	github.com/TylerBrock/colorjson v0.0.0-20200706003622-8a50f05110d2 // indirect
-	github.com/TylerBrock/saw v0.2.2 // indirect
 	github.com/alessio/shellescape v1.4.2 // indirect
 	github.com/aws-cloudformation/rain v1.2.0 // indirect
 	github.com/aws/aws-sdk-go v1.44.213 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.5.4 // indirect
-	github.com/aws/aws-sdk-go-v2/config v1.25.6 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.16.5 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.14.5 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.2.10 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.5.10 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.7.1 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/v4a v1.2.4 // indirect
-	github.com/aws/aws-sdk-go-v2/service/cloudformation v1.40.2 // indirect
-	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.31.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/iam v1.28.7 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.10.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.2.4 // indirect
