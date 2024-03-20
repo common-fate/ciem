@@ -13,8 +13,7 @@ import (
 )
 
 var evaluateCommand = cli.Command{
-	Name:    "evaluate",
-	Aliases: []string{"eval"},
+	Name: "evaluate",
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "principal", Aliases: []string{"p"}, Required: true},
 		&cli.StringFlag{Name: "action", Aliases: []string{"a"}, Required: true},
