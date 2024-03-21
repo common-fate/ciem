@@ -149,7 +149,6 @@ var batchRetryJobCommand = cli.Command{
 	Flags: []cli.Flag{
 		&cli.Int64SliceFlag{Name: "ids"},
 		&cli.StringSliceFlag{Name: "kinds"},
-		&cli.StringFlag{Name: "state", Usage: "valid states are ['available','retryable','running','scheduled']"},
 	},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
@@ -163,26 +162,18 @@ var batchRetryJobCommand = cli.Command{
 
 		ids := c.Int64Slice("ids")
 		kinds := c.StringSlice("kinds")
-		if len(kinds) > 0 && c.String("state") == "" {
-			return errors.New("--state is required when specifiying kinds")
+
+		diagClient := diagnostic.NewFromConfig(cfg)
+		backgroundJobs, err := diagClient.ListBackgroundJobs(ctx, connect.NewRequest(&diagnosticv1alpha1.ListBackgroundJobsRequest{
+			Kinds: kinds,
+			Count: grab.Ptr(int64(10000)),
+			State: diagnosticv1alpha1.JobState_JOB_STATE_RETRYABLE,
+		}))
+		if err != nil {
+			return err
 		}
-		if c.String("state") != "" {
-			state, err := JobStateFromString(c.String("state"))
-			if err != nil {
-				return err
-			}
-			diagClient := diagnostic.NewFromConfig(cfg)
-			backgroundJobs, err := diagClient.ListBackgroundJobs(ctx, connect.NewRequest(&diagnosticv1alpha1.ListBackgroundJobsRequest{
-				Kinds: kinds,
-				Count: grab.Ptr(int64(10000)),
-				State: state,
-			}))
-			if err != nil {
-				return err
-			}
-			for _, job := range backgroundJobs.Msg.Jobs {
-				ids = append(ids, job.Id)
-			}
+		for _, job := range backgroundJobs.Msg.Jobs {
+			ids = append(ids, job.Id)
 		}
 
 		slices.Sort(ids)
