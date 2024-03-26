@@ -90,7 +90,7 @@ var ensureCommand = cli.Command{
 				if err != nil {
 					return err
 				}
-				ent.AccessDurationOverride = durationpb.New(overrideDuration)
+				ent.Duration = durationpb.New(overrideDuration)
 			}
 			req.Entitlements = append(req.Entitlements, ent)
 		}
