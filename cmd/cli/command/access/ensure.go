@@ -57,6 +57,11 @@ var ensureCommand = cli.Command{
 			return errors.New("you need to provide --role flag for each --target flag. For example:\n'cf jit request access --target AWS::Account::123456789012 --role AdministratorAccess --target OtherAccount --role Developer")
 		}
 
+		if duration != nil && len(targets) != len(duration) {
+
+			return errors.New("you need to provide a --duration for each --target flag.")
+		}
+
 		apiURL, err := url.Parse(cfg.APIURL)
 		if err != nil {
 			return err
@@ -68,11 +73,6 @@ var ensureCommand = cli.Command{
 			Justification: &accessv1alpha1.Justification{
 				Reason: grab.If(reason == "", nil, &reason),
 			},
-		}
-
-		if duration != nil && len(targets) != len(duration) {
-
-			return errors.New("length of --target specified must have an equivilent amount of --duration set")
 		}
 
 		for i, target := range targets {
