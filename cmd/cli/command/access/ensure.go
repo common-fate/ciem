@@ -70,6 +70,11 @@ var ensureCommand = cli.Command{
 			},
 		}
 
+		if duration != nil && len(targets) != len(duration) {
+
+			return errors.New("length of --target specified must have an equivilent amount of --duration set")
+		}
+
 		for i, target := range targets {
 
 			ent := &accessv1alpha1.EntitlementInput{
