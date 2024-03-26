@@ -23,10 +23,13 @@ import (
 var queryCommand = cli.Command{
 	Name: "query",
 	Flags: []cli.Flag{
-		&cli.StringFlag{Name: "principal"},
-		&cli.StringFlag{Name: "action"},
-		&cli.StringFlag{Name: "resource"},
-		&cli.StringSliceFlag{Name: "tag", Usage: "tags to filter for (e.g. --tag=read_only=false)"},
+		&cli.StringSliceFlag{Name: "principal"},
+		&cli.StringSliceFlag{Name: "action"},
+		&cli.StringSliceFlag{Name: "resource"},
+		&cli.StringFlag{Name: "page-token"},
+		&cli.StringSliceFlag{Name: "tag", Usage: "tags to filter for (e.g. --tag=read_only=true)"},
+		&cli.StringSliceFlag{Name: "not-tag", Usage: "tags to exclude events for (e.g. --not-tag=read_only=true)"},
+		&cli.StringFlag{Name: "outcome", Usage: "filter for a particular authorization outcome (either 'allow' or 'deny')"},
 		&cli.StringFlag{Name: "output", Value: "table", Usage: "output format ('table' or 'json')"},
 	},
 	Action: func(c *cli.Context) error {
@@ -36,56 +39,125 @@ var queryCommand = cli.Command{
 			return err
 		}
 
-		var tags []*authzv1alpha1.Tag
+		var filters []*logv1alpha1.Filter
 
 		for _, t := range c.StringSlice("tag") {
 			split := strings.SplitN(t, "=", 2)
 			if len(split) == 2 {
-				tags = append(tags, &authzv1alpha1.Tag{
-					Key:   split[0],
-					Value: split[1],
+				filters = append(filters, &logv1alpha1.Filter{
+					Filter: &logv1alpha1.Filter_Tag{
+						Tag: &logv1alpha1.TagFilter{
+							Key:        split[0],
+							Value:      split[1],
+							Comparison: logv1alpha1.BoolComparison_BOOL_COMPARISON_EQUAL,
+						},
+					},
 				})
 			} else {
-				return fmt.Errorf("invalid tag format: %s. tags should be provided as --tag=key=value, for example: '--tag=read_only=false'", t)
+				return fmt.Errorf("invalid tag format: %s. tags should be provided as --tag=key=value, for example: '--tag=read_only=true'", t)
 			}
 		}
 
-		var principal, action, resource *entityv1alpha1.EID
+		for _, t := range c.StringSlice("not-tag") {
+			split := strings.SplitN(t, "=", 2)
+			if len(split) == 2 {
+				filters = append(filters, &logv1alpha1.Filter{
+					Filter: &logv1alpha1.Filter_Tag{
+						Tag: &logv1alpha1.TagFilter{
+							Key:        split[0],
+							Value:      split[1],
+							Comparison: logv1alpha1.BoolComparison_TIME_COMPARISON_NOT_EQUAL,
+						},
+					},
+				})
+			} else {
+				return fmt.Errorf("invalid tag format: %s. tags should be provided as --not-tag=key=value, for example: '--not-tag=read_only=true'", t)
+			}
+		}
 
-		principalArg := c.String("principal")
-		if principalArg != "" {
-			parsed, err := eid.Parse(principalArg)
+		var principals, actions, resources []*entityv1alpha1.EID
+
+		for _, e := range c.StringSlice("principal") {
+			parsed, err := eid.Parse(e)
 			if err != nil {
 				return errors.Wrap(err, "parsing principal")
 			}
-			principal = parsed.ToAPI()
+			principals = append(principals, parsed.ToAPI())
+		}
+		if len(principals) > 0 {
+			filters = append(filters, &logv1alpha1.Filter{
+				Filter: &logv1alpha1.Filter_Principal{
+					Principal: &logv1alpha1.EntityFilter{
+						Ids: principals,
+					},
+				},
+			})
 		}
 
-		actionArg := c.String("action")
-		if actionArg != "" {
-			parsed, err := eid.Parse(actionArg)
+		for _, e := range c.StringSlice("action") {
+			parsed, err := eid.Parse(e)
 			if err != nil {
 				return errors.Wrap(err, "parsing action")
 			}
-			action = parsed.ToAPI()
+			actions = append(actions, parsed.ToAPI())
+		}
+		if len(actions) > 0 {
+			filters = append(filters, &logv1alpha1.Filter{
+				Filter: &logv1alpha1.Filter_Action{
+					Action: &logv1alpha1.EntityFilter{
+						Ids: actions,
+					},
+				},
+			})
 		}
 
-		resourceArg := c.String("resource")
-		if resourceArg != "" {
-			parsed, err := eid.Parse(resourceArg)
+		for _, e := range c.StringSlice("resource") {
+			parsed, err := eid.Parse(e)
 			if err != nil {
 				return errors.Wrap(err, "parsing resource")
 			}
-			resource = parsed.ToAPI()
+			resources = append(resources, parsed.ToAPI())
+		}
+		if len(resources) > 0 {
+			filters = append(filters, &logv1alpha1.Filter{
+				Filter: &logv1alpha1.Filter_Resource{
+					Resource: &logv1alpha1.EntityFilter{
+						Ids: resources,
+					},
+				},
+			})
+		}
+
+		outcome := c.String("outcome")
+
+		switch outcome {
+		case "deny", "denied":
+			filters = append(filters, &logv1alpha1.Filter{
+				Filter: &logv1alpha1.Filter_Decision{
+					Decision: &logv1alpha1.DecisionFilter{
+						Decision: authzv1alpha1.Decision_DECISION_DENY,
+					},
+				},
+			})
+		case "allow", "allowed":
+			filters = append(filters, &logv1alpha1.Filter{
+				Filter: &logv1alpha1.Filter_Decision{
+					Decision: &logv1alpha1.DecisionFilter{
+						Decision: authzv1alpha1.Decision_DECISION_ALLOW,
+					},
+				},
+			})
+		case "":
+
+		default:
+			return fmt.Errorf("invalid --outcome flag: %s. outcome filter must be either 'allow' or 'deny'", outcome)
 		}
 
 		client := logsdk.New(cfg).Evaluation()
 
 		input := logv1alpha1.QueryEvaluationsRequest{
-			Principal:    principal,
-			Action:       action,
-			Resource:     resource,
-			MatchingTags: tags,
+			PageToken: c.String("page-token"),
+			Filters:   filters,
 		}
 
 		clio.Debugw("calling QueryEvaluations", "input", &input)
