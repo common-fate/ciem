@@ -15,7 +15,7 @@ require (
 	github.com/common-fate/glide-cli v0.6.0
 	github.com/common-fate/grab v1.3.0
 	github.com/common-fate/granted v0.20.6
-	github.com/common-fate/sdk v1.11.0
+	github.com/common-fate/sdk v1.14.1-0.20240327031522-afd7e88c5d33
 	github.com/fatih/color v1.16.0
 	github.com/mattn/go-isatty v0.0.20
 	github.com/pkg/errors v0.9.1
