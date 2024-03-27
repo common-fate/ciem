@@ -8,6 +8,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/common-fate/cli/table"
+	"github.com/common-fate/grab"
 	"github.com/common-fate/sdk/config"
 	"github.com/common-fate/sdk/eid"
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
@@ -21,7 +22,8 @@ var previewCommand = cli.Command{
 	Usage: "Preview available entitlements for a principal",
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "output", Value: "table", Usage: "output format ('table',  or 'json')"},
-		&cli.StringFlag{Name: "principal"},
+		&cli.StringFlag{Name: "principal", Required: true},
+		&cli.StringFlag{Name: "target-type"},
 	},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
@@ -42,8 +44,11 @@ var previewCommand = cli.Command{
 			return err
 		}
 
+		targetType := c.String("target-type")
+
 		res, err := client.PreviewEntitlements(ctx, connect.NewRequest(&accessv1alpha1.PreviewEntitlementsRequest{
-			Principal: principal.ToAPI(),
+			Principal:  principal.ToAPI(),
+			TargetType: grab.If(targetType == "", nil, &targetType),
 		}))
 		if err != nil {
 			return err

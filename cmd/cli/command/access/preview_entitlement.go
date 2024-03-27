@@ -21,8 +21,8 @@ var previewEntitlementCommand = cli.Command{
 	Usage: "Preview who can access an entitlement",
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "output", Value: "table", Usage: "output format ('table',  or 'json')"},
-		&cli.StringFlag{Name: "target"},
-		&cli.StringFlag{Name: "role"},
+		&cli.StringFlag{Name: "target", Required: true},
+		&cli.StringFlag{Name: "role", Required: true},
 	},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
