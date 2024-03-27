@@ -8,7 +8,6 @@ import (
 	"connectrpc.com/connect"
 	"github.com/common-fate/cli/table"
 	"github.com/common-fate/sdk/config"
-	"github.com/common-fate/sdk/eid"
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
 	"github.com/common-fate/sdk/service/access"
 	"github.com/urfave/cli/v2"
@@ -21,8 +20,8 @@ var approversCommand = cli.Command{
 	Aliases: []string{"ap"},
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "output", Value: "table", Usage: "output format ('table',  or 'json')"},
-		&cli.StringFlag{Name: "target"},
-		&cli.StringFlag{Name: "role"},
+		&cli.StringFlag{Name: "target", Required: true},
+		&cli.StringFlag{Name: "role", Required: true},
 	},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
@@ -38,17 +37,17 @@ var approversCommand = cli.Command{
 			Availabilities: []*accessv1alpha1.Availability{},
 		}
 
-		target, err := eid.Parse(c.String("target"))
-		if err != nil {
-			return err
-		}
-		role, err := eid.Parse(c.String("role"))
-		if err != nil {
-			return err
-		}
 		res, err := client.QueryApprovers(ctx, connect.NewRequest(&accessv1alpha1.QueryApproversRequest{
-			Target: target.ToAPI(),
-			Role:   role.ToAPI(),
+			Target: &accessv1alpha1.Specifier{
+				Specify: &accessv1alpha1.Specifier_Lookup{
+					Lookup: c.String("target"),
+				},
+			},
+			Role: &accessv1alpha1.Specifier{
+				Specify: &accessv1alpha1.Specifier_Lookup{
+					Lookup: c.String("role"),
+				},
+			},
 		}))
 		if err != nil {
 			return err

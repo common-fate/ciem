@@ -10,7 +10,6 @@ import (
 	"github.com/common-fate/cli/table"
 	"github.com/common-fate/grab"
 	"github.com/common-fate/sdk/config"
-	"github.com/common-fate/sdk/eid"
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
 	"github.com/common-fate/sdk/service/access"
 	"github.com/urfave/cli/v2"
@@ -39,15 +38,14 @@ var previewCommand = cli.Command{
 			Availabilities: []*accessv1alpha1.Availability{},
 		}
 
-		principal, err := eid.Parse(c.String("principal"))
-		if err != nil {
-			return err
-		}
-
 		targetType := c.String("target-type")
 
 		res, err := client.PreviewEntitlements(ctx, connect.NewRequest(&accessv1alpha1.PreviewEntitlementsRequest{
-			Principal:  principal.ToAPI(),
+			Principal: &accessv1alpha1.Specifier{
+				Specify: &accessv1alpha1.Specifier_Lookup{
+					Lookup: c.String("principal"),
+				},
+			},
 			TargetType: grab.If(targetType == "", nil, &targetType),
 		}))
 		if err != nil {
