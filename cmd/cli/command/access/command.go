@@ -18,5 +18,6 @@ var Command = cli.Command{
 		&close.Command,
 		&approve.Command,
 		&previewCommand,
+		&previewEntitlementCommand,
 	},
 }
