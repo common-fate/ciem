@@ -10,7 +10,8 @@ import (
 )
 
 var relinkEntraUsers = cli.Command{
-	Name: "relink-entra-users",
+	Name:  "relink-entra-users",
+	Usage: "links together Common Fate users with their Entra user counterpart. Used to remediate any issues which may have come up during initial sync of Entra users.",
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
 
