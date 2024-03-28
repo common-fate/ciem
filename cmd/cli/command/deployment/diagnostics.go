@@ -151,10 +151,10 @@ var backgroundTasksCommand = cli.Command{
 		case "text":
 			fmt.Println("Background Jobs")
 			tbl := table.New(os.Stdout)
-			tbl.Columns("ID", "KIND", "STATE")
+			tbl.Columns("ID", "KIND", "STATE", "OCCURED_AT")
 
 			for _, job := range backgroundJobs.Msg.Jobs {
-				tbl.Row(strconv.Itoa(int(job.Id)), job.Kind, job.State)
+				tbl.Row(strconv.Itoa(int(job.Id)), job.Kind, job.State, job.CreatedAt.AsTime().String())
 			}
 
 			err = tbl.Flush()

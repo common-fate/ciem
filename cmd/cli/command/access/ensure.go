@@ -20,6 +20,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/durationpb"
 )
 
 var ensureCommand = cli.Command{
@@ -28,6 +29,7 @@ var ensureCommand = cli.Command{
 	Flags: []cli.Flag{
 		&cli.StringSliceFlag{Name: "target", Required: true},
 		&cli.StringSliceFlag{Name: "role", Required: true},
+		&cli.StringSliceFlag{Name: "duration", Aliases: []string{"d"}, Usage: "Override the default duration with a custom one. Must be less than the max duration available."},
 		&cli.StringFlag{Name: "output", Value: "text", Usage: "output format ('text' or 'json')"},
 		&cli.StringFlag{Name: "reason", Usage: "The reason for requesting access"},
 		&cli.BoolFlag{Name: "confirm", Aliases: []string{"y"}, Usage: "skip the confirmation prompt"},
@@ -49,9 +51,15 @@ var ensureCommand = cli.Command{
 
 		targets := c.StringSlice("target")
 		roles := c.StringSlice("role")
+		duration := c.StringSlice("duration")
 
 		if len(targets) != len(roles) {
 			return errors.New("you need to provide --role flag for each --target flag. For example:\n'cf jit request access --target AWS::Account::123456789012 --role AdministratorAccess --target OtherAccount --role Developer")
+		}
+
+		if duration != nil && len(targets) != len(duration) {
+
+			return errors.New("you need to provide a --duration for each --target flag.")
 		}
 
 		apiURL, err := url.Parse(cfg.APIURL)
@@ -68,7 +76,8 @@ var ensureCommand = cli.Command{
 		}
 
 		for i, target := range targets {
-			req.Entitlements = append(req.Entitlements, &accessv1alpha1.EntitlementInput{
+
+			ent := &accessv1alpha1.EntitlementInput{
 				Target: &accessv1alpha1.Specifier{
 					Specify: &accessv1alpha1.Specifier_Lookup{
 						Lookup: target,
@@ -79,7 +88,16 @@ var ensureCommand = cli.Command{
 						Lookup: roles[i],
 					},
 				},
-			})
+			}
+
+			if duration != nil && duration[i] != "" {
+				overrideDuration, err := time.ParseDuration(duration[i])
+				if err != nil {
+					return err
+				}
+				ent.Duration = durationpb.New(overrideDuration)
+			}
+			req.Entitlements = append(req.Entitlements, ent)
 		}
 
 		if !c.Bool("confirm") {
