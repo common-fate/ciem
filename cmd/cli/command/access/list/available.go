@@ -33,73 +33,106 @@ var availableCommand = cli.Command{
 
 		client := access.NewFromConfig(cfg)
 
-		all := accessv1alpha1.QueryAvailabilitiesResponse{
-			Availabilities: []*accessv1alpha1.Availability{},
-		}
-		done := false
-		var pageToken string
-
-		selector := c.String("selector")
-
-		for !done {
-			res, err := client.QueryAvailabilities(ctx, connect.NewRequest(&accessv1alpha1.QueryAvailabilitiesRequest{
-				PageToken: pageToken,
-			}))
-			if err != nil {
-				return err
-			}
-
-			for _, av := range res.Msg.Availabilities {
-				if selector != "" && av.TargetSelector.Id != selector {
-					continue
-				}
-				all.Availabilities = append(all.Availabilities, av)
-
-			}
-
-			if res.Msg.NextPageToken == "" {
-				done = true
-			} else {
-				pageToken = res.Msg.NextPageToken
-			}
-		}
-
 		output := c.String("output")
-		switch output {
-		case "table":
-			w := table.New(os.Stdout)
-			w.Columns("TARGET", "NAME", "ROLE", "DURATION")
 
-			for _, e := range all.Availabilities {
-				w.Row(e.Target.Eid.Display(), e.Target.Name, e.Role.Name, e.Duration.AsDuration().String())
+		if output == "table" {
+			allEntitlements := accessv1alpha1.QueryEntitlementsResponse{
+				Entitlements: []*accessv1alpha1.Entitlement{},
+			}
+			done := false
+			var pageToken string
+
+			selector := c.String("selector")
+
+			for !done {
+				res, err := client.QueryEntitlements(ctx, connect.NewRequest(&accessv1alpha1.QueryEntitlementsRequest{
+					PageToken: pageToken,
+				}))
+				if err != nil {
+					return err
+				}
+
+				for _, av := range res.Msg.Entitlements {
+					if selector != "" {
+						continue
+					}
+					allEntitlements.Entitlements = append(allEntitlements.Entitlements, av)
+
+				}
+
+				if res.Msg.NextPageToken == "" {
+					done = true
+				} else {
+					pageToken = res.Msg.NextPageToken
+				}
+			}
+
+			w := table.New(os.Stdout)
+			w.Columns("TARGET", "NAME", "ROLE")
+
+			for _, e := range allEntitlements.Entitlements {
+				w.Row(e.Target.Eid.Display(), e.Target.Name, e.Role.Name)
 			}
 
 			err = w.Flush()
 			if err != nil {
 				return err
 			}
+		} else {
+			allAvailabilities := accessv1alpha1.QueryAvailabilitiesResponse{
+				Availabilities: []*accessv1alpha1.Availability{},
+			}
+			done := false
+			var pageToken string
 
-		case "wide":
-			w := table.New(os.Stdout)
-			w.Columns("TARGET", "NAME", "ROLE", "DURATION", "SELECTOR", "PRIORITY")
+			selector := c.String("selector")
 
-			for _, e := range all.Availabilities {
-				w.Row(e.Target.Eid.Display(), e.Target.Name, e.Role.Name, e.Duration.AsDuration().String(), e.TargetSelector.Id, strconv.FormatUint(uint64(e.Priority), 10))
+			for !done {
+				res, err := client.QueryAvailabilities(ctx, connect.NewRequest(&accessv1alpha1.QueryAvailabilitiesRequest{
+					PageToken: pageToken,
+				}))
+				if err != nil {
+					return err
+				}
+
+				for _, av := range res.Msg.Availabilities {
+					if selector != "" {
+						continue
+					}
+					allAvailabilities.Availabilities = append(allAvailabilities.Availabilities, av)
+
+				}
+
+				if res.Msg.NextPageToken == "" {
+					done = true
+				} else {
+					pageToken = res.Msg.NextPageToken
+				}
 			}
 
-			err = w.Flush()
-			if err != nil {
-				return err
+			switch output {
+			case "wide":
+				w := table.New(os.Stdout)
+				w.Columns("TARGET", "NAME", "ROLE", "DURATION", "SELECTOR", "PRIORITY")
+
+				for _, e := range allAvailabilities.Availabilities {
+					w.Row(e.Target.Eid.Display(), e.Target.Name, e.Role.Name, e.Duration.AsDuration().String(), e.TargetSelector.Id, strconv.FormatUint(uint64(e.Priority), 10))
+				}
+
+				err = w.Flush()
+				if err != nil {
+					return err
+				}
+			case "json":
+				resJSON, err := protojson.Marshal(&allAvailabilities)
+				if err != nil {
+					return err
+				}
+				fmt.Println(string(resJSON))
+			default:
+				return errors.New("invalid --output flag, valid values are [json, table, wide]")
 			}
 
-		case "json":
-			resJSON, err := protojson.Marshal(&all)
-			if err != nil {
-				return err
-			}
-			fmt.Println(string(resJSON))
-		default:
-			return errors.New("invalid --output flag, valid values are [json, table, wide]")
 		}
 
 		return nil
