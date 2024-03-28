@@ -48,7 +48,7 @@ var getCommand = cli.Command{
 
 			wg.Add(1)
 			go func(lg, s, start, end string) {
-				clio.Info("Starting to get logs for %s, log group id: %s", s, lg)
+				clio.Infof("Starting to get logs for %s, log group id: %s", s, lg)
 				hasLogs := false
 				cwClient := cloudwatchlogs.NewFromConfig(cfg)
 

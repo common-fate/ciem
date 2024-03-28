@@ -144,6 +144,8 @@ github.com/common-fate/sdk v1.11.0 h1:nGPQ52wzZef6j8bJHIiLlHtd1cFmtVKXmirFn1HWHp
 github.com/common-fate/sdk v1.11.0/go.mod h1:WJfjdFPhVEcLxo5keKrm3zsXz+eZnxoQ/kh8Ef4EAmc=
 github.com/common-fate/sdk v1.12.4-0.20240321002947-cd6d197b47da h1:fGLz6mwgkUPjLf+IpjdLYJgp/olNMMdmIC3OdZnso6Q=
 github.com/common-fate/sdk v1.12.4-0.20240321002947-cd6d197b47da/go.mod h1:5CJxmDmjk7hRPbvEQcoH6qiOrAFIgLsqAdokOZZ4mKw=
+github.com/common-fate/sdk v1.13.1-0.20240322013017-ed52a4739807 h1:2I3K7wuOLOMPnMAgnnh5Gfq5jceDqvilN1lgs0QOHCQ=
+github.com/common-fate/sdk v1.13.1-0.20240322013017-ed52a4739807/go.mod h1:5CJxmDmjk7hRPbvEQcoH6qiOrAFIgLsqAdokOZZ4mKw=
 github.com/common-fate/sdk v1.14.0 h1:gHF2dBAtflzno9gJ8pzhyd2l1XcKfjilXiOBt+KsPdM=
 github.com/common-fate/sdk v1.14.0/go.mod h1:5CJxmDmjk7hRPbvEQcoH6qiOrAFIgLsqAdokOZZ4mKw=
 github.com/common-fate/useragent v0.1.0 h1:RLmkIiJXcOUJAUyXWc/zCaGbrGmlCbHBGMx99ztQ3ZU=
