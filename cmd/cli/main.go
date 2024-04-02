@@ -18,7 +18,6 @@ import (
 	"github.com/common-fate/cli/cmd/cli/command/entity"
 	"github.com/common-fate/cli/cmd/cli/command/identity"
 	"github.com/common-fate/cli/cmd/cli/command/integration"
-	"github.com/common-fate/cli/cmd/cli/command/policyset"
 	"github.com/common-fate/cli/internal/build"
 	glidecli "github.com/common-fate/glide-cli"
 
@@ -109,7 +108,6 @@ func main() {
 			&command.Logout,
 			&identity.Command,
 			&command.Auth,
-			&policyset.Command,
 			&entity.Command,
 			&authz.Command,
 			&access.Command,
