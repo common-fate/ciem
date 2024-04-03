@@ -8,6 +8,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/common-fate/cli/table"
 	"github.com/common-fate/sdk/config"
+	"github.com/common-fate/sdk/eid"
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
 	"github.com/common-fate/sdk/service/access"
 	"github.com/urfave/cli/v2"
@@ -20,10 +21,48 @@ var approversCommand = cli.Command{
 	Aliases: []string{"ap"},
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "output", Value: "table", Usage: "output format ('table',  or 'json')"},
-		&cli.StringFlag{Name: "target", Required: true},
-		&cli.StringFlag{Name: "role", Required: true},
+		&cli.StringFlag{Name: "target"},
+		&cli.StringFlag{Name: "role"},
+		&cli.StringFlag{Name: "grant-id"},
 	},
 	Action: func(c *cli.Context) error {
+		var query = &accessv1alpha1.QueryApproversRequest{}
+		target := c.String("target")
+		role := c.String("role")
+		grantID := c.String("grant-id")
+
+		if grantID != "" {
+			if target != "" || role != "" {
+				return errors.New("either --target and --role or --grant-id flags must be specified but not both")
+			}
+			id, err := eid.Parse(grantID)
+			if err != nil {
+				return err
+			}
+			query.Query = &accessv1alpha1.QueryApproversRequest_Grant{
+				Grant: id.ToAPI(),
+			}
+		} else {
+			if target == "" || role == "" {
+				return errors.New("either --target and --role or --grant-id flags must be specified but not both")
+			}
+
+			query.Query = &accessv1alpha1.QueryApproversRequest_TargetRole{
+				TargetRole: &accessv1alpha1.TargetRole{
+					Target: &accessv1alpha1.Specifier{
+						Specify: &accessv1alpha1.Specifier_Lookup{
+							Lookup: c.String("target"),
+						},
+					},
+					Role: &accessv1alpha1.Specifier{
+						Specify: &accessv1alpha1.Specifier_Lookup{
+							Lookup: c.String("role"),
+						},
+					},
+				},
+			}
+		}
+
 		ctx := c.Context
 
 		cfg, err := config.LoadDefault(ctx)
@@ -33,22 +72,7 @@ var approversCommand = cli.Command{
 
 		client := access.NewFromConfig(cfg)
 
-		all := accessv1alpha1.QueryAvailabilitiesResponse{
-			Availabilities: []*accessv1alpha1.Availability{},
-		}
-
-		res, err := client.QueryApprovers(ctx, connect.NewRequest(&accessv1alpha1.QueryApproversRequest{
-			Target: &accessv1alpha1.Specifier{
-				Specify: &accessv1alpha1.Specifier_Lookup{
-					Lookup: c.String("target"),
-				},
-			},
-			Role: &accessv1alpha1.Specifier{
-				Specify: &accessv1alpha1.Specifier_Lookup{
-					Lookup: c.String("role"),
-				},
-			},
-		}))
+		res, err := client.QueryApprovers(ctx, connect.NewRequest(query))
 		if err != nil {
 			return err
 		}
@@ -69,7 +93,7 @@ var approversCommand = cli.Command{
 			}
 
 		case "json":
-			resJSON, err := protojson.Marshal(&all)
+			resJSON, err := protojson.Marshal(res.Msg)
 			if err != nil {
 				return err
 			}
