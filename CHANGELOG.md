@@ -1,5 +1,12 @@
 # @common-fate/cli
 
+## 1.10.0
+
+### Minor Changes
+
+- 7b1e038: Shifts 'cf policyset' commands to be 'cf authz policyset'.
+- 7b1e038: Adds 'cf authz policyset validate' command to validate Cedar policies
+
 ## 1.9.0
 
 ### Minor Changes
