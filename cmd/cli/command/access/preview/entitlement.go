@@ -1,4 +1,4 @@
-package access
+package preview
 
 import (
 	"errors"
@@ -15,13 +15,14 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-var previewEntitlementCommand = cli.Command{
-	Name:  "preview-entitlement",
-	Usage: "Preview who can access an entitlement",
+var entitlementCommand = cli.Command{
+	Name:    "entitlement-access",
+	Aliases: []string{"ea"},
+	Usage:   "Preview which users can request a given entitlement, and whether they require approval.",
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "output", Value: "table", Usage: "output format ('table',  or 'json')"},
-		&cli.StringFlag{Name: "target", Required: true},
-		&cli.StringFlag{Name: "role", Required: true},
+		&cli.StringFlag{Name: "target", Required: true, Usage: "Can be either an ID, EID, name"},
+		&cli.StringFlag{Name: "role", Required: true, Usage: "Can be either an ID, EID, name"},
 	},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context

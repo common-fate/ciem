@@ -1,4 +1,4 @@
-package access
+package preview
 
 import (
 	"errors"
@@ -16,13 +16,14 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-var previewCommand = cli.Command{
-	Name:  "preview",
-	Usage: "Preview available entitlements for a principal",
+var userAccess = cli.Command{
+	Name:    "user-access",
+	Aliases: []string{"ua"},
+	Usage:   "Preview which entitlements a given user principal can request access to, and whether they require approval.",
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "output", Value: "table", Usage: "output format ('table',  or 'json')"},
-		&cli.StringFlag{Name: "principal", Required: true},
-		&cli.StringFlag{Name: "target-type"},
+		&cli.StringFlag{Name: "principal", Required: true, Usage: "Can be either an ID, EID, email, full name"},
+		&cli.StringFlag{Name: "target-type", Usage: "E.g AWS::Account will filter for the aws account availabilities"},
 	},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
