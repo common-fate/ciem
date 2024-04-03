@@ -1,5 +1,19 @@
 # @common-fate/cli
 
+## 1.9.0
+
+### Minor Changes
+
+- dc6b5e3: Adds entra-relink-users command which can be used to remediate issues with entra scim configurations which cause users not to be linked correctly
+- 85ede0e: added optional 'duration' flag to allow override of default access duration when using ensure request
+- 37b1784: Adds 'cf authz schema get' command which will download the Cedar schema used for authorization.
+- 7747009: list availabilities will now display deduplicated target roles by default
+
+### Patch Changes
+
+- 2dd3fc6: Adds cli command for retrying background jobs if they are retryable. Also adds timestamp to background job list command
+- 1b16429: Fixes the output formatting for the 'cf deployment logs get' command.
+
 ## 1.8.0
 
 ### Minor Changes
