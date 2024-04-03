@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"net/url"
 	"os"
 	"strings"
@@ -55,17 +56,24 @@ func main() {
 			if err == nil {
 				return nil
 			}
+			if err != config.ErrConfigFileNotFound {
+				return fmt.Errorf("error loading Common Fate config: %w", err)
+			}
+
+			if os.Getenv("CI") == "true" {
+				return fmt.Errorf("failed to load Common Fate config from file (returning early because the 'CI' environment variable is 'true', which usually indicates you're running this in a CI environment): %w", err)
+			}
 
 			clio.Debugw("failed to load config from file, will prompt user to configure", zap.Error(err))
 
 			// prompt for an App URL to load initial config
 			clio.Info("It looks like this is your first time using the Common Fate CLI")
 			clio.Info("To get started, you need to configure the CLI to connect to your team's Common Fate deployment")
-			clio.Info("This is simple, just enter the URL of your deployment, e.g https://commonfate.example.com")
+			clio.Info("Enter the URL of your deployment, e.g https://commonfate.example.com")
 
 			var u string
 			err = survey.AskOne(&survey.Input{
-				Message: "Enter the URL of your teams Common Fate deployment:",
+				Message: "The URL of your team's Common Fate deployment:",
 			}, &u, survey.WithValidator(func(ans interface{}) error {
 				a := EnsureURLScheme(ans.(string))
 				url, err := url.Parse(a)
