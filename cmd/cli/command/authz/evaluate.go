@@ -52,7 +52,10 @@ var evaluateCommand = cli.Command{
 			Action:    action,
 			Resource:  resource,
 		}
-		batch.AddRequest(req)
+		err = batch.AddRequest(req)
+		if err != nil {
+			return err
+		}
 
 		err = batch.Authorize(ctx)
 		if err != nil {

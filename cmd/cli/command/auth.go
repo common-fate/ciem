@@ -117,7 +117,10 @@ var setCommand = cli.Command{
 			return err
 		}
 
-		cfg.TokenStore.Save(&tok)
+		err = cfg.TokenStore.Save(&tok)
+		if err != nil {
+			return err
+		}
 
 		return nil
 	},
