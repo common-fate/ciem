@@ -41,7 +41,7 @@ var userAccess = cli.Command{
 
 		targetType := c.String("target-type")
 
-		res, err := client.PreviewEntitlements(ctx, connect.NewRequest(&accessv1alpha1.PreviewEntitlementsRequest{
+		res, err := client.PreviewUserAccess(ctx, connect.NewRequest(&accessv1alpha1.PreviewUserAccessRequest{
 			Principal: &accessv1alpha1.Specifier{
 				Specify: &accessv1alpha1.Specifier_Lookup{
 					Lookup: c.String("principal"),
