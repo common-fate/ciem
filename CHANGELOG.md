@@ -1,5 +1,11 @@
 # @common-fate/cli
 
+## 1.12.0
+
+### Minor Changes
+
+- 922c95f: Adds support for specifying config sources via the CF_CONFIG_SOURCES environment variable. You can now use `CF_CONFIG_SOURCES=env` in CI environments to configure the CLI entirely via environment variables.
+
 ## 1.11.0
 
 ### Minor Changes
