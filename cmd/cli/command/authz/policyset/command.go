@@ -9,5 +9,6 @@ var Command = cli.Command{
 		&listCommand,
 		&updateCommand,
 		&deleteCommand,
+		&validateCommand,
 	},
 }

@@ -79,12 +79,11 @@ func TestGapWithChildren2(t *testing.T) {
 	actual := tree.String()
 	expected := `.
 ├── hello
-│   │
 │   ├── foo
 │   └── bar
 │
+│
 └── world
-    │
     ├── foo
     └── bar
 `
