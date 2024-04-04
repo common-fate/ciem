@@ -10,7 +10,6 @@ import (
 	sawconfig "github.com/TylerBrock/saw/config"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
 	"github.com/common-fate/clio"
 	"github.com/urfave/cli/v2"
@@ -90,14 +89,6 @@ func validateServices(services []string) error {
 		}
 	}
 	return nil
-}
-func getCFNOutput(key string, outputs []types.Output) (string, error) {
-	for _, o := range outputs {
-		if o.OutputKey != nil && *o.OutputKey == key {
-			return *o.OutputValue, nil
-		}
-	}
-	return "", fmt.Errorf("could not find %s output", key)
 }
 
 type GetEventsOpts struct {
