@@ -38,9 +38,9 @@ var validateCommand = cli.Command{
 		}
 
 		if len(files) == 1 {
-			fmt.Printf("validating 1 policy\n")
+			fmt.Printf("validating 1 policyset file\n")
 		} else {
-			fmt.Printf("validating %v policies\n", len(files))
+			fmt.Printf("validating %v policyset files\n", len(files))
 		}
 
 		results := map[string]*authzv1alpha1.ValidationResult{}
