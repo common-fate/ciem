@@ -23,7 +23,7 @@ var diagnosticsCommand = cli.Command{
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "output", Value: "text", Usage: "output format ('text' or 'json')"},
 	},
-	Subcommands: []*cli.Command{&backgroundTasksCommand},
+	Subcommands: []*cli.Command{&backgroundTasksCommand, &backgroundTasksGetCommand},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
 
@@ -106,6 +106,110 @@ func JobStateFromString(state string) (diagnosticv1alpha1.JobState, error) {
 	default:
 		return diagnosticv1alpha1.JobState_JOB_STATE_UNSPECIFIED, fmt.Errorf("invalid job state: '%s', valid states are ['available','cancelled','completed','discarded','retryable','running','scheduled']", state)
 	}
+}
+
+type JobSummary struct {
+	Id            string
+	Name          string
+	LastRun       time.Time
+	NextRun       time.Time
+	Errors        string
+	CurrentStatus string
+}
+
+var backgroundTasksGetCommand = cli.Command{
+	Name:  "get",
+	Usage: "Retrieve a stream of updates on all background tasks running",
+	Flags: []cli.Flag{
+		&cli.StringFlag{Name: "output", Value: "text", Usage: "output format ('text' or 'json')"},
+		// &cli.StringSliceFlag{Name: "kinds"},
+		// &cli.StringFlag{Name: "state", Required: true, Usage: "valid states are ['available','cancelled','completed','discarded','retryable','running','scheduled']"},
+		// &cli.Int64Flag{Name: "count"},
+	},
+	Action: func(c *cli.Context) error {
+		ctx := c.Context
+		outputFormat := c.String("output")
+
+		if outputFormat != "text" && outputFormat != "json" {
+			return errors.New("--output flag must be either 'text' or 'json'")
+		}
+
+		cfg, err := config.LoadDefault(ctx)
+		if err != nil {
+			return err
+		}
+
+		client := diagnostic.NewFromConfig(cfg)
+
+		kinds, err := client.ListBackgroundJobKinds(ctx, connect.NewRequest(&diagnosticv1alpha1.ListBackgroundJobKindsRequest{}))
+		if err != nil {
+			return err
+		}
+		jobsSummary := map[string]JobSummary{}
+
+		//pulling the latest update from each kind of job
+		for _, kind := range kinds.Msg.Kinds {
+			backgroundJobs, err := client.ListBackgroundJobs(ctx, connect.NewRequest(&diagnosticv1alpha1.ListBackgroundJobsRequest{
+				Kinds: []string{kind},
+				Count: grab.Ptr(int64(10)),
+				// State: state,
+			}))
+			if err != nil {
+				return err
+			}
+			for _, job := range backgroundJobs.Msg.Jobs {
+
+				if savedJob, ok := jobsSummary[job.Kind]; !ok {
+					jobsSummary[job.Kind] = JobSummary{
+						Id:            strconv.Itoa(int(job.Id)),
+						Name:          job.Kind,
+						CurrentStatus: job.State,
+						LastRun:       job.CreatedAt.AsTime(),
+						NextRun:       job.ScheduledAt.AsTime(),
+						// Errors:        fmt.Sprintf("%v", job.Errors),
+						Errors: "",
+					}
+				} else {
+					if job.CreatedAt.AsTime().Second() > savedJob.LastRun.Second() {
+						jobsSummary[job.Kind] = JobSummary{
+							Id:            strconv.Itoa(int(job.Id)),
+							Name:          job.Kind,
+							CurrentStatus: job.State,
+							LastRun:       job.CreatedAt.AsTime(),
+							NextRun:       job.ScheduledAt.AsTime(),
+							// Errors:        fmt.Sprintf("%v", job.Errors),
+							Errors: "",
+						}
+					}
+				}
+			}
+		}
+
+		switch outputFormat {
+		case "text":
+			fmt.Println("Background Jobs")
+			tbl := table.New(os.Stdout)
+			tbl.Columns("ID", "KIND", "STATE", "OCCURED_AT", "ERRORS")
+			for _, job := range jobsSummary {
+
+				tbl.Row(job.Id, job.Name, job.CurrentStatus, job.LastRun.String(), job.Errors)
+			}
+
+			err = tbl.Flush()
+			if err != nil {
+				return err
+			}
+
+		case "json":
+			// resJSON, err := protojson.Marshal(backgroundJobs.Msg)
+			// if err != nil {
+			// 	return err
+			// }
+			// fmt.Println(string(resJSON))
+		}
+
+		return nil
+	},
 }
 
 var backgroundTasksCommand = cli.Command{
