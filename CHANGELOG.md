@@ -1,5 +1,11 @@
 # @common-fate/cli
 
+## 1.12.1
+
+### Patch Changes
+
+- 2c79b0d: Fixes a regression in the Keychain which meant switching contexts would require re-authenticating
+
 ## 1.12.0
 
 ### Minor Changes
