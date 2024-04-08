@@ -11,5 +11,8 @@
   },
   "scripts": {
     "changeset": "changeset"
+  },
+  "dependencies": {
+    "changeset": "^0.2.6"
   }
 }
