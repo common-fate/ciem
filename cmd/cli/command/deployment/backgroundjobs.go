@@ -113,7 +113,7 @@ var batchCancelJobCommand = cli.Command{
 			backgroundJobs, err := diagClient.ListBackgroundJobs(ctx, connect.NewRequest(&diagnosticv1alpha1.ListBackgroundJobsRequest{
 				Kinds: kinds,
 				Count: grab.Ptr(int64(10000)),
-				State: state,
+				State: &state,
 			}))
 			if err != nil {
 				return err
@@ -164,10 +164,11 @@ var batchRetryJobCommand = cli.Command{
 		kinds := c.StringSlice("kinds")
 
 		diagClient := diagnostic.NewFromConfig(cfg)
+		state := diagnosticv1alpha1.JobState_JOB_STATE_RETRYABLE
 		backgroundJobs, err := diagClient.ListBackgroundJobs(ctx, connect.NewRequest(&diagnosticv1alpha1.ListBackgroundJobsRequest{
 			Kinds: kinds,
 			Count: grab.Ptr(int64(10000)),
-			State: diagnosticv1alpha1.JobState_JOB_STATE_RETRYABLE,
+			State: &state,
 		}))
 		if err != nil {
 			return err

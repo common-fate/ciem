@@ -23,7 +23,7 @@ var diagnosticsCommand = cli.Command{
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "output", Value: "text", Usage: "output format ('text' or 'json')"},
 	},
-	Subcommands: []*cli.Command{&backgroundTasksCommand, &backgroundTasksGetCommand},
+	Subcommands: []*cli.Command{&backgroundTasksCommand},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
 
@@ -104,7 +104,7 @@ func JobStateFromString(state string) (diagnosticv1alpha1.JobState, error) {
 	case "scheduled":
 		return diagnosticv1alpha1.JobState_JOB_STATE_SCHEDULED, nil
 	default:
-		return diagnosticv1alpha1.JobState_JOB_STATE_UNSPECIFIED, fmt.Errorf("invalid job state: '%s', valid states are ['available','cancelled','completed','discarded','retryable','running','scheduled']", state)
+		return diagnosticv1alpha1.JobState_JOB_STATE_UNSPECIFIED, nil
 	}
 }
 
@@ -117,50 +117,13 @@ type JobSummary struct {
 	CurrentStatus string
 }
 
-var backgroundTasksGetCommand = cli.Command{
-	Name:  "get",
-	Usage: "Retrieve a overview of all background tasks running",
-	Flags: []cli.Flag{},
-	Action: func(c *cli.Context) error {
-		ctx := c.Context
-
-		cfg, err := config.LoadDefault(ctx)
-		if err != nil {
-			return err
-		}
-
-		client := diagnostic.NewFromConfig(cfg)
-
-		fmt.Println("Background Jobs")
-		tbl := table.New(os.Stdout)
-		tbl.Columns("ID", "KIND", "STATE", "OCCURED_AT", "TIME_ELAPSED", "ERRORS")
-		kinds, err := client.ListBackgroundJobKindSummary(ctx, connect.NewRequest(&diagnosticv1alpha1.ListBackgroundJobKindSummaryRequest{}))
-		if err != nil {
-			return err
-		}
-
-		//pulling the latest update from each kind of job
-		for _, job := range kinds.Msg.Jobs {
-
-			tbl.Row(job.Id, job.Kind, job.State, job.LastRun.AsTime().Local().String(), job.TimeElapsed.AsDuration().String(), job.Errors)
-		}
-
-		err = tbl.Flush()
-		if err != nil {
-			return err
-		}
-
-		return nil
-	},
-}
-
 var backgroundTasksCommand = cli.Command{
 	Name:  "background-jobs",
 	Usage: "Retrieve diagnostics about your deployments background jobs",
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "output", Value: "text", Usage: "output format ('text' or 'json')"},
 		&cli.StringSliceFlag{Name: "kinds"},
-		&cli.StringFlag{Name: "state", Required: true, Usage: "valid states are ['available','cancelled','completed','discarded','retryable','running','scheduled']"},
+		&cli.StringFlag{Name: "state", Usage: "valid states are ['available','cancelled','completed','discarded','retryable','running','scheduled']"},
 		&cli.Int64Flag{Name: "count"},
 	},
 	Action: func(c *cli.Context) error {
@@ -172,10 +135,9 @@ var backgroundTasksCommand = cli.Command{
 			return errors.New("--output flag must be either 'text' or 'json'")
 		}
 
-		state, err := JobStateFromString(c.String("state"))
-		if err != nil {
-			return err
-		}
+		// if c.StringSlice("kinds") != nil && c.String("state") == "" {
+		// 	return errors.New("flag --kinds must be used with --state flag")
+		// }
 
 		cfg, err := config.LoadDefault(ctx)
 		if err != nil {
@@ -184,10 +146,37 @@ var backgroundTasksCommand = cli.Command{
 
 		client := diagnostic.NewFromConfig(cfg)
 
+		if c.String("state") == "" && c.StringSlice("kinds") == nil {
+			fmt.Println("Background Jobs")
+			tbl := table.New(os.Stdout)
+			tbl.Columns("ID", "KIND", "STATE", "LAST_STARTED_AT", "TIME_ELAPSED", "ERRORS")
+			kinds, err := client.ListBackgroundJobKindSummary(ctx, connect.NewRequest(&diagnosticv1alpha1.ListBackgroundJobKindSummaryRequest{}))
+			if err != nil {
+				return err
+			}
+
+			//pulling the latest update from each kind of job
+			for _, job := range kinds.Msg.Jobs {
+
+				tbl.Row(job.Id, job.Kind, job.State, job.LastRun.AsTime().Local().String(), job.TimeElapsed.AsDuration().String(), job.Errors)
+			}
+
+			err = tbl.Flush()
+			if err != nil {
+				return err
+			}
+			return nil
+		}
+
+		state, err := JobStateFromString(c.String("state"))
+		if err != nil {
+			return err
+		}
+
 		backgroundJobs, err := client.ListBackgroundJobs(ctx, connect.NewRequest(&diagnosticv1alpha1.ListBackgroundJobsRequest{
 			Kinds: c.StringSlice("kinds"),
 			Count: grab.If(c.Int64("count") > 0, grab.Ptr(c.Int64("count")), grab.Ptr(int64(100))),
-			State: state,
+			State: grab.If(c.String("state") == "", nil, &state),
 		}))
 		if err != nil {
 			return err
@@ -195,6 +184,7 @@ var backgroundTasksCommand = cli.Command{
 
 		switch outputFormat {
 		case "text":
+
 			fmt.Println("Background Jobs")
 			tbl := table.New(os.Stdout)
 			tbl.Columns("ID", "KIND", "STATE", "OCCURED_AT")
