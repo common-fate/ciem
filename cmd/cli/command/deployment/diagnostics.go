@@ -141,58 +141,20 @@ var backgroundTasksGetCommand = cli.Command{
 
 		client := diagnostic.NewFromConfig(cfg)
 
-		kinds, err := client.ListBackgroundJobKinds(ctx, connect.NewRequest(&diagnosticv1alpha1.ListBackgroundJobKindsRequest{}))
-		if err != nil {
-			return err
-		}
-		jobsSummary := map[string]JobSummary{}
-
-		//pulling the latest update from each kind of job
-		for _, kind := range kinds.Msg.Kinds {
-			backgroundJobs, err := client.ListBackgroundJobs(ctx, connect.NewRequest(&diagnosticv1alpha1.ListBackgroundJobsRequest{
-				Kinds: []string{kind},
-				Count: grab.Ptr(int64(10)),
-				// State: state,
-			}))
-			if err != nil {
-				return err
-			}
-			for _, job := range backgroundJobs.Msg.Jobs {
-
-				if savedJob, ok := jobsSummary[job.Kind]; !ok {
-					jobsSummary[job.Kind] = JobSummary{
-						Id:            strconv.Itoa(int(job.Id)),
-						Name:          job.Kind,
-						CurrentStatus: job.State,
-						LastRun:       job.CreatedAt.AsTime(),
-						NextRun:       job.ScheduledAt.AsTime(),
-						// Errors:        fmt.Sprintf("%v", job.Errors),
-						Errors: "",
-					}
-				} else {
-					if job.CreatedAt.AsTime().Second() > savedJob.LastRun.Second() {
-						jobsSummary[job.Kind] = JobSummary{
-							Id:            strconv.Itoa(int(job.Id)),
-							Name:          job.Kind,
-							CurrentStatus: job.State,
-							LastRun:       job.CreatedAt.AsTime(),
-							NextRun:       job.ScheduledAt.AsTime(),
-							// Errors:        fmt.Sprintf("%v", job.Errors),
-							Errors: "",
-						}
-					}
-				}
-			}
-		}
-
 		switch outputFormat {
 		case "text":
 			fmt.Println("Background Jobs")
 			tbl := table.New(os.Stdout)
-			tbl.Columns("ID", "KIND", "STATE", "OCCURED_AT", "ERRORS")
-			for _, job := range jobsSummary {
+			tbl.Columns("ID", "KIND", "STATE", "OCCURED_AT", "TIME_ELAPSED", "ERRORS")
+			kinds, err := client.ListBackgroundJobKindSummary(ctx, connect.NewRequest(&diagnosticv1alpha1.ListBackgroundJobKindSummaryRequest{}))
+			if err != nil {
+				return err
+			}
 
-				tbl.Row(job.Id, job.Name, job.CurrentStatus, job.LastRun.String(), job.Errors)
+			//pulling the latest update from each kind of job
+			for _, job := range kinds.Msg.Jobs {
+
+				tbl.Row(job.Id, job.Kind, job.State, job.LastRun.AsTime().String(), job.TimeElapsed.AsDuration().String(), job.Errors)
 			}
 
 			err = tbl.Flush()
