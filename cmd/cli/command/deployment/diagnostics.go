@@ -159,7 +159,7 @@ var backgroundTasksCommand = cli.Command{
 			//pulling the latest update from each kind of job
 			for _, job := range kinds.Msg.Jobs {
 
-				tbl.Row(job.Id, job.Kind, job.State, job.LastRun.AsTime().Local().String(), job.TimeElapsed.AsDuration().String(), job.Errors)
+				tbl.Row(job.Id, job.Kind, job.State, job.LastRun.AsTime().Local().String(), job.TimeElapsed.AsDuration().String(), fmt.Sprintf("%v", job.Errors))
 			}
 
 			err = tbl.Flush()
