@@ -119,7 +119,7 @@ type JobSummary struct {
 
 var backgroundTasksGetCommand = cli.Command{
 	Name:  "get",
-	Usage: "Retrieve a stream of updates on all background tasks running",
+	Usage: "Retrieve a overview of all background tasks running",
 	Flags: []cli.Flag{},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
