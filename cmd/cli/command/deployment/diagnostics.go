@@ -147,13 +147,14 @@ var backgroundTasksCommand = cli.Command{
 		client := diagnostic.NewFromConfig(cfg)
 
 		if c.String("state") == "" && c.StringSlice("kinds") == nil {
-			fmt.Println("Background Jobs")
-			tbl := table.New(os.Stdout)
-			tbl.Columns("ID", "KIND", "STATE", "LAST_STARTED_AT", "TIME_ELAPSED", "ERRORS")
 			kinds, err := client.ListBackgroundJobKindSummary(ctx, connect.NewRequest(&diagnosticv1alpha1.ListBackgroundJobKindSummaryRequest{}))
 			if err != nil {
 				return err
 			}
+
+			fmt.Println("Background Jobs")
+			tbl := table.New(os.Stdout)
+			tbl.Columns("ID", "KIND", "STATE", "LAST_STARTED_AT", "TIME_ELAPSED", "ERRORS")
 
 			//pulling the latest update from each kind of job
 			for _, job := range kinds.Msg.Jobs {
