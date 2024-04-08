@@ -120,19 +120,9 @@ type JobSummary struct {
 var backgroundTasksGetCommand = cli.Command{
 	Name:  "get",
 	Usage: "Retrieve a stream of updates on all background tasks running",
-	Flags: []cli.Flag{
-		&cli.StringFlag{Name: "output", Value: "text", Usage: "output format ('text' or 'json')"},
-		// &cli.StringSliceFlag{Name: "kinds"},
-		// &cli.StringFlag{Name: "state", Required: true, Usage: "valid states are ['available','cancelled','completed','discarded','retryable','running','scheduled']"},
-		// &cli.Int64Flag{Name: "count"},
-	},
+	Flags: []cli.Flag{},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
-		outputFormat := c.String("output")
-
-		if outputFormat != "text" && outputFormat != "json" {
-			return errors.New("--output flag must be either 'text' or 'json'")
-		}
 
 		cfg, err := config.LoadDefault(ctx)
 		if err != nil {
@@ -141,33 +131,23 @@ var backgroundTasksGetCommand = cli.Command{
 
 		client := diagnostic.NewFromConfig(cfg)
 
-		switch outputFormat {
-		case "text":
-			fmt.Println("Background Jobs")
-			tbl := table.New(os.Stdout)
-			tbl.Columns("ID", "KIND", "STATE", "OCCURED_AT", "TIME_ELAPSED", "ERRORS")
-			kinds, err := client.ListBackgroundJobKindSummary(ctx, connect.NewRequest(&diagnosticv1alpha1.ListBackgroundJobKindSummaryRequest{}))
-			if err != nil {
-				return err
-			}
+		fmt.Println("Background Jobs")
+		tbl := table.New(os.Stdout)
+		tbl.Columns("ID", "KIND", "STATE", "OCCURED_AT", "TIME_ELAPSED", "ERRORS")
+		kinds, err := client.ListBackgroundJobKindSummary(ctx, connect.NewRequest(&diagnosticv1alpha1.ListBackgroundJobKindSummaryRequest{}))
+		if err != nil {
+			return err
+		}
 
-			//pulling the latest update from each kind of job
-			for _, job := range kinds.Msg.Jobs {
+		//pulling the latest update from each kind of job
+		for _, job := range kinds.Msg.Jobs {
 
-				tbl.Row(job.Id, job.Kind, job.State, job.LastRun.AsTime().String(), job.TimeElapsed.AsDuration().String(), job.Errors)
-			}
+			tbl.Row(job.Id, job.Kind, job.State, job.LastRun.AsTime().Local().String(), job.TimeElapsed.AsDuration().String(), job.Errors)
+		}
 
-			err = tbl.Flush()
-			if err != nil {
-				return err
-			}
-
-		case "json":
-			// resJSON, err := protojson.Marshal(backgroundJobs.Msg)
-			// if err != nil {
-			// 	return err
-			// }
-			// fmt.Println(string(resJSON))
+		err = tbl.Flush()
+		if err != nil {
+			return err
 		}
 
 		return nil
