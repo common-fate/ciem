@@ -29,7 +29,7 @@ var ensureCommand = cli.Command{
 	Flags: []cli.Flag{
 		&cli.StringSliceFlag{Name: "target", Required: true},
 		&cli.StringSliceFlag{Name: "role", Required: true},
-		&cli.StringSliceFlag{Name: "duration", Aliases: []string{"d"}, Usage: "Override the default duration with a custom one. Must be less than the max duration available."},
+		&cli.DurationFlag{Name: "duration", Aliases: []string{"d"}, Usage: "Override the default duration with a custom one. Must be less than the max duration available."},
 		&cli.StringFlag{Name: "output", Value: "text", Usage: "output format ('text' or 'json')"},
 		&cli.StringFlag{Name: "reason", Usage: "The reason for requesting access"},
 		&cli.BoolFlag{Name: "confirm", Aliases: []string{"y"}, Usage: "skip the confirmation prompt"},
@@ -51,15 +51,10 @@ var ensureCommand = cli.Command{
 
 		targets := c.StringSlice("target")
 		roles := c.StringSlice("role")
-		duration := c.StringSlice("duration")
+		duration := c.Duration("duration")
 
 		if len(targets) != len(roles) {
 			return errors.New("you need to provide --role flag for each --target flag. For example:\n'cf jit request access --target AWS::Account::123456789012 --role AdministratorAccess --target OtherAccount --role Developer")
-		}
-
-		if duration != nil && len(targets) != len(duration) {
-
-			return errors.New("you need to provide a --duration for each --target flag.")
 		}
 
 		apiURL, err := url.Parse(cfg.APIURL)
@@ -90,12 +85,8 @@ var ensureCommand = cli.Command{
 				},
 			}
 
-			if duration != nil && duration[i] != "" {
-				overrideDuration, err := time.ParseDuration(duration[i])
-				if err != nil {
-					return err
-				}
-				ent.Duration = durationpb.New(overrideDuration)
+			if duration > 0 {
+				ent.Duration = durationpb.New(duration)
 			}
 			req.Entitlements = append(req.Entitlements, ent)
 		}
