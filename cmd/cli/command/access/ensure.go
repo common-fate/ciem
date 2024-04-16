@@ -104,16 +104,6 @@ var ensureCommand = cli.Command{
 			}
 			req.Entitlements = append(req.Entitlements, ent)
 
-			//example profile
-			// [profile demo-sandbox1]
-			// granted_sso_start_url  = https://d-976708da7d.awsapps.com/start
-			// granted_sso_region     = ap-southeast-2
-			// granted_sso_account_id = 616777145260
-			// granted_sso_role_name  = AWSAdministratorAccess
-			// # common_fate_url        = https://internal.commonfate.io
-			// region                 = ap-southeast-2
-			// credential_process     = granted credential-process --profile demo-sandbox1 --url https://internal.prod.granted.run
-
 			gConf, err := grantedConfig.Load()
 			if err != nil {
 				return err
