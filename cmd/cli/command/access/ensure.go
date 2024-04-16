@@ -8,15 +8,21 @@ import (
 	"strings"
 	"time"
 
+	"github.com/common-fate/awsconfigfile"
+	grantedConfig "github.com/common-fate/granted/pkg/config"
+
 	"connectrpc.com/connect"
 	"github.com/briandowns/spinner"
+	"github.com/common-fate/cli/awsconfig"
 	"github.com/common-fate/cli/printdiags"
+	"github.com/common-fate/cli/profilesource"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/grab"
 	"github.com/common-fate/sdk/config"
 	"github.com/common-fate/sdk/eid"
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
 	"github.com/common-fate/sdk/service/access"
+	account "github.com/common-fate/sdk/service/control/account"
 	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -70,6 +76,14 @@ var ensureCommand = cli.Command{
 			},
 		}
 
+		//lookup the aws config file
+		awsConfig, filepath, err := awsconfig.LoadAWSConfigFile()
+		if err != nil {
+			return err
+		}
+
+		accountClient := account.NewFromConfig(cfg)
+
 		for i, target := range targets {
 
 			ent := &accessv1alpha1.EntitlementInput{
@@ -89,6 +103,55 @@ var ensureCommand = cli.Command{
 				ent.Duration = durationpb.New(duration)
 			}
 			req.Entitlements = append(req.Entitlements, ent)
+
+			//example profile
+			// [profile demo-sandbox1]
+			// granted_sso_start_url  = https://d-976708da7d.awsapps.com/start
+			// granted_sso_region     = ap-southeast-2
+			// granted_sso_account_id = 616777145260
+			// granted_sso_role_name  = AWSAdministratorAccess
+			// # common_fate_url        = https://internal.commonfate.io
+			// region                 = ap-southeast-2
+			// credential_process     = granted credential-process --profile demo-sandbox1 --url https://internal.prod.granted.run
+
+			gConf, err := grantedConfig.Load()
+			if err != nil {
+				return err
+			}
+
+			startURL := gConf.CommonFateDefaultSSOStartURL
+
+			region := gConf.CommonFateDefaultSSORegion
+
+			pruneStartURLs := []string{startURL}
+
+			g := awsconfigfile.Generator{
+				Config:              awsConfig,
+				ProfileNameTemplate: awsconfigfile.DefaultProfileNameTemplate,
+				NoCredentialProcess: false,
+				Prefix:              "",
+				PruneStartURLs:      pruneStartURLs,
+			}
+
+			ps := profilesource.Source{
+				Entitlements: req.Entitlements,
+				SSORegion:    region,
+				StartURL:     startURL,
+				DashboardURL: cfg.APIURL,
+				Client:       accountClient,
+			}
+			g.AddSource(ps)
+			clio.Info("Updating your AWS config file (~/.aws/config) with profiles from Common Fate...")
+			err = g.Generate(ctx)
+			if err != nil {
+				return err
+			}
+
+			err = awsConfig.SaveTo(filepath)
+			if err != nil {
+				return err
+			}
+
 		}
 
 		if !c.Bool("confirm") {
@@ -106,6 +169,11 @@ var ensureCommand = cli.Command{
 		}
 
 		// if we get here, dry-run has passed the user has confirmed they want to proceed.
+
+		//build up profiles based on the requested entitlements and put them into ini format
+
+		//call granteds merge method to merge together the new profiles and the current aws config state. This should handle duplicates
+
 		req.DryRun = false
 
 		si := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
