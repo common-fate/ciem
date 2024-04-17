@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"path/filepath"
 
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/common-fate/clio"
 	"gopkg.in/ini.v1"
 )
@@ -28,23 +28,21 @@ func loadAWSConfigFileFromPath(filepath string) (*ini.File, error) {
 	return awsConfig, nil
 }
 
-// Find the ~/.aws/config absolute path based on OS.
-func getDefaultAWSConfigLocation() (string, error) {
-	h, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
+// GetAWSConfigPath will return default AWS config file path unless $AWS_CONFIG_FILE
+// environment variable is set
+func GetAWSConfigPath() string {
+	file := os.Getenv("AWS_CONFIG_FILE")
+	if file != "" {
+		clio.Debugf("using aws config filepath: %s", file)
+		return file
 	}
 
-	configPath := filepath.Join(h, ".aws", "config")
-	return configPath, nil
+	return config.DefaultSharedConfigFilename()
 }
 
 // loadAWSConfigFile loads the `~/.aws/config` file, and creates it if it doesn't exist.
 func LoadAWSConfigFile() (*ini.File, string, error) {
-	filepath, err := getDefaultAWSConfigLocation()
-	if err != nil {
-		return nil, "", err
-	}
+	filepath := GetAWSConfigPath()
 
 	if _, err := os.Stat(filepath); os.IsNotExist(err) {
 		clio.Infof("created AWS config file: %s", filepath)
