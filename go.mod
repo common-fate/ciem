@@ -1,6 +1,6 @@
 module github.com/common-fate/cli
 
-go 1.21.3
+go 1.22.0
 
 require (
 	connectrpc.com/connect v1.14.0
@@ -14,8 +14,8 @@ require (
 	github.com/common-fate/clio v1.2.3
 	github.com/common-fate/glide-cli v0.6.0
 	github.com/common-fate/grab v1.3.0
-	github.com/common-fate/granted v0.20.6
-	github.com/common-fate/sdk v1.24.1-0.20240416070331-a8b8f3db1ab4
+	github.com/common-fate/granted v0.23.0
+	github.com/common-fate/sdk v1.24.1-0.20240417000603-974db8bf32e1
 	github.com/fatih/color v1.16.0
 	github.com/mattn/go-isatty v0.0.20
 	github.com/pkg/errors v0.9.1

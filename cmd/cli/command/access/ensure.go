@@ -8,21 +8,22 @@ import (
 	"strings"
 	"time"
 
-	"github.com/common-fate/awsconfigfile"
-	grantedConfig "github.com/common-fate/granted/pkg/config"
+	"github.com/common-fate/granted/pkg/granted/awsmerge"
+	"gopkg.in/ini.v1"
 
 	"connectrpc.com/connect"
 	"github.com/briandowns/spinner"
 	"github.com/common-fate/cli/awsconfig"
 	"github.com/common-fate/cli/printdiags"
-	"github.com/common-fate/cli/profilesource"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/grab"
 	"github.com/common-fate/sdk/config"
 	"github.com/common-fate/sdk/eid"
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
+	awsv1alpha1 "github.com/common-fate/sdk/gen/granted/registry/aws/v1alpha1"
+	grantedv1alpha1 "github.com/common-fate/sdk/service/granted/registry"
+
 	"github.com/common-fate/sdk/service/access"
-	account "github.com/common-fate/sdk/service/control/account"
 	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -82,7 +83,9 @@ var ensureCommand = cli.Command{
 			return err
 		}
 
-		accountClient := account.NewFromConfig(cfg)
+		accountClient := grantedv1alpha1.NewFromConfig(cfg)
+
+		newConfigs := ini.Empty()
 
 		for i, target := range targets {
 
@@ -104,44 +107,69 @@ var ensureCommand = cli.Command{
 			}
 			req.Entitlements = append(req.Entitlements, ent)
 
-			gConf, err := grantedConfig.Load()
+			// gConf, err := grantedConfig.Load()
+			// if err != nil {
+			// 	return err
+			// }
+
+			// startURL := gConf.CommonFateDefaultSSOStartURL
+
+			// region := gConf.CommonFateDefaultSSORegion
+
+			// pruneStartURLs := []string{startURL}
+
+			profileFromCF, err := accountClient.GetProfileForAccountAndRole(ctx, &connect.Request[awsv1alpha1.GetProfileForAccountAndRoleRequest]{
+				Msg: &awsv1alpha1.GetProfileForAccountAndRoleRequest{
+					AccountId: target,
+					RoleName:  roles[i],
+				},
+			})
 			if err != nil {
 				return err
 			}
 
-			startURL := gConf.CommonFateDefaultSSOStartURL
+			//build up a new section for each profile being added
 
-			region := gConf.CommonFateDefaultSSORegion
-
-			pruneStartURLs := []string{startURL}
-
-			g := awsconfigfile.Generator{
-				Config:              awsConfig,
-				ProfileNameTemplate: awsconfigfile.DefaultProfileNameTemplate,
-				NoCredentialProcess: false,
-				Prefix:              "",
-				PruneStartURLs:      pruneStartURLs,
-			}
-
-			ps := profilesource.Source{
-				Entitlements: req.Entitlements,
-				SSORegion:    region,
-				StartURL:     startURL,
-				DashboardURL: cfg.APIURL,
-				Client:       accountClient,
-			}
-			g.AddSource(ps)
-			clio.Info("Updating your AWS config file (~/.aws/config) with profiles from Common Fate...")
-			err = g.Generate(ctx)
+			newSection, err := newConfigs.NewSection(profileFromCF.Msg.Profile.Name)
 			if err != nil {
 				return err
 			}
 
-			err = awsConfig.SaveTo(filepath)
-			if err != nil {
-				return err
+			for _, item := range profileFromCF.Msg.Profile.Attributes {
+				newSection.NewKey(item.Key, item.Value)
+
 			}
 
+			// g := awsconfigfile.Generator{
+			// 	Config:              awsConfig,
+			// 	ProfileNameTemplate: awsconfigfile.DefaultProfileNameTemplate,
+			// 	NoCredentialProcess: false,
+			// 	Prefix:              "",
+			// 	PruneStartURLs:      pruneStartURLs,
+			// }
+
+			// ps := profilesource.Source{
+			// 	Entitlements: req.Entitlements,
+			// 	SSORegion:    region,
+			// 	StartURL:     startURL,
+			// 	DashboardURL: cfg.APIURL,
+			// 	Client:       accountClient,
+			// }
+			// g.AddSource(ps)
+			// clio.Info("Updating your AWS config file (~/.aws/config) with profiles from Common Fate...")
+			// err = g.Generate(ctx)
+
+		}
+
+		m := awsmerge.Merger{}
+
+		merged, err := m.WithRegistry(newConfigs, awsConfig, awsmerge.RegistryOpts{})
+		if err != nil {
+			return err
+		}
+		err = merged.SaveTo(filepath)
+		if err != nil {
+			return err
 		}
 
 		if !c.Bool("confirm") {
