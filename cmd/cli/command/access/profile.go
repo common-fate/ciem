@@ -34,7 +34,10 @@ func AddProfileToConfig(opts MergeOpts) error {
 	}
 	//add all the attributes returned from CF
 	for _, item := range opts.ProfileAttributes {
-		newSection.NewKey(item.Key, item.Value)
+		_, err := newSection.NewKey(item.Key, item.Value)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
