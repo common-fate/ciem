@@ -8,9 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/common-fate/granted/pkg/granted/awsmerge"
-	"gopkg.in/ini.v1"
-
 	"connectrpc.com/connect"
 	"github.com/briandowns/spinner"
 	"github.com/common-fate/cli/awsconfig"
@@ -85,8 +82,6 @@ var ensureCommand = cli.Command{
 
 		accountClient := grantedv1alpha1.NewFromConfig(cfg)
 
-		newConfigs := ini.Empty()
-
 		for i, target := range targets {
 
 			ent := &accessv1alpha1.EntitlementInput{
@@ -107,17 +102,6 @@ var ensureCommand = cli.Command{
 			}
 			req.Entitlements = append(req.Entitlements, ent)
 
-			// gConf, err := grantedConfig.Load()
-			// if err != nil {
-			// 	return err
-			// }
-
-			// startURL := gConf.CommonFateDefaultSSOStartURL
-
-			// region := gConf.CommonFateDefaultSSORegion
-
-			// pruneStartURLs := []string{startURL}
-
 			profileFromCF, err := accountClient.GetProfileForAccountAndRole(ctx, &connect.Request[awsv1alpha1.GetProfileForAccountAndRoleRequest]{
 				Msg: &awsv1alpha1.GetProfileForAccountAndRoleRequest{
 					AccountId: target,
@@ -129,45 +113,15 @@ var ensureCommand = cli.Command{
 			}
 
 			//build up a new section for each profile being added
-
-			newSection, err := newConfigs.NewSection(profileFromCF.Msg.Profile.Name)
-			if err != nil {
-				return err
-			}
-
-			for _, item := range profileFromCF.Msg.Profile.Attributes {
-				newSection.NewKey(item.Key, item.Value)
-
-			}
-
-			// g := awsconfigfile.Generator{
-			// 	Config:              awsConfig,
-			// 	ProfileNameTemplate: awsconfigfile.DefaultProfileNameTemplate,
-			// 	NoCredentialProcess: false,
-			// 	Prefix:              "",
-			// 	PruneStartURLs:      pruneStartURLs,
-			// }
-
-			// ps := profilesource.Source{
-			// 	Entitlements: req.Entitlements,
-			// 	SSORegion:    region,
-			// 	StartURL:     startURL,
-			// 	DashboardURL: cfg.APIURL,
-			// 	Client:       accountClient,
-			// }
-			// g.AddSource(ps)
-			// clio.Info("Updating your AWS config file (~/.aws/config) with profiles from Common Fate...")
-			// err = g.Generate(ctx)
+			AddProfileToConfig(MergeOpts{
+				Config:            awsConfig,
+				ProfileName:       profileFromCF.Msg.Profile.Name,
+				ProfileAttributes: profileFromCF.Msg.Profile.Attributes,
+			})
 
 		}
 
-		m := awsmerge.Merger{}
-
-		merged, err := m.WithRegistry(newConfigs, awsConfig, awsmerge.RegistryOpts{})
-		if err != nil {
-			return err
-		}
-		err = merged.SaveTo(filepath)
+		err = awsConfig.SaveTo(filepath)
 		if err != nil {
 			return err
 		}
