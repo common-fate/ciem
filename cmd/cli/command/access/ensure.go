@@ -37,6 +37,7 @@ var ensureCommand = cli.Command{
 		&cli.StringFlag{Name: "output", Value: "text", Usage: "output format ('text' or 'json')"},
 		&cli.StringFlag{Name: "reason", Usage: "The reason for requesting access"},
 		&cli.BoolFlag{Name: "confirm", Aliases: []string{"y"}, Usage: "skip the confirmation prompt"},
+		&cli.BoolFlag{Name: "disable-config", Aliases: []string{"dc"}, Usage: "Add this flag to not save requested entitlements to your ~/aws/config file."},
 	},
 
 	Action: func(c *cli.Context) error {
@@ -74,11 +75,12 @@ var ensureCommand = cli.Command{
 			},
 		}
 
-		//lookup the aws config file
+		// lookup the aws config file
 		awsConfig, filepath, err := awsconfig.LoadAWSConfigFile()
 		if err != nil {
 			return err
 		}
+		disableConfig := c.Bool("disable-config")
 
 		accountClient := grantedv1alpha1.NewFromConfig(cfg)
 
@@ -102,28 +104,34 @@ var ensureCommand = cli.Command{
 			}
 			req.Entitlements = append(req.Entitlements, ent)
 
-			profileFromCF, err := accountClient.GetProfileForAccountAndRole(ctx, &connect.Request[awsv1alpha1.GetProfileForAccountAndRoleRequest]{
-				Msg: &awsv1alpha1.GetProfileForAccountAndRoleRequest{
-					AccountId: target,
-					RoleName:  roles[i],
-				},
-			})
-			if err != nil {
-				return err
-			}
+			if !disableConfig {
+				profileFromCF, err := accountClient.GetProfileForAccountAndRole(ctx, &connect.Request[awsv1alpha1.GetProfileForAccountAndRoleRequest]{
+					Msg: &awsv1alpha1.GetProfileForAccountAndRoleRequest{
+						AccountId: target,
+						RoleName:  roles[i],
+					},
+				})
+				if err != nil {
+					return err
+				}
 
-			//build up a new section for each profile being added
-			AddProfileToConfig(MergeOpts{
-				Config:            awsConfig,
-				ProfileName:       profileFromCF.Msg.Profile.Name,
-				ProfileAttributes: profileFromCF.Msg.Profile.Attributes,
-			})
+				//build up a new section for each profile being added
+				AddProfileToConfig(MergeOpts{
+					Config:            awsConfig,
+					ProfileName:       profileFromCF.Msg.Profile.Name,
+					ProfileAttributes: profileFromCF.Msg.Profile.Attributes,
+				})
+			}
 
 		}
 
-		err = awsConfig.SaveTo(filepath)
-		if err != nil {
-			return err
+		if !disableConfig {
+			clio.Info("Updating your AWS config file (~/.aws/config) with requested entitlements..")
+
+			err = awsConfig.SaveTo(filepath)
+			if err != nil {
+				return err
+			}
 		}
 
 		if !c.Bool("confirm") {
