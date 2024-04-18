@@ -116,11 +116,14 @@ var ensureCommand = cli.Command{
 				}
 
 				//build up a new section for each profile being added
-				AddProfileToConfig(MergeOpts{
+				err = AddProfileToConfig(MergeOpts{
 					Config:            awsConfig,
 					ProfileName:       profileFromCF.Msg.Profile.Name,
 					ProfileAttributes: profileFromCF.Msg.Profile.Attributes,
 				})
+				if err != nil {
+					return err
+				}
 			}
 
 		}
