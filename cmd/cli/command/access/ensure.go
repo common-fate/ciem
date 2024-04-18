@@ -1,6 +1,7 @@
 package access
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/url"
@@ -18,6 +19,7 @@ import (
 	"github.com/common-fate/sdk/eid"
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
 	awsv1alpha1 "github.com/common-fate/sdk/gen/granted/registry/aws/v1alpha1"
+	"github.com/common-fate/sdk/gen/granted/registry/aws/v1alpha1/awsv1alpha1connect"
 	grantedv1alpha1 "github.com/common-fate/sdk/service/granted/registry"
 
 	"github.com/common-fate/sdk/service/access"
@@ -37,7 +39,7 @@ var ensureCommand = cli.Command{
 		&cli.StringFlag{Name: "output", Value: "text", Usage: "output format ('text' or 'json')"},
 		&cli.StringFlag{Name: "reason", Usage: "The reason for requesting access"},
 		&cli.BoolFlag{Name: "confirm", Aliases: []string{"y"}, Usage: "skip the confirmation prompt"},
-		&cli.BoolFlag{Name: "disable-config", Aliases: []string{"dc"}, Usage: "Add this flag to not save requested entitlements to your ~/aws/config file."},
+		&cli.BoolFlag{Name: "skip-local-config-update", Usage: "Skip updating any local configuration files, such as '~/aws/config'"},
 	},
 
 	Action: func(c *cli.Context) error {
@@ -75,15 +77,6 @@ var ensureCommand = cli.Command{
 			},
 		}
 
-		// lookup the aws config file
-		awsConfig, filepath, err := awsconfig.LoadAWSConfigFile()
-		if err != nil {
-			return err
-		}
-		disableConfig := c.Bool("disable-config")
-
-		accountClient := grantedv1alpha1.NewFromConfig(cfg)
-
 		for i, target := range targets {
 
 			ent := &accessv1alpha1.EntitlementInput{
@@ -104,37 +97,6 @@ var ensureCommand = cli.Command{
 			}
 			req.Entitlements = append(req.Entitlements, ent)
 
-			if !disableConfig {
-				profileFromCF, err := accountClient.GetProfileForAccountAndRole(ctx, &connect.Request[awsv1alpha1.GetProfileForAccountAndRoleRequest]{
-					Msg: &awsv1alpha1.GetProfileForAccountAndRoleRequest{
-						AccountName: target,
-						RoleName:    roles[i],
-					},
-				})
-				if err != nil {
-					return err
-				}
-
-				//build up a new section for each profile being added
-				err = AddProfileToConfig(MergeOpts{
-					Config:            awsConfig,
-					ProfileName:       profileFromCF.Msg.Profile.Name,
-					ProfileAttributes: profileFromCF.Msg.Profile.Attributes,
-				})
-				if err != nil {
-					return err
-				}
-			}
-
-		}
-
-		if !disableConfig {
-			clio.Info("Updating your AWS config file (~/.aws/config) with requested entitlements..")
-
-			err = awsConfig.SaveTo(filepath)
-			if err != nil {
-				return err
-			}
 		}
 
 		if !c.Bool("confirm") {
@@ -177,6 +139,27 @@ var ensureCommand = cli.Command{
 		si.Stop()
 
 		clio.Debugw("BatchEnsure response", "response", res)
+
+		var isAWSAccess bool
+
+		for _, g := range res.Msg.Grants {
+			if g.Grant.Target.Eid.Type == "AWS::Account" {
+				isAWSAccess = true
+				break
+			}
+		}
+
+		disableConfig := c.Bool("skip-local-config-update")
+
+		if !disableConfig && isAWSAccess {
+			// update any local config files like ~/.aws/config
+			accountClient := grantedv1alpha1.NewFromConfig(cfg)
+
+			err = updateAWSProfiles(ctx, res.Msg.Grants, accountClient)
+			if err != nil {
+				clio.Errorf("error updating local AWS config: %s", err.Error())
+			}
+		}
 
 		if outputFormat == "text" {
 
@@ -261,4 +244,54 @@ func ShortDur(d time.Duration) string {
 		s = s[:len(s)-2]
 	}
 	return s
+}
+
+func updateAWSProfiles(ctx context.Context, grants []*accessv1alpha1.GrantState, accountClient awsv1alpha1connect.ProfileRegistryServiceClient) error {
+	awsConfig, filePath, err := awsconfig.Load()
+	if err != nil {
+		return err
+	}
+
+	for _, g := range grants {
+		if g.Grant.Target.Eid.Type != "AWS::Account" {
+			continue
+		}
+
+		accountID := g.Grant.Target.Eid.Id
+		roleName := g.Grant.Role.Name
+
+		profileFromCF, err := accountClient.GetProfileForAccountAndRole(ctx, &connect.Request[awsv1alpha1.GetProfileForAccountAndRoleRequest]{
+			Msg: &awsv1alpha1.GetProfileForAccountAndRoleRequest{
+				AccountId: g.Grant.Target.Eid.Id,
+				RoleName:  g.Grant.Role.Name,
+			},
+		})
+		if connect.CodeOf(err) == connect.CodeNotFound || connect.CodeOf(err) == connect.CodeUnimplemented {
+			clio.Warnf("could not update AWS profile in %s for account %s and role %s because this version of Common Fate does not implement the Granted Profile Registry API, you may need to update your deployment: %s", filePath, accountID, roleName, err.Error())
+			continue
+		}
+		if err != nil {
+			clio.Warnf("could not update AWS profile in %s for account %s and role %s: %s", filePath, accountID, roleName, err.Error())
+			continue
+		}
+
+		clio.Infof("adding %s to your AWS config file (%s)\t[target=%s, role=%s]", profileFromCF.Msg.Profile.Name, filePath, g.Grant.Target.Display(), roleName)
+
+		// build up a new section for each profile being added
+		err = awsconfig.Merge(awsconfig.MergeOpts{
+			Config:            awsConfig,
+			ProfileName:       profileFromCF.Msg.Profile.Name,
+			ProfileAttributes: profileFromCF.Msg.Profile.Attributes,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	err = awsConfig.SaveTo(filePath)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

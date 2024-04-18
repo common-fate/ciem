@@ -41,7 +41,7 @@ func GetAWSConfigPath() string {
 }
 
 // loadAWSConfigFile loads the `~/.aws/config` file, and creates it if it doesn't exist.
-func LoadAWSConfigFile() (*ini.File, string, error) {
+func Load() (*ini.File, string, error) {
 	filepath := GetAWSConfigPath()
 
 	if _, err := os.Stat(filepath); os.IsNotExist(err) {

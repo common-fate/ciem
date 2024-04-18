@@ -1,4 +1,4 @@
-package access
+package awsconfig
 
 import (
 	"strings"
@@ -9,19 +9,12 @@ import (
 )
 
 type MergeOpts struct {
-	Config              *ini.File
-	Prefix              string
-	ProfileName         string
-	ProfileAttributes   []*awsv1alpha1.ProfileAttributes
-	SectionNameTemplate string
-	NoCredentialProcess bool
+	Config            *ini.File
+	ProfileName       string
+	ProfileAttributes []*awsv1alpha1.ProfileAttributes
 }
 
-func AddProfileToConfig(opts MergeOpts) error {
-	if opts.SectionNameTemplate == "" {
-		opts.SectionNameTemplate = "{{ .AccountName }}/{{ .RoleName }}"
-	}
-
+func Merge(opts MergeOpts) error {
 	profileName := normalizeAccountName(opts.ProfileName)
 
 	sectionName := "profile " + profileName
@@ -32,7 +25,8 @@ func AddProfileToConfig(opts MergeOpts) error {
 	if err != nil {
 		return err
 	}
-	//add all the attributes returned from CF
+
+	// add all the attributes returned from CF
 	for _, item := range opts.ProfileAttributes {
 		_, err := newSection.NewKey(item.Key, item.Value)
 		if err != nil {
