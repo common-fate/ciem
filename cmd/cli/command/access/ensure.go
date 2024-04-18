@@ -107,8 +107,8 @@ var ensureCommand = cli.Command{
 			if !disableConfig {
 				profileFromCF, err := accountClient.GetProfileForAccountAndRole(ctx, &connect.Request[awsv1alpha1.GetProfileForAccountAndRoleRequest]{
 					Msg: &awsv1alpha1.GetProfileForAccountAndRoleRequest{
-						AccountId: target,
-						RoleName:  roles[i],
+						AccountName: target,
+						RoleName:    roles[i],
 					},
 				})
 				if err != nil {
