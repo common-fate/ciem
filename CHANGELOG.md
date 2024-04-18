@@ -1,5 +1,17 @@
 # @common-fate/cli
 
+## 1.13.0
+
+### Minor Changes
+
+- 30aa3c0: When requesting AWS access, the Common Fate CLI will now automatically populate your local AWS config (`~/.aws/config` by default) with a profile for the requested role.
+- bafde01: Adds diagnostic command to list all registered background jobs and their current status
+- 68005fd: batch ensure will attempt to add a profile to ~/.aws/config for the requested target and role
+
+### Patch Changes
+
+- a17cfef: Fixes an issue where the --duration flag was required for each entitlement being requested
+
 ## 1.12.1
 
 ### Patch Changes
