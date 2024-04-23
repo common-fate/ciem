@@ -1,5 +1,11 @@
 # @common-fate/cli
 
+## 1.13.1
+
+### Patch Changes
+
+- 11cf3f4: Fix an issue where users were prompted continuously to enter a password when accessing the fallback file keychain in Linux.
+
 ## 1.13.0
 
 ### Minor Changes
