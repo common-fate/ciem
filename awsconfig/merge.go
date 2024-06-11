@@ -1,8 +1,6 @@
 package awsconfig
 
 import (
-	"strings"
-
 	awsv1alpha1 "github.com/common-fate/sdk/gen/granted/registry/aws/v1alpha1"
 
 	"gopkg.in/ini.v1"
@@ -15,13 +13,10 @@ type MergeOpts struct {
 }
 
 func Merge(opts MergeOpts) error {
-	profileName := normalizeAccountName(opts.ProfileName)
 
-	sectionName := "profile " + profileName
+	opts.Config.DeleteSection(opts.ProfileName)
 
-	opts.Config.DeleteSection(sectionName)
-
-	newSection, err := opts.Config.NewSection(sectionName)
+	newSection, err := opts.Config.NewSection(opts.ProfileName)
 	if err != nil {
 		return err
 	}
@@ -35,8 +30,4 @@ func Merge(opts MergeOpts) error {
 	}
 
 	return nil
-}
-
-func normalizeAccountName(accountName string) string {
-	return strings.ReplaceAll(accountName, " ", "-")
 }
