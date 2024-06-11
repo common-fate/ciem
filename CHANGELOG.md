@@ -1,5 +1,11 @@
 # @common-fate/cli
 
+## 1.13.2
+
+### Patch Changes
+
+- bebbc1b: Fix logic for creating profiles based on an entitlement requested with batch ensure
+
 ## 1.13.1
 
 ### Patch Changes
