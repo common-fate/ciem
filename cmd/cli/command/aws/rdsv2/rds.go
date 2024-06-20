@@ -1,10 +1,13 @@
 package rdsv2
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"log"
 	"net/url"
 	"os"
 	"os/exec"
@@ -18,6 +21,7 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/briandowns/spinner"
 	accessCmd "github.com/common-fate/cli/cmd/cli/command/access"
 	"github.com/common-fate/cli/printdiags"
@@ -25,16 +29,16 @@ import (
 	"github.com/common-fate/clio/clierr"
 	"github.com/common-fate/grab"
 	"github.com/common-fate/granted/pkg/assume"
-	"github.com/fatih/color"
-
-	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/common-fate/sdk/config"
 	"github.com/common-fate/sdk/eid"
+	databaseproxyv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/databaseproxy/v1alpha1"
+	"github.com/common-fate/sdk/gen/commonfate/access/databaseproxy/v1alpha1/databaseproxyv1alpha1connect"
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
 	entityv1alpha1 "github.com/common-fate/sdk/gen/commonfate/entity/v1alpha1"
 	"github.com/common-fate/sdk/service/access"
 	"github.com/common-fate/sdk/service/access/grants"
 	"github.com/common-fate/sdk/service/entity"
+	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 )
 
@@ -231,6 +235,7 @@ var proxyCommand = cli.Command{
 
 		commandData := CommandData{
 			LocalPort: strconv.Itoa((c.Int("port"))),
+			ProxyPort: "3307",
 		}
 
 		clio.Infow("output", "children", children)
@@ -290,8 +295,51 @@ var proxyCommand = cli.Command{
 			}
 		}
 
-		clio.Infof("starting database proxy on port %v", commandData.LocalPort)
+		passwordExchangeData := commandData
+		passwordExchangeData.ProxyPort = "9999"
+		// @todo mayby find another open port automatically
+		passwordExchangeData.LocalPort = "9999"
+
+		notifyCh := make(chan struct{}, 1) // Buffer of 1 to prevent blocking
 		cmd := exec.Command("aws", formatSSMCommandArgs(commandData)...)
+		clio.Debugw("running aws ssm command", "command", "aws "+strings.Join(formatSSMCommandArgs(commandData), " "))
+		// might need to handle errors better here, the idea is to wait till we can exchange the auth token for the password
+		cmd.Stderr = NewNotifyingWriter(io.Discard, "Waiting for connections", notifyCh)
+		cmd.Stdout = NewNotifyingWriter(io.Discard, "Waiting for connections", notifyCh)
+		cmd.Stdin = os.Stdin
+		cmd.Env = PrepareAWSCLIEnv(creds, commandData)
+
+		// Start the command in a separate goroutine
+		err = cmd.Start()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		<-notifyCh
+		defer func() {
+			err = cmd.Process.Signal(os.Interrupt)
+			if err != nil {
+				clio.Error(err)
+			}
+		}()
+
+		// once we see the signal, we can start the token exchange
+		dbClient := databaseproxyv1alpha1connect.NewDatabaseProxyServiceClient(cfg.HTTPClient, "http://localhost:9999")
+		exchange, err := dbClient.Exchange(ctx, connect.NewRequest(&databaseproxyv1alpha1.ExchangeRequest{
+			GrantId: ensuredGrant.Grant.Id,
+		}))
+		if err != nil {
+			return err
+		}
+		// end the exchange proxy
+		err = cmd.Process.Signal(os.Interrupt)
+		if err != nil {
+			return err
+		}
+
+		clio.Infof("starting database proxy on port %v", commandData.LocalPort)
+		clio.Infof("You can connect to the database using this connection string '%s:%s@tcp(127.0.0.1:%s)/%s?allowCleartextPasswords=1'", exchange.Msg.DatabaseUser, exchange.Msg.DatabasePassword, commandData.LocalPort, exchange.Msg.DatabaseName)
+		cmd = exec.Command("aws", formatSSMCommandArgs(commandData)...)
 		clio.Debugw("running aws ssm command", "command", "aws "+strings.Join(formatSSMCommandArgs(commandData), " "))
 		cmd.Stderr = os.Stderr
 		cmd.Stdout = os.Stdout
@@ -327,6 +375,38 @@ var proxyCommand = cli.Command{
 		}
 		return nil
 	},
+}
+
+type NotifyingWriter struct {
+	writer   io.Writer
+	phrase   string
+	notifyCh chan struct{}
+	buffer   bytes.Buffer
+}
+
+func NewNotifyingWriter(writer io.Writer, phrase string, notifyCh chan struct{}) *NotifyingWriter {
+	return &NotifyingWriter{
+		writer:   writer,
+		phrase:   phrase,
+		notifyCh: notifyCh,
+	}
+}
+
+func (nw *NotifyingWriter) Write(p []byte) (n int, err error) {
+	// Write to the buffer first
+	nw.buffer.Write(p)
+	// Check if the phrase is in the buffer
+	if strings.Contains(nw.buffer.String(), nw.phrase) {
+		// Notify the channel in a non-blocking way
+		select {
+		case nw.notifyCh <- struct{}{}:
+		default:
+		}
+		// Clear the buffer up to the phrase
+		nw.buffer.Reset()
+	}
+	// Write to the underlying writer
+	return nw.writer.Write(p)
 }
 
 func PrepareAWSCLIEnv(creds aws.Credentials, commandData CommandData) []string {
@@ -365,6 +445,7 @@ func SanitisedEnv() []string {
 type CommandData struct {
 	GrantOutput      GrantOutput
 	LocalPort        string
+	ProxyPort        string
 	SSMSessionTarget string
 }
 
@@ -375,7 +456,7 @@ func formatSSMCommandArgs(data CommandData) []string {
 		fmt.Sprintf("--target=%s", data.SSMSessionTarget),
 		"--document-name=AWS-StartPortForwardingSession",
 		"--parameters",
-		fmt.Sprintf(`{"portNumber":["3307"], "localPortNumber":["%s"]}`, data.LocalPort),
+		fmt.Sprintf(`{"portNumber":[%s], "localPortNumber":["%s"]}`, data.ProxyPort, data.LocalPort),
 	}
 
 	return out
