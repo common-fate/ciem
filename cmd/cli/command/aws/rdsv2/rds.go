@@ -322,7 +322,7 @@ var proxyCommand = cli.Command{
 		defer func() {
 			err = cmd.Process.Signal(os.Interrupt)
 			if err != nil {
-				clio.Error(err)
+				clio.Debug(err)
 			}
 		}()
 
