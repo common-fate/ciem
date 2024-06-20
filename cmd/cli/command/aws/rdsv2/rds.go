@@ -238,8 +238,6 @@ var proxyCommand = cli.Command{
 			ProxyPort: "3307",
 		}
 
-		clio.Infow("output", "children", children)
-
 		for _, child := range children {
 			if child.Eid.Type == GrantOutputType {
 				err = entity.Unmarshal(child, &commandData.GrantOutput)
@@ -301,13 +299,13 @@ var proxyCommand = cli.Command{
 		passwordExchangeData.LocalPort = "9999"
 
 		notifyCh := make(chan struct{}, 1) // Buffer of 1 to prevent blocking
-		cmd := exec.Command("aws", formatSSMCommandArgs(commandData)...)
-		clio.Debugw("running aws ssm command", "command", "aws "+strings.Join(formatSSMCommandArgs(commandData), " "))
+		cmd := exec.Command("aws", formatSSMCommandArgs(passwordExchangeData)...)
+		clio.Info("running aws ssm command", "command", "aws "+strings.Join(formatSSMCommandArgs(passwordExchangeData), " "))
 		// might need to handle errors better here, the idea is to wait till we can exchange the auth token for the password
-		cmd.Stderr = NewNotifyingWriter(io.Discard, "Waiting for connections", notifyCh)
-		cmd.Stdout = NewNotifyingWriter(io.Discard, "Waiting for connections", notifyCh)
+		cmd.Stderr = io.MultiWriter(DebugWriter{}, NewNotifyingWriter(io.Discard, "Waiting for connections", notifyCh))
+		cmd.Stdout = io.MultiWriter(DebugWriter{}, NewNotifyingWriter(io.Discard, "Waiting for connections", notifyCh))
 		cmd.Stdin = os.Stdin
-		cmd.Env = PrepareAWSCLIEnv(creds, commandData)
+		cmd.Env = PrepareAWSCLIEnv(creds, passwordExchangeData)
 
 		// Start the command in a separate goroutine
 		err = cmd.Start()
@@ -315,7 +313,12 @@ var proxyCommand = cli.Command{
 			log.Fatal(err)
 		}
 
-		<-notifyCh
+		select {
+		case <-notifyCh:
+		case <-time.After(time.Second * 15):
+			return errors.New("timed out waiting for password exchange from proxy server, you can try running again with --verbose flag to see debugging logs")
+		}
+
 		defer func() {
 			err = cmd.Process.Signal(os.Interrupt)
 			if err != nil {
@@ -375,6 +378,16 @@ var proxyCommand = cli.Command{
 		}
 		return nil
 	},
+}
+
+// DebugWriter is an io.Writer that writes messages using clio.Debug.
+type DebugWriter struct{}
+
+// Write implements the io.Writer interface for DebugWriter.
+func (dw DebugWriter) Write(p []byte) (n int, err error) {
+	message := string(p)
+	clio.Debug(message)
+	return len(p), nil
 }
 
 type NotifyingWriter struct {
@@ -456,7 +469,7 @@ func formatSSMCommandArgs(data CommandData) []string {
 		fmt.Sprintf("--target=%s", data.SSMSessionTarget),
 		"--document-name=AWS-StartPortForwardingSession",
 		"--parameters",
-		fmt.Sprintf(`{"portNumber":[%s], "localPortNumber":["%s"]}`, data.ProxyPort, data.LocalPort),
+		fmt.Sprintf(`{"portNumber":["%s"], "localPortNumber":["%s"]}`, data.ProxyPort, data.LocalPort),
 	}
 
 	return out
