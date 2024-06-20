@@ -17,6 +17,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
+	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/briandowns/spinner"
 	accessCmd "github.com/common-fate/cli/cmd/cli/command/access"
 	"github.com/common-fate/cli/printdiags"
@@ -26,6 +27,7 @@ import (
 	"github.com/common-fate/granted/pkg/assume"
 	"github.com/fatih/color"
 
+	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/common-fate/sdk/config"
 	"github.com/common-fate/sdk/eid"
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
@@ -49,6 +51,7 @@ var proxyCommand = cli.Command{
 	Usage: "Run a database proxy",
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "target", Required: true},
+		&cli.StringFlag{Name: "role", Required: true},
 		&cli.BoolFlag{Name: "confirm", Aliases: []string{"y"}, Usage: "skip the confirmation prompt"},
 		&cli.IntFlag{Name: "port", Value: 3306, Usage: "The local port to forward the database connection to"},
 	},
@@ -67,7 +70,7 @@ var proxyCommand = cli.Command{
 		}
 
 		target := c.String("target")
-
+		role := c.String("role")
 		client := access.NewFromConfig(cfg)
 		apiURL, err := url.Parse(cfg.APIURL)
 		if err != nil {
@@ -82,11 +85,8 @@ var proxyCommand = cli.Command{
 						},
 					},
 					Role: &accessv1alpha1.Specifier{
-						Specify: &accessv1alpha1.Specifier_Eid{
-							Eid: &entityv1alpha1.EID{
-								Type: "CF::Database::Role",
-								Id:   "ReadWrite",
-							},
+						Specify: &accessv1alpha1.Specifier_Lookup{
+							Lookup: role,
 						},
 					},
 				},
@@ -233,6 +233,8 @@ var proxyCommand = cli.Command{
 			LocalPort: strconv.Itoa((c.Int("port"))),
 		}
 
+		clio.Infow("output", "children", children)
+
 		for _, child := range children {
 			if child.Eid.Type == GrantOutputType {
 				err = entity.Unmarshal(child, &commandData.GrantOutput)
@@ -248,6 +250,44 @@ var proxyCommand = cli.Command{
 		creds, err := GrantedCredentialProcess(commandData)
 		if err != nil {
 			return err
+		}
+		awsCfg, err := awsConfig.LoadDefaultConfig(ctx, awsConfig.WithCredentialsProvider(aws.CredentialsProviderFunc(func(ctx context.Context) (aws.Credentials, error) {
+			return creds, nil
+		})), awsConfig.WithRegion(commandData.GrantOutput.ProxyRegion))
+		if err != nil {
+			return err
+		}
+
+		ecsClient := ecs.NewFromConfig(awsCfg)
+
+		listTasksResp, err := ecsClient.ListTasks(ctx, &ecs.ListTasksInput{
+			Cluster:     aws.String("common-fate-demo-cluster"),
+			ServiceName: aws.String("common-fate-demo-demo-rds-proxy"),
+		})
+		if err != nil {
+			return fmt.Errorf("failed to list tasks, %w", err)
+		}
+
+		// Describe tasks
+		describeTasksResp, err := ecsClient.DescribeTasks(ctx, &ecs.DescribeTasksInput{
+			Cluster: aws.String("common-fate-demo-cluster"),
+			Tasks:   listTasksResp.TaskArns,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to describe tasks, %w", err)
+		}
+
+		if len(describeTasksResp.Tasks) > 1 {
+			return fmt.Errorf("expected only one task to be returned")
+		}
+		task := describeTasksResp.Tasks[0]
+
+		for _, container := range task.Containers {
+			if grab.Value(container.Name) == "aws-rds-proxy-container" {
+				runtimeID := grab.Value(container.RuntimeId)
+				taskID := strings.Split(runtimeID, "-")[0]
+				commandData.SSMSessionTarget = fmt.Sprintf("ecs:common-fate-demo-cluster_%s_%s", taskID, runtimeID)
+			}
 		}
 
 		clio.Infof("starting database proxy on port %v", commandData.LocalPort)
@@ -323,35 +363,24 @@ func SanitisedEnv() []string {
 }
 
 type CommandData struct {
-	GrantOutput GrantOutput
-	LocalPort   string
+	GrantOutput      GrantOutput
+	LocalPort        string
+	SSMSessionTarget string
 }
 
 func formatSSMCommandArgs(data CommandData) []string {
 	out := []string{
 		"ssm",
 		"start-session",
-		fmt.Sprintf("--target=%s", "TODO"),
+		fmt.Sprintf("--target=%s", data.SSMSessionTarget),
 		"--document-name=AWS-StartPortForwardingSession",
 		"--parameters",
-		fmt.Sprintf(`{"portNumber":["5432"], "localPortNumber":["%s"]}`, data.LocalPort),
+		fmt.Sprintf(`{"portNumber":["3307"], "localPortNumber":["%s"]}`, data.LocalPort),
 	}
 
 	return out
 }
-aws ecs execute-command \
-    --cluster common-fate-demo-cluster \
-    --task d2712e4271254363990cf2ae6a8316c2 \
-    --container aws-rds-proxy-container \
-    --interactive \
-    --command "socat TCP-LISTEN:3308,fork TCP:localhost:3307"
-// arn:aws:ecs:us-west-2:992382580836:task/common-fate-demo-cluster/d2712e4271254363990cf2ae6a8316c2
 
-	aws ssm start-session \
-	    --target ecs:common-fate-demo-cluster_d2712e4271254363990cf2ae6a8316c2_d2712e4271254363990cf2ae6a8316c2-3487023143 \
-	    --document-name AWS-StartPortForwardingSession \
-	    --parameters '{"portNumber":["3307"], "localPortNumber":["3308"]}'
-//
 // CredentialProcessOutput represents the JSON output format of the credential process.
 type CredentialProcessOutput struct {
 	Version         int       `json:"Version"`

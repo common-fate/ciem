@@ -1,13 +1,16 @@
 package list
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"connectrpc.com/connect"
 	"github.com/common-fate/cli/table"
+	"github.com/common-fate/grab"
 	"github.com/common-fate/sdk/config"
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
 	"github.com/common-fate/sdk/service/access"
@@ -21,7 +24,7 @@ var availableCommand = cli.Command{
 	Aliases: []string{"av"},
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "output", Value: "table", Usage: "output format ('table', 'wide', or 'json')"},
-		&cli.StringFlag{Name: "selector", Usage: "filter for a particular resource selector"},
+		&cli.StringFlag{Name: "target-type", Usage: "filter for a particular target type"},
 	},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
@@ -34,43 +37,27 @@ var availableCommand = cli.Command{
 		client := access.NewFromConfig(cfg)
 
 		output := c.String("output")
+		targetType := c.String("target-type")
+		entitlements, err := grab.AllPages(ctx, func(ctx context.Context, nextToken *string) ([]*accessv1alpha1.Entitlement, *string, error) {
+			res, err := client.QueryEntitlements(ctx, connect.NewRequest(&accessv1alpha1.QueryEntitlementsRequest{
+				PageToken:  grab.Value(nextToken),
+				TargetType: grab.If(targetType == "", nil, &targetType),
+			}))
+			if err != nil {
+				return nil, nil, err
+			}
+			return res.Msg.Entitlements, &res.Msg.NextPageToken, nil
+		})
+		if err != nil {
+			return err
+		}
 
 		if output == "table" {
-			allEntitlements := accessv1alpha1.QueryEntitlementsResponse{
-				Entitlements: []*accessv1alpha1.Entitlement{},
-			}
-			done := false
-			var pageToken string
-
-			selector := c.String("selector")
-
-			for !done {
-				res, err := client.QueryEntitlements(ctx, connect.NewRequest(&accessv1alpha1.QueryEntitlementsRequest{
-					PageToken: pageToken,
-				}))
-				if err != nil {
-					return err
-				}
-
-				for _, av := range res.Msg.Entitlements {
-					if selector != "" {
-						continue
-					}
-					allEntitlements.Entitlements = append(allEntitlements.Entitlements, av)
-
-				}
-
-				if res.Msg.NextPageToken == "" {
-					done = true
-				} else {
-					pageToken = res.Msg.NextPageToken
-				}
-			}
 
 			w := table.New(os.Stdout)
 			w.Columns("TARGET", "NAME", "ROLE")
 
-			for _, e := range allEntitlements.Entitlements {
+			for _, e := range entitlements {
 				w.Row(e.Target.Eid.Display(), e.Target.Name, e.Role.Name)
 			}
 
@@ -79,44 +66,15 @@ var availableCommand = cli.Command{
 				return err
 			}
 		} else {
-			allAvailabilities := accessv1alpha1.QueryAvailabilitiesResponse{
-				Availabilities: []*accessv1alpha1.Availability{},
-			}
-			done := false
-			var pageToken string
-
-			selector := c.String("selector")
-
-			for !done {
-				res, err := client.QueryAvailabilities(ctx, connect.NewRequest(&accessv1alpha1.QueryAvailabilitiesRequest{
-					PageToken: pageToken,
-				}))
-				if err != nil {
-					return err
-				}
-
-				for _, av := range res.Msg.Availabilities {
-					if selector != "" {
-						continue
-					}
-					allAvailabilities.Availabilities = append(allAvailabilities.Availabilities, av)
-
-				}
-
-				if res.Msg.NextPageToken == "" {
-					done = true
-				} else {
-					pageToken = res.Msg.NextPageToken
-				}
-			}
 
 			switch output {
 			case "wide":
 				w := table.New(os.Stdout)
-				w.Columns("TARGET", "NAME", "ROLE", "DURATION", "SELECTOR", "PRIORITY")
+				w.Columns("TARGET", "NAME", "ROLE", "AUTO-APPROVED", "TARGET PATH")
 
-				for _, e := range allAvailabilities.Availabilities {
-					w.Row(e.Target.Eid.Display(), e.Target.Name, e.Role.Name, e.Duration.AsDuration().String(), e.TargetSelector.Id, strconv.FormatUint(uint64(e.Priority), 10))
+				for _, e := range entitlements {
+
+					w.Row(e.Target.Eid.Display(), e.Target.Name, e.Role.Name, strconv.FormatBool(e.AutoApproved), strings.Join(grab.Map(e.TargetPath, func(p *accessv1alpha1.NamedEID) string { return p.Display() }), " / "))
 				}
 
 				err = w.Flush()
@@ -124,7 +82,7 @@ var availableCommand = cli.Command{
 					return err
 				}
 			case "json":
-				resJSON, err := protojson.Marshal(&allAvailabilities)
+				resJSON, err := protojson.Marshal(&accessv1alpha1.QueryEntitlementsResponse{Entitlements: entitlements})
 				if err != nil {
 					return err
 				}
