@@ -341,7 +341,15 @@ var proxyCommand = cli.Command{
 		}
 
 		clio.Infof("starting database proxy on port %v", commandData.LocalPort)
-		clio.Infof("You can connect to the database using this connection string '%s:%s@tcp(127.0.0.1:%s)/%s?allowCleartextPasswords=1'", exchange.Msg.DatabaseUser, exchange.Msg.DatabasePassword, commandData.LocalPort, exchange.Msg.DatabaseName)
+		clio.NewLine()
+
+		dsn := color.New(color.FgYellow).Sprintf("%s:%s@tcp(127.0.0.1:%s)/%s?allowCleartextPasswords=1", exchange.Msg.DatabaseUser, exchange.Msg.DatabasePassword, commandData.LocalPort, exchange.Msg.DatabaseName)
+		clio.Infof("You can connect to the database using this connection string:\n%s", dsn)
+		clio.NewLine()
+
+		mysqlCommand := color.New(color.FgYellow).Sprintf("LIBMYSQL_ENABLE_CLEARTEXT_PLUGIN=1 mysql -u %s -p'%s' -h 127.0.0.1 -P %s %s", exchange.Msg.DatabaseUser, exchange.Msg.DatabasePassword, commandData.LocalPort, exchange.Msg.DatabaseName)
+		clio.Infof("Or using the mysql cli:\n%s", mysqlCommand)
+		clio.NewLine()
 		cmd = exec.Command("aws", formatSSMCommandArgs(commandData)...)
 		clio.Debugw("running aws ssm command", "command", "aws "+strings.Join(formatSSMCommandArgs(commandData), " "))
 		cmd.Stderr = os.Stderr
