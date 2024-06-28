@@ -1,10 +1,13 @@
 package rds
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net"
 	"net/url"
 	"os"
 	"os/exec"
@@ -17,6 +20,8 @@ import (
 	"connectrpc.com/connect"
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
+	awsConfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/briandowns/spinner"
 	accessCmd "github.com/common-fate/cli/cmd/cli/command/access"
 	"github.com/common-fate/cli/printdiags"
@@ -24,15 +29,15 @@ import (
 	"github.com/common-fate/clio/clierr"
 	"github.com/common-fate/grab"
 	"github.com/common-fate/granted/pkg/assume"
-	"github.com/fatih/color"
-
 	"github.com/common-fate/sdk/config"
 	"github.com/common-fate/sdk/eid"
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
 	entityv1alpha1 "github.com/common-fate/sdk/gen/commonfate/entity/v1alpha1"
+	"github.com/common-fate/sdk/handshake"
 	"github.com/common-fate/sdk/service/access"
 	"github.com/common-fate/sdk/service/access/grants"
 	"github.com/common-fate/sdk/service/entity"
+	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 )
 
@@ -49,8 +54,9 @@ var proxyCommand = cli.Command{
 	Usage: "Run a database proxy",
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "target", Required: true},
+		&cli.StringFlag{Name: "role", Required: true},
 		&cli.BoolFlag{Name: "confirm", Aliases: []string{"y"}, Usage: "skip the confirmation prompt"},
-		&cli.IntFlag{Name: "port", Value: 5432, Usage: "The local port to forward the database connect to"},
+		&cli.IntFlag{Name: "port", Value: 3306, Usage: "The local port to forward the database connection to"},
 	},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
@@ -67,7 +73,7 @@ var proxyCommand = cli.Command{
 		}
 
 		target := c.String("target")
-
+		role := c.String("role")
 		client := access.NewFromConfig(cfg)
 		apiURL, err := url.Parse(cfg.APIURL)
 		if err != nil {
@@ -82,11 +88,8 @@ var proxyCommand = cli.Command{
 						},
 					},
 					Role: &accessv1alpha1.Specifier{
-						Specify: &accessv1alpha1.Specifier_Eid{
-							Eid: &entityv1alpha1.EID{
-								Type: "CF::Database::Role",
-								Id:   "ReadWrite",
-							},
+						Specify: &accessv1alpha1.Specifier_Lookup{
+							Lookup: role,
 						},
 					},
 				},
@@ -231,10 +234,11 @@ var proxyCommand = cli.Command{
 
 		commandData := CommandData{
 			LocalPort: strconv.Itoa((c.Int("port"))),
+			ProxyPort: "3307",
 		}
 
 		for _, child := range children {
-			if child.Eid.Type == "CF::GrantOutput::AWSRDS" {
+			if child.Eid.Type == GrantOutputType {
 				err = entity.Unmarshal(child, &commandData.GrantOutput)
 				if err != nil {
 					return err
@@ -249,8 +253,55 @@ var proxyCommand = cli.Command{
 		if err != nil {
 			return err
 		}
+		awsCfg, err := awsConfig.LoadDefaultConfig(ctx, awsConfig.WithCredentialsProvider(aws.CredentialsProviderFunc(func(ctx context.Context) (aws.Credentials, error) {
+			return creds, nil
+		})), awsConfig.WithRegion(commandData.GrantOutput.Database.Region))
+		if err != nil {
+			return err
+		}
+
+		ecsClient := ecs.NewFromConfig(awsCfg)
+
+		listTasksResp, err := ecsClient.ListTasks(ctx, &ecs.ListTasksInput{
+			Cluster:     aws.String("common-fate-demo-cluster"),
+			ServiceName: aws.String("common-fate-demo-demo-rds-proxy"),
+		})
+		if err != nil {
+			return fmt.Errorf("failed to list tasks, %w", err)
+		}
+
+		// Describe tasks
+		describeTasksResp, err := ecsClient.DescribeTasks(ctx, &ecs.DescribeTasksInput{
+			Cluster: aws.String("common-fate-demo-cluster"),
+			Tasks:   listTasksResp.TaskArns,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to describe tasks, %w", err)
+		}
+
+		if len(describeTasksResp.Tasks) > 1 {
+			return fmt.Errorf("expected only one task to be returned")
+		}
+		task := describeTasksResp.Tasks[0]
+
+		for _, container := range task.Containers {
+			if grab.Value(container.Name) == "aws-rds-proxy-container" {
+				runtimeID := grab.Value(container.RuntimeId)
+				taskID := strings.Split(runtimeID, "-")[0]
+				commandData.SSMSessionTarget = fmt.Sprintf("ecs:common-fate-demo-cluster_%s_%s", taskID, runtimeID)
+			}
+		}
 
 		clio.Infof("starting database proxy on port %v", commandData.LocalPort)
+		clio.NewLine()
+
+		dsn := color.New(color.FgYellow).Sprintf("%s:%s@tcp(127.0.0.1:%s)/%s?allowCleartextPasswords=1", commandData.GrantOutput.User.Username, "password", commandData.LocalPort, commandData.GrantOutput.Database.Database)
+		clio.Infof("You can connect to the database using this connection string:\n%s", dsn)
+		clio.NewLine()
+
+		mysqlCommand := color.New(color.FgYellow).Sprintf("LIBMYSQL_ENABLE_CLEARTEXT_PLUGIN=1 mysql -u %s -p'%s' -h 127.0.0.1 -P %s %s", commandData.GrantOutput.User.Username, "password", commandData.LocalPort, commandData.GrantOutput.Database.Database)
+		clio.Infof("Or using the mysql cli:\n%s", mysqlCommand)
+		clio.NewLine()
 		cmd := exec.Command("aws", formatSSMCommandArgs(commandData)...)
 		clio.Debugw("running aws ssm command", "command", "aws "+strings.Join(formatSSMCommandArgs(commandData), " "))
 		cmd.Stderr = os.Stderr
@@ -278,6 +329,39 @@ var proxyCommand = cli.Command{
 			}
 		}()
 
+		go func() {
+
+			ln, err := net.Listen("tcp", "localhost:5555")
+			if err != nil {
+				panic(err)
+			}
+			defer ln.Close()
+
+			for {
+
+				conn, err := ln.Accept()
+				if err != nil {
+					panic(err)
+				}
+
+				serverConn, err := net.Dial("tcp", "localhost:"+commandData.LocalPort)
+				if err != nil {
+					panic(err)
+				}
+
+				handshaker := handshake.NewHandshakeClient(serverConn, ensuredGrant.Grant.Id)
+				err = handshaker.Handshake()
+				if err != nil {
+					panic(err)
+				}
+
+				go io.Copy(serverConn, conn)
+				go io.Copy(conn, serverConn)
+
+			}
+
+		}()
+
 		// Wait for the command to finish
 		err = cmd.Wait()
 		if err != nil {
@@ -289,8 +373,50 @@ var proxyCommand = cli.Command{
 	},
 }
 
+// DebugWriter is an io.Writer that writes messages using clio.Debug.
+type DebugWriter struct{}
+
+// Write implements the io.Writer interface for DebugWriter.
+func (dw DebugWriter) Write(p []byte) (n int, err error) {
+	message := string(p)
+	clio.Debug(message)
+	return len(p), nil
+}
+
+type NotifyingWriter struct {
+	writer   io.Writer
+	phrase   string
+	notifyCh chan struct{}
+	buffer   bytes.Buffer
+}
+
+func NewNotifyingWriter(writer io.Writer, phrase string, notifyCh chan struct{}) *NotifyingWriter {
+	return &NotifyingWriter{
+		writer:   writer,
+		phrase:   phrase,
+		notifyCh: notifyCh,
+	}
+}
+
+func (nw *NotifyingWriter) Write(p []byte) (n int, err error) {
+	// Write to the buffer first
+	nw.buffer.Write(p)
+	// Check if the phrase is in the buffer
+	if strings.Contains(nw.buffer.String(), nw.phrase) {
+		// Notify the channel in a non-blocking way
+		select {
+		case nw.notifyCh <- struct{}{}:
+		default:
+		}
+		// Clear the buffer up to the phrase
+		nw.buffer.Reset()
+	}
+	// Write to the underlying writer
+	return nw.writer.Write(p)
+}
+
 func PrepareAWSCLIEnv(creds aws.Credentials, commandData CommandData) []string {
-	return append(SanitisedEnv(), assume.EnvKeys(creds, commandData.GrantOutput.InstanceRegion)...)
+	return append(SanitisedEnv(), assume.EnvKeys(creds, commandData.GrantOutput.Database.Region)...)
 }
 
 // SanitisedEnv returns the environment variables excluding specific AWS keys.
@@ -323,18 +449,20 @@ func SanitisedEnv() []string {
 }
 
 type CommandData struct {
-	GrantOutput GrantOutput
-	LocalPort   string
+	GrantOutput      AWSRDS
+	LocalPort        string
+	ProxyPort        string
+	SSMSessionTarget string
 }
 
 func formatSSMCommandArgs(data CommandData) []string {
 	out := []string{
 		"ssm",
 		"start-session",
-		fmt.Sprintf("--target=%s", data.GrantOutput.InstanceID),
+		fmt.Sprintf("--target=%s", data.SSMSessionTarget),
 		"--document-name=AWS-StartPortForwardingSession",
 		"--parameters",
-		fmt.Sprintf(`{"portNumber":["5432"], "localPortNumber":["%s"]}`, data.LocalPort),
+		fmt.Sprintf(`{"portNumber":["%s"], "localPortNumber":["%s"]}`, data.ProxyPort, data.LocalPort),
 	}
 
 	return out
@@ -394,7 +522,7 @@ sso_role_name = %s
 sso_start_url = %s
 sso_region = %s
 region = %s
-`, commandData.GrantOutput.Grant.ID, commandData.GrantOutput.AccountID, commandData.GrantOutput.SSORoleName, commandData.GrantOutput.SSOStartURL, commandData.GrantOutput.SSORegion, commandData.GrantOutput.SSORegion)
+`, commandData.GrantOutput.Grant.ID, commandData.GrantOutput.Database.Account, commandData.GrantOutput.SSORoleName, commandData.GrantOutput.SSOStartURL, commandData.GrantOutput.SSORegion, commandData.GrantOutput.Database.Region)
 
 	file, err := os.CreateTemp(os.TempDir(), "")
 	if err != nil {
