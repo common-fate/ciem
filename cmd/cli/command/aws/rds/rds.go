@@ -18,15 +18,19 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/briandowns/spinner"
+	"github.com/charmbracelet/huh"
+	"github.com/charmbracelet/lipgloss"
 	accessCmd "github.com/common-fate/cli/cmd/cli/command/access"
 	"github.com/common-fate/cli/printdiags"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/clierr"
 	"github.com/common-fate/grab"
 	"github.com/common-fate/granted/pkg/assume"
+
 	"github.com/common-fate/sdk/config"
 	"github.com/common-fate/sdk/eid"
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
@@ -36,6 +40,7 @@ import (
 	"github.com/common-fate/sdk/service/access/grants"
 	"github.com/common-fate/sdk/service/entity"
 	"github.com/fatih/color"
+	"github.com/mattn/go-runewidth"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/sync/errgroup"
 )
@@ -52,8 +57,8 @@ var proxyCommand = cli.Command{
 	Name:  "proxy",
 	Usage: "Run a database proxy",
 	Flags: []cli.Flag{
-		&cli.StringFlag{Name: "target", Required: true},
-		&cli.StringFlag{Name: "role", Required: true},
+		&cli.StringFlag{Name: "target"},
+		&cli.StringFlag{Name: "role"},
 		&cli.BoolFlag{Name: "confirm", Aliases: []string{"y"}, Usage: "skip the confirmation prompt"},
 		&cli.IntFlag{Name: "port", Value: 3306, Usage: "The local port to forward the database connection to"},
 	},
@@ -78,6 +83,64 @@ var proxyCommand = cli.Command{
 		if err != nil {
 			return err
 		}
+
+		if target == "" && role == "" {
+			entitlements, err := grab.AllPages(ctx, func(ctx context.Context, nextToken *string) ([]*accessv1alpha1.Entitlement, *string, error) {
+				res, err := client.QueryEntitlements(ctx, connect.NewRequest(&accessv1alpha1.QueryEntitlementsRequest{
+					PageToken:  grab.Value(nextToken),
+					TargetType: grab.Ptr("AWS::RDS::Database"),
+				}))
+				if err != nil {
+					return nil, nil, err
+				}
+				return res.Msg.Entitlements, &res.Msg.NextPageToken, nil
+			})
+			if err != nil {
+				return err
+			}
+
+			type Column struct {
+				Title string
+				Width int
+			}
+			cols := []Column{{Title: "Database", Width: 20}, {Title: "Role", Width: 20}}
+			var s = make([]string, 0, len(cols))
+			for _, col := range cols {
+				style := lipgloss.NewStyle().Width(col.Width).MaxWidth(col.Width).Inline(true)
+				renderedCell := style.Render(runewidth.Truncate(col.Title, col.Width, "…"))
+				s = append(s, lipgloss.NewStyle().Bold(true).Padding(0).Render(renderedCell))
+			}
+			header := lipgloss.NewStyle().PaddingLeft(2).Render(lipgloss.JoinHorizontal(lipgloss.Left, s...))
+			var options []huh.Option[*accessv1alpha1.Entitlement]
+			for _, entitlement := range entitlements {
+				style := lipgloss.NewStyle().Width(cols[0].Width).MaxWidth(cols[0].Width).Inline(true)
+				target := lipgloss.NewStyle().Bold(true).Padding(0).Render(style.Render(runewidth.Truncate(entitlement.Target.Display(), cols[0].Width, "…")))
+
+				style = lipgloss.NewStyle().Width(cols[1].Width).MaxWidth(cols[1].Width).Inline(true)
+				role := lipgloss.NewStyle().Bold(true).Padding(0).Render(style.Render(runewidth.Truncate(entitlement.Role.Display(), cols[1].Width, "…")))
+
+				options = append(options, huh.Option[*accessv1alpha1.Entitlement]{
+					Key:   lipgloss.JoinHorizontal(lipgloss.Left, target, role),
+					Value: entitlement,
+				})
+			}
+
+			selector := huh.NewSelect[*accessv1alpha1.Entitlement]().
+				Options(options...).
+				Title("Select a database to connect to").
+				Description(header)
+			err = selector.Run()
+			if err != nil {
+				return err
+			}
+
+			entitlement := selector.GetValue().(*accessv1alpha1.Entitlement)
+
+			target = entitlement.Target.Eid.Display()
+			role = entitlement.Role.Eid.Display()
+
+		}
+
 		req := accessv1alpha1.BatchEnsureRequest{
 			Entitlements: []*accessv1alpha1.EntitlementInput{
 				{
