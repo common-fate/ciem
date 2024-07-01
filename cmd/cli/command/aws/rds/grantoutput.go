@@ -10,13 +10,14 @@ const GrantOutputType = "CF::GrantOutput::AWSRDSV2"
 //
 // AWSRDS is excluded from the Cedar schema.
 type AWSRDS struct {
-	Grant       eid.EID      `json:"grant" authz:"grant"`
-	Name        string       `json:"name" authz:"name"`
-	SSOStartURL string       `json:"sso_start_url" authz:"sso_start_url"`
-	SSORoleName string       `json:"sso_role_name" authz:"sso_role_name"`
-	SSORegion   string       `json:"sso_region" authz:"sso_region"`
-	Database    Database     `json:"database" authz:"database"`
-	User        DatabaseUser `json:"user" authz:"user"`
+	Grant            eid.EID      `json:"grant" authz:"grant"`
+	Name             string       `json:"name" authz:"name"`
+	SSOStartURL      string       `json:"sso_start_url" authz:"sso_start_url"`
+	SSORoleName      string       `json:"sso_role_name" authz:"sso_role_name"`
+	SSORegion        string       `json:"sso_region" authz:"sso_region"`
+	Database         Database     `json:"database" authz:"database"`
+	User             DatabaseUser `json:"user" authz:"user"`
+	SSMSessionTarget string       `json:"ssm_session_target" authz:"ssm_session_target"`
 }
 
 func (e AWSRDS) Parents() []eid.EID { return []eid.EID{e.Grant} }

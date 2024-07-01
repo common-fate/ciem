@@ -20,8 +20,6 @@ import (
 	"connectrpc.com/connect"
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
-	awsConfig "github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/briandowns/spinner"
 	accessCmd "github.com/common-fate/cli/cmd/cli/command/access"
 	"github.com/common-fate/cli/printdiags"
@@ -39,6 +37,7 @@ import (
 	"github.com/common-fate/sdk/service/entity"
 	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
+	"golang.org/x/sync/errgroup"
 )
 
 var Command = cli.Command{
@@ -232,9 +231,20 @@ var proxyCommand = cli.Command{
 			return err
 		}
 
+		// find an unused local port to use for the ssm server
+		// the user doesn't directly connect to this, they connect through our local proxy
+		// which adds authentication
+		ssmPortforwardLocalPort, err := GrabUnusedPort()
+		if err != nil {
+			return err
+		}
+
+		clio.Debugf("starting SSM portforward on local port: %s", ssmPortforwardLocalPort)
+
 		commandData := CommandData{
-			LocalPort: strconv.Itoa((c.Int("port"))),
-			ProxyPort: "3307",
+			// the proxy server always runs on port 8080
+			SSMPortForwardServerPort: "8080",
+			SSMPortForwardLocalPort:  ssmPortforwardLocalPort,
 		}
 
 		for _, child := range children {
@@ -249,57 +259,24 @@ var proxyCommand = cli.Command{
 		if commandData.GrantOutput.Grant.ID == "" {
 			return errors.New("did not find a grant output entity in query grant children response")
 		}
+
+		// @TODO consider embedding granted nere instead of having the external dependency
 		creds, err := GrantedCredentialProcess(commandData)
 		if err != nil {
 			return err
 		}
-		awsCfg, err := awsConfig.LoadDefaultConfig(ctx, awsConfig.WithCredentialsProvider(aws.CredentialsProviderFunc(func(ctx context.Context) (aws.Credentials, error) {
-			return creds, nil
-		})), awsConfig.WithRegion(commandData.GrantOutput.Database.Region))
-		if err != nil {
-			return err
-		}
 
-		ecsClient := ecs.NewFromConfig(awsCfg)
+		// the port that the user connects to
+		localDBPort := strconv.Itoa((c.Int("port")))
 
-		listTasksResp, err := ecsClient.ListTasks(ctx, &ecs.ListTasksInput{
-			Cluster:     aws.String("common-fate-demo-cluster"),
-			ServiceName: aws.String("common-fate-demo-demo-rds-proxy"),
-		})
-		if err != nil {
-			return fmt.Errorf("failed to list tasks, %w", err)
-		}
-
-		// Describe tasks
-		describeTasksResp, err := ecsClient.DescribeTasks(ctx, &ecs.DescribeTasksInput{
-			Cluster: aws.String("common-fate-demo-cluster"),
-			Tasks:   listTasksResp.TaskArns,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to describe tasks, %w", err)
-		}
-
-		if len(describeTasksResp.Tasks) > 1 {
-			return fmt.Errorf("expected only one task to be returned")
-		}
-		task := describeTasksResp.Tasks[0]
-
-		for _, container := range task.Containers {
-			if grab.Value(container.Name) == "aws-rds-proxy-container" {
-				runtimeID := grab.Value(container.RuntimeId)
-				taskID := strings.Split(runtimeID, "-")[0]
-				commandData.SSMSessionTarget = fmt.Sprintf("ecs:common-fate-demo-cluster_%s_%s", taskID, runtimeID)
-			}
-		}
-
-		clio.Infof("starting database proxy on port %v", commandData.LocalPort)
+		clio.Infof("starting database proxy on port %s", localDBPort)
 		clio.NewLine()
 
-		dsn := color.New(color.FgYellow).Sprintf("%s:%s@tcp(127.0.0.1:%s)/%s?allowCleartextPasswords=1", commandData.GrantOutput.User.Username, "password", commandData.LocalPort, commandData.GrantOutput.Database.Database)
+		dsn := color.New(color.FgYellow).Sprintf("%s:%s@tcp(127.0.0.1:%s)/%s?allowCleartextPasswords=1", commandData.GrantOutput.User.Username, "password", localDBPort, commandData.GrantOutput.Database.Database)
 		clio.Infof("You can connect to the database using this connection string:\n%s", dsn)
 		clio.NewLine()
 
-		mysqlCommand := color.New(color.FgYellow).Sprintf("LIBMYSQL_ENABLE_CLEARTEXT_PLUGIN=1 mysql -u %s -p'%s' -h 127.0.0.1 -P %s %s", commandData.GrantOutput.User.Username, "password", commandData.LocalPort, commandData.GrantOutput.Database.Database)
+		mysqlCommand := color.New(color.FgYellow).Sprintf("LIBMYSQL_ENABLE_CLEARTEXT_PLUGIN=1 mysql -u %s -p'%s' -h 127.0.0.1 -P %s %s", commandData.GrantOutput.User.Username, "password", localDBPort, commandData.GrantOutput.Database.Database)
 		clio.Infof("Or using the mysql cli:\n%s", mysqlCommand)
 		clio.NewLine()
 		cmd := exec.Command("aws", formatSSMCommandArgs(commandData)...)
@@ -320,57 +297,86 @@ var proxyCommand = cli.Command{
 		// Notify sigs on os.Interrupt (Ctrl+C)
 		signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
 
+		var eg errgroup.Group
+
 		// Wait for a termination signal in a separate goroutine
-		go func() {
+		eg.Go(func() error {
 			<-sigs
 			clio.Info("Received interrupt signal, shutting down...")
 			if err := cmd.Process.Signal(os.Interrupt); err != nil {
-				clio.Error("Error sending SIGTERM to process:", err)
+				return fmt.Errorf("error sending SIGTERM to process: %w", err)
 			}
-		}()
+			return nil
+		})
 
-		go func() {
-
-			ln, err := net.Listen("tcp", "localhost:5555")
+		eg.Go(func() error {
+			ln, err := net.Listen("tcp", "localhost:"+localDBPort)
 			if err != nil {
-				panic(err)
+				return fmt.Errorf("failed to start listening for connections on port: %s error: %w", localDBPort, err)
 			}
 			defer ln.Close()
 
 			for {
-
 				conn, err := ln.Accept()
 				if err != nil {
-					panic(err)
+					return fmt.Errorf("failed to accept new connection: %w", err)
 				}
 
-				serverConn, err := net.Dial("tcp", "localhost:"+commandData.LocalPort)
+				serverConn, err := net.Dial("tcp", "localhost:"+commandData.SSMPortForwardLocalPort)
 				if err != nil {
-					panic(err)
+					return fmt.Errorf("failed to connect to the ssm port forward while proxying connection: %w", err)
 				}
 
 				handshaker := handshake.NewHandshakeClient(serverConn, ensuredGrant.Grant.Id)
 				err = handshaker.Handshake()
+				// if the handshake fails, we bail because we won't be able to make any connections to this database
 				if err != nil {
-					panic(err)
+					return fmt.Errorf("failed to complete handshake with proxy server: %w", err)
 				}
 
-				go io.Copy(serverConn, conn)
-				go io.Copy(conn, serverConn)
-
+				// when the handshake is successful for a connection
+				// begin proxying traffic
+				go func() {
+					_, err := io.Copy(serverConn, conn)
+					if err != nil {
+						clio.Debugw("error while copying from client to server", "error", err)
+					}
+				}()
+				go func() {
+					_, err := io.Copy(conn, serverConn)
+					if err != nil {
+						clio.Debugw("error while copying from server to client", "error", err)
+					}
+				}()
 			}
-
-		}()
+		})
 
 		// Wait for the command to finish
-		err = cmd.Wait()
-		if err != nil {
-			clio.Error("Proxy connection failed with error:", err)
-		} else {
-			clio.Info("Proxy connection closed successfully")
-		}
-		return nil
+		eg.Go(func() error {
+			err = cmd.Wait()
+			if err != nil {
+				return fmt.Errorf("ssm portforward session closed with an error: %s", err)
+			}
+			clio.Info("ssm portforward session closed successfully")
+			return nil
+		})
+
+		return eg.Wait()
 	},
+}
+
+func GrabUnusedPort() (string, error) {
+	listener, err := net.Listen("tcp", ":0")
+	if err != nil {
+		return "", err
+	}
+
+	port := listener.Addr().(*net.TCPAddr).Port
+	err = listener.Close()
+	if err != nil {
+		return "", err
+	}
+	return strconv.Itoa(port), nil
 }
 
 // DebugWriter is an io.Writer that writes messages using clio.Debug.
@@ -449,20 +455,19 @@ func SanitisedEnv() []string {
 }
 
 type CommandData struct {
-	GrantOutput      AWSRDS
-	LocalPort        string
-	ProxyPort        string
-	SSMSessionTarget string
+	GrantOutput              AWSRDS
+	SSMPortForwardLocalPort  string
+	SSMPortForwardServerPort string
 }
 
 func formatSSMCommandArgs(data CommandData) []string {
 	out := []string{
 		"ssm",
 		"start-session",
-		fmt.Sprintf("--target=%s", data.SSMSessionTarget),
+		fmt.Sprintf("--target=%s", data.GrantOutput.SSMSessionTarget),
 		"--document-name=AWS-StartPortForwardingSession",
 		"--parameters",
-		fmt.Sprintf(`{"portNumber":["%s"], "localPortNumber":["%s"]}`, data.ProxyPort, data.LocalPort),
+		fmt.Sprintf(`{"portNumber":["%s"], "localPortNumber":["%s"]}`, data.SSMPortForwardServerPort, data.SSMPortForwardLocalPort),
 	}
 
 	return out
