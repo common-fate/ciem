@@ -4,7 +4,7 @@ import (
 	"github.com/common-fate/sdk/eid"
 )
 
-const GrantOutputType = "CF::GrantOutput::AWSRDSV2"
+const GrantOutputType = "CF::GrantOutput::AWSRDS"
 
 // AWSRDS is the grant output for AWS RDS Grants.
 //

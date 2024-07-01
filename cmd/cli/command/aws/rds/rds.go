@@ -360,15 +360,21 @@ var proxyCommand = cli.Command{
 		// Notify sigs on os.Interrupt (Ctrl+C)
 		signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
 
-		var eg errgroup.Group
+		ctx, cancel := context.WithCancel(ctx)
+		eg, ctx := errgroup.WithContext(ctx)
 
 		// Wait for a termination signal in a separate goroutine
 		eg.Go(func() error {
-			<-sigs
-			clio.Info("Received interrupt signal, shutting down...")
+			select {
+			case <-sigs:
+				clio.Info("Received interrupt signal, shutting down...")
+			case <-ctx.Done():
+				clio.Info("shutting down...")
+			}
 			if err := cmd.Process.Signal(os.Interrupt); err != nil {
 				return fmt.Errorf("error sending SIGTERM to process: %w", err)
 			}
+
 			return nil
 		})
 
@@ -378,39 +384,59 @@ var proxyCommand = cli.Command{
 				return fmt.Errorf("failed to start listening for connections on port: %s error: %w", localDBPort, err)
 			}
 			defer ln.Close()
+			defer cancel()
 
 			for {
-				conn, err := ln.Accept()
-				if err != nil {
+				connChan := make(chan net.Conn)
+				errChan := make(chan error)
+
+				go func() {
+					conn, err := ln.Accept()
+					if err != nil {
+						errChan <- err
+						return
+					}
+					connChan <- conn
+				}()
+
+				select {
+				case <-ctx.Done():
+					return nil // Context cancelled, exit the loop
+				case err := <-errChan:
 					return fmt.Errorf("failed to accept new connection: %w", err)
-				}
+				case conn := <-connChan:
+					go func() {
+						serverConn, err := net.Dial("tcp", "localhost:"+commandData.SSMPortForwardLocalPort)
+						if err != nil {
+							clio.Errorf("failed to connect to the ssm port forward while proxying connection: %w", err)
+							return
+						}
 
-				serverConn, err := net.Dial("tcp", "localhost:"+commandData.SSMPortForwardLocalPort)
-				if err != nil {
-					return fmt.Errorf("failed to connect to the ssm port forward while proxying connection: %w", err)
-				}
+						handshaker := handshake.NewHandshakeClient(serverConn, ensuredGrant.Grant.Id)
+						err = handshaker.Handshake()
+						// if the handshake fails, we bail because we won't be able to make any connections to this database
+						if err != nil {
+							clio.Errorf("failed to complete handshake with proxy server: %w", err)
+							return
+						}
 
-				handshaker := handshake.NewHandshakeClient(serverConn, ensuredGrant.Grant.Id)
-				err = handshaker.Handshake()
-				// if the handshake fails, we bail because we won't be able to make any connections to this database
-				if err != nil {
-					return fmt.Errorf("failed to complete handshake with proxy server: %w", err)
-				}
+						// when the handshake is successful for a connection
+						// begin proxying traffic
+						go func() {
+							_, err := io.Copy(serverConn, conn)
+							if err != nil {
+								clio.Debugw("error while copying from client to server", "error", err)
+							}
+						}()
+						go func() {
+							_, err := io.Copy(conn, serverConn)
+							if err != nil {
+								clio.Debugw("error while copying from server to client", "error", err)
+							}
+						}()
+					}()
 
-				// when the handshake is successful for a connection
-				// begin proxying traffic
-				go func() {
-					_, err := io.Copy(serverConn, conn)
-					if err != nil {
-						clio.Debugw("error while copying from client to server", "error", err)
-					}
-				}()
-				go func() {
-					_, err := io.Copy(conn, serverConn)
-					if err != nil {
-						clio.Debugw("error while copying from server to client", "error", err)
-					}
-				}()
+				}
 			}
 		})
 
@@ -590,7 +616,7 @@ sso_role_name = %s
 sso_start_url = %s
 sso_region = %s
 region = %s
-`, commandData.GrantOutput.Grant.ID, commandData.GrantOutput.Database.Account, commandData.GrantOutput.SSORoleName, commandData.GrantOutput.SSOStartURL, commandData.GrantOutput.SSORegion, commandData.GrantOutput.Database.Region)
+`, commandData.GrantOutput.Grant.ID, commandData.GrantOutput.Database.Account.ID, commandData.GrantOutput.SSORoleName, commandData.GrantOutput.SSOStartURL, commandData.GrantOutput.SSORegion, commandData.GrantOutput.Database.Region)
 
 	file, err := os.CreateTemp(os.TempDir(), "")
 	if err != nil {
