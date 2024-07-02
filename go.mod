@@ -17,7 +17,7 @@ require (
 	github.com/common-fate/glide-cli v0.6.0
 	github.com/common-fate/grab v1.3.0
 	github.com/common-fate/granted v0.23.0
-	github.com/common-fate/sdk v1.40.1-0.20240628023137-485be4c798f6
+	github.com/common-fate/sdk v1.41.2-0.20240702041310-87d06845af6a
 	github.com/fatih/color v1.16.0
 	github.com/mattn/go-isatty v0.0.20
 	github.com/mattn/go-runewidth v0.0.15
@@ -102,7 +102,7 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/uuid v1.4.0 // indirect
 	github.com/gookit/color v1.5.1 // indirect
-	github.com/gorilla/schema v1.2.0 // indirect
+	github.com/gorilla/schema v1.4.1 // indirect
 	github.com/gorilla/securecookie v1.1.1 // indirect
 	github.com/gsterjov/go-libsecret v0.0.0-20161001094733-a6f4afe4910c // indirect
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b // indirect

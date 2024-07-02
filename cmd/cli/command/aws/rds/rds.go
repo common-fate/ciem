@@ -70,6 +70,11 @@ var proxyCommand = cli.Command{
 			return err
 		}
 
+		err = cfg.Initialize(ctx, config.InitializeOpts{})
+		if err != nil {
+			return err
+		}
+
 		// ensure required CLI tools are installed
 		err = CheckDependencies()
 		if err != nil {
@@ -323,7 +328,7 @@ var proxyCommand = cli.Command{
 			return errors.New("did not find a grant output entity in query grant children response")
 		}
 
-		// @TODO consider embedding granted nere instead of having the external dependency
+		// @TODO consider embedding granted here instead of having the external dependency
 		creds, err := GrantedCredentialProcess(commandData)
 		if err != nil {
 			return err
@@ -342,6 +347,8 @@ var proxyCommand = cli.Command{
 		mysqlCommand := color.New(color.FgYellow).Sprintf("LIBMYSQL_ENABLE_CLEARTEXT_PLUGIN=1 mysql -u %s -p'%s' -h 127.0.0.1 -P %s %s", commandData.GrantOutput.User.Username, "password", localDBPort, commandData.GrantOutput.Database.Database)
 		clio.Infof("Or using the mysql cli:\n%s", mysqlCommand)
 		clio.NewLine()
+
+		// cmd := exec.Command("socat", fmt.Sprintf("TCP-LISTEN:%s,fork", ssmPortforwardLocalPort), "TCP:127.0.0.1:8081")
 		cmd := exec.Command("aws", formatSSMCommandArgs(commandData)...)
 		clio.Debugw("running aws ssm command", "command", "aws "+strings.Join(formatSSMCommandArgs(commandData), " "))
 		cmd.Stderr = os.Stderr
@@ -355,6 +362,9 @@ var proxyCommand = cli.Command{
 			return err
 		}
 
+		// listen for interrupt signals and forward them on
+		// listen for a context cancellation
+
 		// Set up a channel to receive OS signals
 		sigs := make(chan os.Signal, 1)
 		// Notify sigs on os.Interrupt (Ctrl+C)
@@ -363,28 +373,28 @@ var proxyCommand = cli.Command{
 		ctx, cancel := context.WithCancel(ctx)
 		eg, ctx := errgroup.WithContext(ctx)
 
-		// Wait for a termination signal in a separate goroutine
 		eg.Go(func() error {
 			select {
 			case <-sigs:
 				clio.Info("Received interrupt signal, shutting down...")
+				cancel()
 			case <-ctx.Done():
 				clio.Info("shutting down...")
 			}
 			if err := cmd.Process.Signal(os.Interrupt); err != nil {
-				return fmt.Errorf("error sending SIGTERM to process: %w", err)
+				clio.Errorf("error sending SIGTERM to process: %w", err)
 			}
-
 			return nil
 		})
 
 		eg.Go(func() error {
+			defer cancel()
+
 			ln, err := net.Listen("tcp", "localhost:"+localDBPort)
 			if err != nil {
-				return fmt.Errorf("failed to start listening for connections on port: %s error: %w", localDBPort, err)
+				clio.Errorf("failed to start listening for connections on port: %s error: %w", localDBPort, err)
 			}
 			defer ln.Close()
-			defer cancel()
 
 			for {
 				connChan := make(chan net.Conn)
@@ -401,47 +411,55 @@ var proxyCommand = cli.Command{
 
 				select {
 				case <-ctx.Done():
+					clio.Info("context cancelled shutting go port forward")
 					return nil // Context cancelled, exit the loop
 				case err := <-errChan:
-					return fmt.Errorf("failed to accept new connection: %w", err)
+					clio.Errorf("failed to accept new connection: %w", err)
+					return err
 				case conn := <-connChan:
 					go func() {
 						serverConn, err := net.Dial("tcp", "localhost:"+commandData.SSMPortForwardLocalPort)
 						if err != nil {
+							_ = conn.Close()
 							clio.Errorf("failed to connect to the ssm port forward while proxying connection: %w", err)
 							return
 						}
 
-						handshaker := handshake.NewHandshakeClient(serverConn, ensuredGrant.Grant.Id)
-						err = handshaker.Handshake()
+						handshaker := handshake.NewHandshakeClient(serverConn, ensuredGrant.Grant.Id, cfg.TokenSource)
+						handshakeResult, err := handshaker.Handshake()
 						// if the handshake fails, we bail because we won't be able to make any connections to this database
 						if err != nil {
+							_ = conn.Close()
 							clio.Errorf("failed to complete handshake with proxy server: %w", err)
 							return
 						}
 
+						clio.Debugw("handshakeResult", "result", handshakeResult)
+
 						// when the handshake is successful for a connection
 						// begin proxying traffic
 						go func() {
+							defer conn.Close()
 							_, err := io.Copy(serverConn, conn)
 							if err != nil {
 								clio.Debugw("error while copying from client to server", "error", err)
 							}
 						}()
 						go func() {
+							defer conn.Close()
 							_, err := io.Copy(conn, serverConn)
 							if err != nil {
 								clio.Debugw("error while copying from server to client", "error", err)
 							}
 						}()
 					}()
-
 				}
 			}
 		})
 
 		// Wait for the command to finish
 		eg.Go(func() error {
+			defer cancel()
 			err = cmd.Wait()
 			if err != nil {
 				return fmt.Errorf("ssm portforward session closed with an error: %s", err)
@@ -644,9 +662,12 @@ region = %s
 	cmd.Stderr = &stderr
 
 	err = cmd.Run()
-	clio.Debugw("granted credentials process stderr output", "stderr", stderr.String())
 	if err != nil {
+		clio.Error("granted credentials process failed")
+		clio.Log(stderr.String())
 		return aws.Credentials{}, err
+	} else {
+		clio.Debugw("granted credential process completed without os error", "stderr", stderr.String())
 	}
 	return ParseCredentialProcessOutput(stdout.String())
 }
