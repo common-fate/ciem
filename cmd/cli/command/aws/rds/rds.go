@@ -135,7 +135,7 @@ var proxyCommand = cli.Command{
 			selector := huh.NewSelect[*accessv1alpha1.Entitlement]().
 				Options(options...).
 				Title("Select a database to connect to").
-				Description(header)
+				Description(header).WithTheme(huh.ThemeBase())
 			err = selector.Run()
 			if err != nil {
 				return err
