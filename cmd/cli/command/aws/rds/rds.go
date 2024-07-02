@@ -61,7 +61,8 @@ var proxyCommand = cli.Command{
 		&cli.StringFlag{Name: "target"},
 		&cli.StringFlag{Name: "role"},
 		&cli.BoolFlag{Name: "confirm", Aliases: []string{"y"}, Usage: "skip the confirmation prompt"},
-		&cli.IntFlag{Name: "port", Value: 3306, Usage: "The local port to forward the database connection to"},
+		&cli.IntFlag{Name: "mysql-port", Value: 3306, Usage: "The local port to forward the mysql database connection to"},
+		&cli.IntFlag{Name: "postgres-port", Value: 5432, Usage: "The local port to forward the postgres database connection to"},
 	},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
@@ -336,7 +337,8 @@ var proxyCommand = cli.Command{
 		}
 
 		// the port that the user connects to
-		localDBPort := strconv.Itoa((c.Int("port")))
+		mysqlPort := strconv.Itoa((c.Int("mysql-port")))
+		postgresPort := strconv.Itoa((c.Int("postgres-port")))
 
 		notifyCh := make(chan struct{})
 
@@ -378,17 +380,106 @@ var proxyCommand = cli.Command{
 			case <-ctx.Done():
 			}
 			si.Stop()
+
+			var connectionString, cliString, port string
+			yellow := color.New(color.FgYellow)
+			switch commandData.GrantOutput.Database.Engine {
+			case "postgres":
+				port = postgresPort
+				connectionString = yellow.Sprintf("postgresql://%s:password@127.0.0.1:%s/%s", commandData.GrantOutput.User.Username, postgresPort, commandData.GrantOutput.Database.Database)
+				cliString = yellow.Sprintf(`psql "postgresql://%s:password@127.0.0.1:%s/%s"`, commandData.GrantOutput.User.Username, postgresPort, commandData.GrantOutput.Database.Database)
+			case "mysql":
+				port = mysqlPort
+				connectionString = yellow.Sprintf("%s:password@tcp(127.0.0.1:%s)/%s", commandData.GrantOutput.User.Username, mysqlPort, commandData.GrantOutput.Database.Database)
+				cliString = yellow.Sprintf(`mysql -u %s -p'password' -h 127.0.0.1 -P %s %s`, commandData.GrantOutput.User.Username, mysqlPort, commandData.GrantOutput.Database.Database)
+			default:
+				return fmt.Errorf("unsupported database engine: %s, maybe you need to update your `cf` cli", commandData.GrantOutput.Database.Engine)
+			}
+
 			clio.NewLine()
-			clio.Infof("Database proxy ready for connections on 127.0.0.1:%s", localDBPort)
+			clio.Infof("Database proxy ready for connections on 127.0.0.1:%s", port)
 			clio.NewLine()
 
-			dsn := color.New(color.FgYellow).Sprintf("%s:%s@tcp(127.0.0.1:%s)/%s", commandData.GrantOutput.User.Username, "password", localDBPort, commandData.GrantOutput.Database.Database)
-			clio.Infof("You can connect now using this connection string: %s", dsn)
+			clio.Infof("You can connect now using this connection string: %s", connectionString)
 			clio.NewLine()
 
-			mysqlCommand := color.New(color.FgYellow).Sprintf("mysql -u %s -p'%s' -h 127.0.0.1 -P %s %s", commandData.GrantOutput.User.Username, "password", localDBPort, commandData.GrantOutput.Database.Database)
-			clio.Infof("Or using the mysql cli: %s", mysqlCommand)
+			clio.Infof("Or using the %s cli: %s", commandData.GrantOutput.Database.Engine, cliString)
 			clio.NewLine()
+
+			eg.Go(func() error {
+				defer cancel()
+
+				ln, err := net.Listen("tcp", "localhost:"+port)
+				if err != nil {
+					clio.Errorf("failed to start listening for connections on port: %s error: %w", port, err)
+				}
+				defer ln.Close()
+
+				for {
+					connChan := make(chan net.Conn)
+					errChan := make(chan error)
+
+					go func() {
+						conn, err := ln.Accept()
+						if err != nil {
+							errChan <- err
+							return
+						}
+
+						clio.Debug("accepted connection")
+						connChan <- conn
+					}()
+
+					select {
+					case <-ctx.Done():
+						clio.Debug("context cancelled shutting down port forward")
+						return nil // Context cancelled, exit the loop
+					case err := <-errChan:
+						clio.Errorf("Failed to accept new connection: %w", err)
+						return err
+					case conn := <-connChan:
+						go func() {
+							serverConn, err := net.Dial("tcp", "localhost:"+commandData.SSMPortForwardLocalPort)
+							if err != nil {
+								_ = conn.Close()
+								clio.Errorf("Failed to establish a connection to the remote proxy server while accepting local connection: %w", err)
+								return
+							}
+
+							handshaker := handshake.NewHandshakeClient(serverConn, ensuredGrant.Grant.Id, cfg.TokenSource)
+							handshakeResult, err := handshaker.Handshake()
+							// if the handshake fails, we bail because we won't be able to make any connections to this database
+							if err != nil {
+								_ = conn.Close()
+								clio.Errorf("Failed to authenticate connection to the remove proxy server while accepting local connection: %w", err)
+								return
+							}
+
+							clio.Debugw("handshakeResult", "result", handshakeResult)
+
+							clio.Infof("Connection accepted for session [%v]", handshakeResult.ConnectionID)
+
+							// when the handshake is successful for a connection
+							// begin proxying traffic
+							go func() {
+								defer conn.Close()
+								_, err := io.Copy(serverConn, conn)
+								if err != nil {
+									clio.Debugw("Error writing data from client to server usually this is just because the database proxy session ended.", "connectionId", handshakeResult.ConnectionID, zap.Error(err))
+								}
+								clio.Infof("Connection ended for session [%v]", handshakeResult.ConnectionID)
+							}()
+							go func() {
+								defer conn.Close()
+								_, err := io.Copy(conn, serverConn)
+								if err != nil {
+									clio.Debugw("Error writing data from server to client usually this is just because the database proxy session ended.", "connectionId", handshakeResult.ConnectionID, zap.Error(err))
+								}
+							}()
+						}()
+					}
+				}
+			})
 			return nil
 		})
 
@@ -404,81 +495,6 @@ var proxyCommand = cli.Command{
 				clio.Errorf("Error sending SIGTERM to AWS SSM process: %w", err)
 			}
 			return nil
-		})
-
-		eg.Go(func() error {
-			defer cancel()
-
-			ln, err := net.Listen("tcp", "localhost:"+localDBPort)
-			if err != nil {
-				clio.Errorf("failed to start listening for connections on port: %s error: %w", localDBPort, err)
-			}
-			defer ln.Close()
-
-			for {
-				connChan := make(chan net.Conn)
-				errChan := make(chan error)
-
-				go func() {
-					conn, err := ln.Accept()
-					if err != nil {
-						errChan <- err
-						return
-					}
-
-					clio.Debug("accepted connection")
-					connChan <- conn
-				}()
-
-				select {
-				case <-ctx.Done():
-					clio.Debug("context cancelled shutting down port forward")
-					return nil // Context cancelled, exit the loop
-				case err := <-errChan:
-					clio.Errorf("Failed to accept new connection: %w", err)
-					return err
-				case conn := <-connChan:
-					go func() {
-						serverConn, err := net.Dial("tcp", "localhost:"+commandData.SSMPortForwardLocalPort)
-						if err != nil {
-							_ = conn.Close()
-							clio.Errorf("Failed to establish a connection to the remote proxy server while accepting local connection: %w", err)
-							return
-						}
-
-						handshaker := handshake.NewHandshakeClient(serverConn, ensuredGrant.Grant.Id, cfg.TokenSource)
-						handshakeResult, err := handshaker.Handshake()
-						// if the handshake fails, we bail because we won't be able to make any connections to this database
-						if err != nil {
-							_ = conn.Close()
-							clio.Errorf("Failed to authenticate connection to the remove proxy server while accepting local connection: %w", err)
-							return
-						}
-
-						clio.Debugw("handshakeResult", "result", handshakeResult)
-
-						clio.Infof("Connection accepted for session [%v]", handshakeResult.ConnectionID)
-
-						// when the handshake is successful for a connection
-						// begin proxying traffic
-						go func() {
-							defer conn.Close()
-							_, err := io.Copy(serverConn, conn)
-							if err != nil {
-								clio.Debugw("Error writing data from client to server usually this is just because the database proxy session ended.", "connectionId", handshakeResult.ConnectionID, zap.Error(err))
-							}
-							clio.Infof("Connection ended for session [%v]", handshakeResult.ConnectionID)
-						}()
-						go func() {
-							defer conn.Close()
-							_, err := io.Copy(conn, serverConn)
-							if err != nil {
-								clio.Debugw("Error writing data from server to client usually this is just because the database proxy session ended.", "connectionId", handshakeResult.ConnectionID, zap.Error(err))
-							}
-						}()
-					}()
-				}
-			}
 		})
 
 		// Wait for the command to finish
