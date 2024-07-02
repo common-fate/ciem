@@ -110,7 +110,7 @@ var proxyCommand = cli.Command{
 				Title string
 				Width int
 			}
-			cols := []Column{{Title: "Database", Width: 20}, {Title: "Role", Width: 20}}
+			cols := []Column{{Title: "Database", Width: 40}, {Title: "Role", Width: 40}}
 			var s = make([]string, 0, len(cols))
 			for _, col := range cols {
 				style := lipgloss.NewStyle().Width(col.Width).MaxWidth(col.Width).Inline(true)
@@ -119,6 +119,7 @@ var proxyCommand = cli.Command{
 			}
 			header := lipgloss.NewStyle().PaddingLeft(2).Render(lipgloss.JoinHorizontal(lipgloss.Left, s...))
 			var options []huh.Option[*accessv1alpha1.Entitlement]
+
 			for _, entitlement := range entitlements {
 				style := lipgloss.NewStyle().Width(cols[0].Width).MaxWidth(cols[0].Width).Inline(true)
 				target := lipgloss.NewStyle().Bold(true).Padding(0).Render(style.Render(runewidth.Truncate(entitlement.Target.Display(), cols[0].Width, "…")))
@@ -342,8 +343,16 @@ var proxyCommand = cli.Command{
 
 		notifyCh := make(chan struct{})
 
-		// cmd := exec.Command("socat", fmt.Sprintf("TCP-LISTEN:%s,fork", ssmPortforwardLocalPort), "TCP:127.0.0.1:8081")
-		cmd := exec.Command("aws", formatSSMCommandArgs(commandData)...)
+		var cmd *exec.Cmd
+
+		// in local dev you can skip using ssm and just use a local port forward instead
+		if os.Getenv("CF_DEV_PROXY") == "true" {
+			cmd = exec.Command("socat", fmt.Sprintf("TCP-LISTEN:%s,fork", ssmPortforwardLocalPort), "TCP:127.0.0.1:8081")
+			go func() { notifyCh <- struct{}{} }()
+		} else {
+			cmd = exec.Command("aws", formatSSMCommandArgs(commandData)...)
+		}
+
 		clio.Debugw("running aws ssm command", "command", "aws "+strings.Join(formatSSMCommandArgs(commandData), " "))
 
 		si := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
@@ -377,17 +386,19 @@ var proxyCommand = cli.Command{
 		eg.Go(func() error {
 			select {
 			case <-notifyCh:
+				si.Stop()
 			case <-ctx.Done():
+				si.Stop()
+				return nil
 			}
-			si.Stop()
 
 			var connectionString, cliString, port string
 			yellow := color.New(color.FgYellow)
 			switch commandData.GrantOutput.Database.Engine {
 			case "postgres":
 				port = postgresPort
-				connectionString = yellow.Sprintf("postgresql://%s:password@127.0.0.1:%s/%s", commandData.GrantOutput.User.Username, postgresPort, commandData.GrantOutput.Database.Database)
-				cliString = yellow.Sprintf(`psql "postgresql://%s:password@127.0.0.1:%s/%s"`, commandData.GrantOutput.User.Username, postgresPort, commandData.GrantOutput.Database.Database)
+				connectionString = yellow.Sprintf("postgresql://%s:password@127.0.0.1:%s/%s?sslmode=disable", commandData.GrantOutput.User.Username, postgresPort, commandData.GrantOutput.Database.Database)
+				cliString = yellow.Sprintf(`psql "postgresql://%s:password@127.0.0.1:%s/%s?sslmode=disable"`, commandData.GrantOutput.User.Username, postgresPort, commandData.GrantOutput.Database.Database)
 			case "mysql":
 				port = mysqlPort
 				connectionString = yellow.Sprintf("%s:password@tcp(127.0.0.1:%s)/%s", commandData.GrantOutput.User.Username, mysqlPort, commandData.GrantOutput.Database.Database)
