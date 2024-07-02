@@ -168,6 +168,8 @@ github.com/common-fate/provider-registry-sdk-go v0.19.0 h1:V5ZUP5jvNFM0FVXH8akXL
 github.com/common-fate/provider-registry-sdk-go v0.19.0/go.mod h1:nD5qKGinFLxxhISpWHYCv5v7bQhB1wKap4jA8bmztOw=
 github.com/common-fate/sdk v1.41.2-0.20240702041310-87d06845af6a h1:bXMyijbK2uJUrfHWSD87QBuW61ziE475NxLXlWx1MP0=
 github.com/common-fate/sdk v1.41.2-0.20240702041310-87d06845af6a/go.mod h1:Y7yRweNikBpi/LRYPRx+wl/mlOx1VQ9xapglkGKEdcM=
+github.com/common-fate/sdk v1.41.2-0.20240702050035-90232b1a01de h1:mqvQGpp82mZykN0dyvBFssRJ2BGh2/rThPToILWj0w4=
+github.com/common-fate/sdk v1.41.2-0.20240702050035-90232b1a01de/go.mod h1:Y7yRweNikBpi/LRYPRx+wl/mlOx1VQ9xapglkGKEdcM=
 github.com/common-fate/useragent v0.1.0 h1:RLmkIiJXcOUJAUyXWc/zCaGbrGmlCbHBGMx99ztQ3ZU=
 github.com/common-fate/useragent v0.1.0/go.mod h1:GjXGR6cDiMboDP04qlfDfA5HTbeoRSoNgQWDAyOdW9o=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=

@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"go.uber.org/zap"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -337,22 +338,20 @@ var proxyCommand = cli.Command{
 		// the port that the user connects to
 		localDBPort := strconv.Itoa((c.Int("port")))
 
-		clio.Infof("starting database proxy on port %s", localDBPort)
-		clio.NewLine()
-
-		dsn := color.New(color.FgYellow).Sprintf("%s:%s@tcp(127.0.0.1:%s)/%s?allowCleartextPasswords=1", commandData.GrantOutput.User.Username, "password", localDBPort, commandData.GrantOutput.Database.Database)
-		clio.Infof("You can connect to the database using this connection string:\n%s", dsn)
-		clio.NewLine()
-
-		mysqlCommand := color.New(color.FgYellow).Sprintf("LIBMYSQL_ENABLE_CLEARTEXT_PLUGIN=1 mysql -u %s -p'%s' -h 127.0.0.1 -P %s %s", commandData.GrantOutput.User.Username, "password", localDBPort, commandData.GrantOutput.Database.Database)
-		clio.Infof("Or using the mysql cli:\n%s", mysqlCommand)
-		clio.NewLine()
+		notifyCh := make(chan struct{})
 
 		// cmd := exec.Command("socat", fmt.Sprintf("TCP-LISTEN:%s,fork", ssmPortforwardLocalPort), "TCP:127.0.0.1:8081")
 		cmd := exec.Command("aws", formatSSMCommandArgs(commandData)...)
 		clio.Debugw("running aws ssm command", "command", "aws "+strings.Join(formatSSMCommandArgs(commandData), " "))
-		cmd.Stderr = os.Stderr
-		cmd.Stdout = os.Stdout
+
+		si := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+		si.Suffix = " Starting database proxy..."
+		si.Writer = os.Stderr
+		si.Start()
+		defer si.Stop()
+
+		cmd.Stderr = io.MultiWriter(NewNotifyingWriter(io.Discard, "Waiting for connections...", notifyCh), DebugWriter{})
+		cmd.Stdout = io.MultiWriter(NewNotifyingWriter(io.Discard, "Waiting for connections...", notifyCh), DebugWriter{})
 		cmd.Stdin = os.Stdin
 		cmd.Env = PrepareAWSCLIEnv(creds, commandData)
 
@@ -375,14 +374,34 @@ var proxyCommand = cli.Command{
 
 		eg.Go(func() error {
 			select {
+			case <-notifyCh:
+			case <-ctx.Done():
+			}
+			si.Stop()
+			clio.NewLine()
+			clio.Infof("Database proxy ready for connections on 127.0.0.1:%s", localDBPort)
+			clio.NewLine()
+
+			dsn := color.New(color.FgYellow).Sprintf("%s:%s@tcp(127.0.0.1:%s)/%s", commandData.GrantOutput.User.Username, "password", localDBPort, commandData.GrantOutput.Database.Database)
+			clio.Infof("You can connect now using this connection string: %s", dsn)
+			clio.NewLine()
+
+			mysqlCommand := color.New(color.FgYellow).Sprintf("mysql -u %s -p'%s' -h 127.0.0.1 -P %s %s", commandData.GrantOutput.User.Username, "password", localDBPort, commandData.GrantOutput.Database.Database)
+			clio.Infof("Or using the mysql cli: %s", mysqlCommand)
+			clio.NewLine()
+			return nil
+		})
+
+		eg.Go(func() error {
+			select {
 			case <-sigs:
-				clio.Info("Received interrupt signal, shutting down...")
+				clio.Info("Received interrupt signal, shutting down database proxy...")
 				cancel()
 			case <-ctx.Done():
-				clio.Info("shutting down...")
+				clio.Info("Shutting down database proxy...")
 			}
 			if err := cmd.Process.Signal(os.Interrupt); err != nil {
-				clio.Errorf("error sending SIGTERM to process: %w", err)
+				clio.Errorf("Error sending SIGTERM to AWS SSM process: %w", err)
 			}
 			return nil
 		})
@@ -406,22 +425,24 @@ var proxyCommand = cli.Command{
 						errChan <- err
 						return
 					}
+
+					clio.Debug("accepted connection")
 					connChan <- conn
 				}()
 
 				select {
 				case <-ctx.Done():
-					clio.Info("context cancelled shutting go port forward")
+					clio.Debug("context cancelled shutting down port forward")
 					return nil // Context cancelled, exit the loop
 				case err := <-errChan:
-					clio.Errorf("failed to accept new connection: %w", err)
+					clio.Errorf("Failed to accept new connection: %w", err)
 					return err
 				case conn := <-connChan:
 					go func() {
 						serverConn, err := net.Dial("tcp", "localhost:"+commandData.SSMPortForwardLocalPort)
 						if err != nil {
 							_ = conn.Close()
-							clio.Errorf("failed to connect to the ssm port forward while proxying connection: %w", err)
+							clio.Errorf("Failed to establish a connection to the remote proxy server while accepting local connection: %w", err)
 							return
 						}
 
@@ -430,11 +451,13 @@ var proxyCommand = cli.Command{
 						// if the handshake fails, we bail because we won't be able to make any connections to this database
 						if err != nil {
 							_ = conn.Close()
-							clio.Errorf("failed to complete handshake with proxy server: %w", err)
+							clio.Errorf("Failed to authenticate connection to the remove proxy server while accepting local connection: %w", err)
 							return
 						}
 
 						clio.Debugw("handshakeResult", "result", handshakeResult)
+
+						clio.Infof("Connection accepted for session [%v]", handshakeResult.ConnectionID)
 
 						// when the handshake is successful for a connection
 						// begin proxying traffic
@@ -442,14 +465,15 @@ var proxyCommand = cli.Command{
 							defer conn.Close()
 							_, err := io.Copy(serverConn, conn)
 							if err != nil {
-								clio.Debugw("error while copying from client to server", "error", err)
+								clio.Debugw("Error writing data from client to server usually this is just because the database proxy session ended.", "connectionId", handshakeResult.ConnectionID, zap.Error(err))
 							}
+							clio.Infof("Connection ended for session [%v]", handshakeResult.ConnectionID)
 						}()
 						go func() {
 							defer conn.Close()
 							_, err := io.Copy(conn, serverConn)
 							if err != nil {
-								clio.Debugw("error while copying from server to client", "error", err)
+								clio.Debugw("Error writing data from server to client usually this is just because the database proxy session ended.", "connectionId", handshakeResult.ConnectionID, zap.Error(err))
 							}
 						}()
 					}()
@@ -462,9 +486,8 @@ var proxyCommand = cli.Command{
 			defer cancel()
 			err = cmd.Wait()
 			if err != nil {
-				return fmt.Errorf("ssm portforward session closed with an error: %s", err)
+				return fmt.Errorf("AWS SSM port forward session closed with an error: %s", err)
 			}
-			clio.Info("ssm portforward session closed successfully")
 			return nil
 		})
 
