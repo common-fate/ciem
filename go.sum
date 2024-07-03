@@ -170,6 +170,10 @@ github.com/common-fate/sdk v1.41.2-0.20240702041310-87d06845af6a h1:bXMyijbK2uJU
 github.com/common-fate/sdk v1.41.2-0.20240702041310-87d06845af6a/go.mod h1:Y7yRweNikBpi/LRYPRx+wl/mlOx1VQ9xapglkGKEdcM=
 github.com/common-fate/sdk v1.41.2-0.20240702050035-90232b1a01de h1:mqvQGpp82mZykN0dyvBFssRJ2BGh2/rThPToILWj0w4=
 github.com/common-fate/sdk v1.41.2-0.20240702050035-90232b1a01de/go.mod h1:Y7yRweNikBpi/LRYPRx+wl/mlOx1VQ9xapglkGKEdcM=
+github.com/common-fate/sdk v1.41.2-0.20240703040154-4a02f58bcc23 h1:FHTtzNiyOHfVIDI3a3iuAe/Nszqajs2kesDrkgujx1k=
+github.com/common-fate/sdk v1.41.2-0.20240703040154-4a02f58bcc23/go.mod h1:Y7yRweNikBpi/LRYPRx+wl/mlOx1VQ9xapglkGKEdcM=
+github.com/common-fate/sdk v1.41.2-0.20240703040731-6ee0272f7c87 h1:Rh9rUxtTqbp89Q0vWCo/MBzjkiI5YlKWI9k4L4GAisc=
+github.com/common-fate/sdk v1.41.2-0.20240703040731-6ee0272f7c87/go.mod h1:Y7yRweNikBpi/LRYPRx+wl/mlOx1VQ9xapglkGKEdcM=
 github.com/common-fate/useragent v0.1.0 h1:RLmkIiJXcOUJAUyXWc/zCaGbrGmlCbHBGMx99ztQ3ZU=
 github.com/common-fate/useragent v0.1.0/go.mod h1:GjXGR6cDiMboDP04qlfDfA5HTbeoRSoNgQWDAyOdW9o=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
