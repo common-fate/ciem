@@ -31,6 +31,7 @@ import (
 	"github.com/common-fate/clio/clierr"
 	"github.com/common-fate/grab"
 	"github.com/common-fate/granted/pkg/assume"
+	"github.com/sethvargo/go-retry"
 
 	"github.com/common-fate/sdk/config"
 	"github.com/common-fate/sdk/eid"
@@ -318,6 +319,8 @@ var proxyCommand = cli.Command{
 			SSMPortForwardLocalPort:  ssmPortforwardLocalPort,
 		}
 
+		clio.Debugw("command data", "commandData", commandData)
+
 		for _, child := range children {
 			if child.Eid.Type == GrantOutputType {
 				err = entity.Unmarshal(child, &commandData.GrantOutput)
@@ -331,8 +334,7 @@ var proxyCommand = cli.Command{
 			return errors.New("did not find a grant output entity in query grant children response")
 		}
 
-		// @TODO consider embedding granted here instead of having the external dependency
-		creds, err := GrantedCredentialProcess(commandData)
+		creds, err := GrantedCredentialProcess(ctx, commandData)
 		if err != nil {
 			return err
 		}
@@ -446,14 +448,14 @@ var proxyCommand = cli.Command{
 						clio.Debug("context cancelled shutting down port forward")
 						return nil // Context cancelled, exit the loop
 					case err := <-errChan:
-						clio.Errorf("Failed to accept new connection: %w", err)
+						clio.Errorw("Failed to accept new connection", zap.Error(err))
 						return err
 					case conn := <-connChan:
 						go func() {
 							serverConn, err := net.Dial("tcp", "localhost:"+commandData.SSMPortForwardLocalPort)
 							if err != nil {
 								_ = conn.Close()
-								clio.Errorf("Failed to establish a connection to the remote proxy server while accepting local connection: %w", err)
+								clio.Errorw("Failed to establish a connection to the remote proxy server while accepting local connection", zap.Error(err))
 								return
 							}
 
@@ -462,7 +464,7 @@ var proxyCommand = cli.Command{
 							// if the handshake fails, we bail because we won't be able to make any connections to this database
 							if err != nil {
 								_ = conn.Close()
-								clio.Errorf("Failed to authenticate connection to the remove proxy server while accepting local connection: %w", err)
+								clio.Errorw("Failed to authenticate connection to the remote proxy server while accepting local connection", zap.Error(err))
 								return
 							}
 
@@ -503,7 +505,7 @@ var proxyCommand = cli.Command{
 				clio.Info("Shutting down database proxy...")
 			}
 			if err := cmd.Process.Signal(os.Interrupt); err != nil {
-				clio.Errorf("Error sending SIGTERM to AWS SSM process: %w", err)
+				clio.Errorw("Error sending SIGTERM to AWS SSM process", zap.Error(err))
 			}
 			return nil
 		})
@@ -676,7 +678,7 @@ func CheckDependencies() error {
 	return nil
 }
 
-func GrantedCredentialProcess(commandData CommandData) (aws.Credentials, error) {
+func GrantedCredentialProcess(ctx context.Context, commandData CommandData) (aws.Credentials, error) {
 	// the grant id is used for teh profile to avoid issues with the credential cache in granted credential-process, it also gets the benefit of this cache per grant
 	configFile := fmt.Sprintf(`[profile %s]
 sso_account_id = %s
@@ -702,16 +704,25 @@ region = %s
 		return aws.Credentials{}, err
 	}
 
-	cmd := exec.Command("granted", "credential-process", "--auto-login", "--profile", commandData.GrantOutput.Grant.ID)
-	cmd.Env = append(cmd.Env, os.Environ()...)
-	cmd.Env = append(cmd.Env, "AWS_CONFIG_FILE="+file.Name())
-
 	var stdout strings.Builder
 	var stderr strings.Builder
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
+	// assuming the role may fail initially due to eventual consistency in aws sso
+	err = retry.Do(ctx, retry.WithMaxDuration(time.Second*10, retry.NewConstant(time.Second)), func(ctx context.Context) (err error) {
+		cmd := exec.Command("granted", "credential-process", "--auto-login", "--profile", commandData.GrantOutput.Grant.ID)
+		cmd.Env = append(cmd.Env, os.Environ()...)
+		cmd.Env = append(cmd.Env, "AWS_CONFIG_FILE="+file.Name())
 
-	err = cmd.Run()
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+
+		err = cmd.Run()
+		if err != nil {
+			stdout.Reset()
+			stderr.Reset()
+			return retry.RetryableError(err)
+		}
+		return nil
+	})
 	if err != nil {
 		clio.Error("granted credentials process failed")
 		clio.Log(stderr.String())
@@ -719,5 +730,6 @@ region = %s
 	} else {
 		clio.Debugw("granted credential process completed without os error", "stderr", stderr.String())
 	}
+
 	return ParseCredentialProcessOutput(stdout.String())
 }

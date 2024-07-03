@@ -18,6 +18,7 @@ type AWSRDS struct {
 	Database         Database     `json:"database" authz:"database"`
 	User             DatabaseUser `json:"user" authz:"user"`
 	SSMSessionTarget string       `json:"ssm_session_target" authz:"ssm_session_target"`
+	PermissionSetARN string       `json:"permission_set_arn" authz:"permission_set_arn"`
 }
 
 func (e AWSRDS) Parents() []eid.EID { return []eid.EID{e.Grant} }
