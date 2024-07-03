@@ -428,9 +428,10 @@ var proxyCommand = cli.Command{
 				}
 				defer ln.Close()
 
+				terminatingErrChan := make(chan error)
 				for {
 					connChan := make(chan net.Conn)
-					errChan := make(chan error)
+					errChan := make(chan error, 10)
 
 					go func() {
 						conn, err := ln.Accept()
@@ -450,6 +451,9 @@ var proxyCommand = cli.Command{
 					case err := <-errChan:
 						clio.Errorw("Failed to accept new connection", zap.Error(err))
 						return err
+					case err := <-terminatingErrChan:
+						clio.Debug("terminating error recieved")
+						return err
 					case conn := <-connChan:
 						go func() {
 							serverConn, err := net.Dial("tcp", "localhost:"+commandData.SSMPortForwardLocalPort)
@@ -461,10 +465,11 @@ var proxyCommand = cli.Command{
 
 							handshaker := handshake.NewHandshakeClient(serverConn, ensuredGrant.Grant.Id, cfg.TokenSource)
 							handshakeResult, err := handshaker.Handshake()
+
 							// if the handshake fails, we bail because we won't be able to make any connections to this database
 							if err != nil {
 								_ = conn.Close()
-								clio.Errorw("Failed to authenticate connection to the remote proxy server while accepting local connection", zap.Error(err))
+								terminatingErrChan <- clierr.New("Failed to authenticate connection to the remote proxy server while accepting local connection", clierr.Error(err), clierr.Infof("Your grant may have expired, you can check the status here: %s", accessCmd.RequestURL(apiURL, ensuredGrant.Grant)))
 								return
 							}
 
@@ -515,6 +520,9 @@ var proxyCommand = cli.Command{
 			defer cancel()
 			err = cmd.Wait()
 			if err != nil {
+				if err.Error() == "exit status 130" {
+					return nil
+				}
 				return clierr.New(fmt.Errorf("AWS SSM port forward session closed with an error: %w", err).Error(),
 					clierr.Info("You can try re-running this command with the verbose flag to see detailed logs, 'cf --verbose aws rds proxy'"),
 					clierr.Infof("In rare cases, where the database proxy has been re-deployed while your grant was active, you will need to close your request in Common Fate and request access again 'cf access close request --id=%s' This is usually indicated by an error message containing '(TargetNotConnected) when calling the StartSession'", ensuredGrant.Grant.AccessRequestId))
