@@ -515,7 +515,9 @@ var proxyCommand = cli.Command{
 			defer cancel()
 			err = cmd.Wait()
 			if err != nil {
-				return fmt.Errorf("AWS SSM port forward session closed with an error: %s", err)
+				return clierr.New(fmt.Errorf("AWS SSM port forward session closed with an error: %w", err).Error(),
+					clierr.Info("You can try re-running this command with the verbose flag to see detailed logs, 'cf --verbose aws rds proxy'"),
+					clierr.Infof("In rare cases, where the database proxy has been re-deployed while your grant was active, you will need to close your request in Common Fate and request access again 'cf access close request --id=%s' This is usually indicated by an error message containing '(TargetNotConnected) when calling the StartSession'", ensuredGrant.Grant.AccessRequestId))
 			}
 			return nil
 		})
