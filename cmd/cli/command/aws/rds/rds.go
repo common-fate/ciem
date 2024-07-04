@@ -314,8 +314,8 @@ var proxyCommand = cli.Command{
 		clio.Debugf("starting SSM portforward on local port: %s", ssmPortforwardLocalPort)
 
 		commandData := CommandData{
-			// the proxy server always runs on port 8080
-			SSMPortForwardServerPort: "8080",
+			// the proxy server always runs on port 7070
+			SSMPortForwardServerPort: "7070",
 			SSMPortForwardLocalPort:  ssmPortforwardLocalPort,
 		}
 
@@ -333,11 +333,16 @@ var proxyCommand = cli.Command{
 		if commandData.GrantOutput.Grant.ID == "" {
 			return errors.New("did not find a grant output entity in query grant children response")
 		}
-
+		si := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+		si.Suffix = " Loading AWS Credentials..."
+		si.Writer = os.Stderr
+		si.Start()
+		defer si.Stop()
 		creds, err := GrantedCredentialProcess(ctx, commandData)
 		if err != nil {
 			return err
 		}
+		si.Stop()
 
 		// the port that the user connects to
 		mysqlPort := strconv.Itoa((c.Int("mysql-port")))
@@ -349,7 +354,7 @@ var proxyCommand = cli.Command{
 
 		// in local dev you can skip using ssm and just use a local port forward instead
 		if os.Getenv("CF_DEV_PROXY") == "true" {
-			cmd = exec.Command("socat", fmt.Sprintf("TCP-LISTEN:%s,fork", ssmPortforwardLocalPort), "TCP:127.0.0.1:8081")
+			cmd = exec.Command("socat", fmt.Sprintf("TCP-LISTEN:%s,fork", commandData.SSMPortForwardLocalPort), fmt.Sprintf("TCP:127.0.0.1:%s", commandData.SSMPortForwardServerPort))
 			go func() { notifyCh <- struct{}{} }()
 		} else {
 			cmd = exec.Command("aws", formatSSMCommandArgs(commandData)...)
@@ -357,7 +362,7 @@ var proxyCommand = cli.Command{
 
 		clio.Debugw("running aws ssm command", "command", "aws "+strings.Join(formatSSMCommandArgs(commandData), " "))
 
-		si := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+		si = spinner.New(spinner.CharSets[14], 100*time.Millisecond)
 		si.Suffix = " Starting database proxy..."
 		si.Writer = os.Stderr
 		si.Start()
