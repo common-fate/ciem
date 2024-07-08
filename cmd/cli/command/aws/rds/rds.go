@@ -315,11 +315,14 @@ var proxyCommand = cli.Command{
 
 		commandData := CommandData{
 			// the proxy server always runs on port 7070
-			SSMPortForwardServerPort: "7070",
+			SSMPortForwardServerPort: "8080",
 			SSMPortForwardLocalPort:  ssmPortforwardLocalPort,
 		}
 
-		clio.Debugw("command data", "commandData", commandData)
+		// in local dev we run on a different port because the control plane already runs on 8080
+		if os.Getenv("CF_DEV_PROXY") == "true" {
+			commandData.SSMPortForwardServerPort = "7070"
+		}
 
 		for _, child := range children {
 			if child.Eid.Type == GrantOutputType {
@@ -333,6 +336,9 @@ var proxyCommand = cli.Command{
 		if commandData.GrantOutput.Grant.ID == "" {
 			return errors.New("did not find a grant output entity in query grant children response")
 		}
+
+		clio.Debugw("command data", "commandData", commandData)
+
 		si := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
 		si.Suffix = " Loading AWS Credentials..."
 		si.Writer = os.Stderr
