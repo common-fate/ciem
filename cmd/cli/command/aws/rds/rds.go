@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+
 	"net"
 	"net/url"
 	"os"
@@ -18,10 +19,18 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"go.uber.org/zap"
-
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
+	awsConfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	"github.com/aws/session-manager-plugin/src/log"
+	"github.com/aws/session-manager-plugin/src/sessionmanagerplugin/session"
+	"github.com/aws/session-manager-plugin/src/sessionmanagerplugin/session/portsession"
+
+	"github.com/aws/session-manager-plugin/src/datachannel"
+	"github.com/google/uuid"
+
 	"github.com/briandowns/spinner"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
@@ -31,8 +40,6 @@ import (
 	"github.com/common-fate/clio/clierr"
 	"github.com/common-fate/grab"
 	"github.com/common-fate/granted/pkg/assume"
-	"github.com/sethvargo/go-retry"
-
 	"github.com/common-fate/sdk/config"
 	"github.com/common-fate/sdk/eid"
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
@@ -43,7 +50,9 @@ import (
 	"github.com/common-fate/sdk/service/entity"
 	"github.com/fatih/color"
 	"github.com/mattn/go-runewidth"
+	"github.com/sethvargo/go-retry"
 	"github.com/urfave/cli/v2"
+	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -356,14 +365,50 @@ var proxyCommand = cli.Command{
 
 		notifyCh := make(chan struct{})
 
+		awscfg, err := awsConfig.LoadDefaultConfig(ctx, awsConfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)))
+		if err != nil {
+			return err
+		}
+		awscfg.Region = commandData.GrantOutput.Database.Region
+		ssmClient := ssm.NewFromConfig(awscfg)
+
 		var cmd *exec.Cmd
 
+		var sessionOutput *ssm.StartSessionOutput
 		// in local dev you can skip using ssm and just use a local port forward instead
 		if os.Getenv("CF_DEV_PROXY") == "true" {
 			cmd = exec.Command("socat", fmt.Sprintf("TCP-LISTEN:%s,fork", commandData.SSMPortForwardLocalPort), fmt.Sprintf("TCP:127.0.0.1:%s", commandData.SSMPortForwardServerPort))
 			go func() { notifyCh <- struct{}{} }()
 		} else {
-			cmd = exec.Command("aws", formatSSMCommandArgs(commandData)...)
+			documentName := "AWS-StartPortForwardingSession"
+			startSessionInput := ssm.StartSessionInput{
+				Target:       &commandData.GrantOutput.SSMSessionTarget,
+				DocumentName: &documentName,
+				Parameters: map[string][]string{
+					"portNumber":      {commandData.SSMPortForwardServerPort},
+					"localPortNumber": {commandData.SSMPortForwardLocalPort},
+				},
+			}
+			clio.Info("starting session with ssm client")
+
+			sessionOutput, err = ssmClient.StartSession(ctx, &startSessionInput)
+			if err != nil {
+				return err
+			}
+
+		}
+
+		log := log.Logger(true, "session-manager-plugin")
+
+		clientId := uuid.New().String()
+		ssmSession := session.Session{
+			StreamUrl:             *sessionOutput.StreamUrl,
+			SessionId:             *sessionOutput.SessionId,
+			TokenValue:            *sessionOutput.TokenValue,
+			IsAwsCliUpgradeNeeded: false,
+			Endpoint:              "localhost:" + commandData.SSMPortForwardLocalPort,
+			DataChannel:           &datachannel.DataChannel{},
+			ClientId:              clientId,
 		}
 
 		clio.Debugw("running aws ssm command", "command", "aws "+strings.Join(formatSSMCommandArgs(commandData), " "))
@@ -374,16 +419,30 @@ var proxyCommand = cli.Command{
 		si.Start()
 		defer si.Stop()
 
-		cmd.Stderr = io.MultiWriter(NewNotifyingWriter(io.Discard, "Waiting for connections...", notifyCh), DebugWriter{})
-		cmd.Stdout = io.MultiWriter(NewNotifyingWriter(io.Discard, "Waiting for connections...", notifyCh), DebugWriter{})
-		cmd.Stdin = os.Stdin
-		cmd.Env = PrepareAWSCLIEnv(creds, commandData)
+		// cmd.Stderr = io.MultiWriter(NewNotifyingWriter(io.Discard, "Waiting for connections...", notifyCh), DebugWriter{})
+		// cmd.Stdout = io.MultiWriter(NewNotifyingWriter(io.Discard, "Waiting for connections...", notifyCh), DebugWriter{})
+		// cmd.Stdin = os.Stdin
+		// cmd.Env = PrepareAWSCLIEnv(creds, commandData)
 
 		// Start the command in a separate goroutine
-		err = cmd.Start()
+
+		//register the port session
+		portSession := portsession.PortSession{
+			Session: ssmSession,
+		}
+		session.Register(&portSession)
+
+		clio.Info("executing session with ssm client")
+
+		err = ssmSession.Execute(log)
 		if err != nil {
 			return err
 		}
+
+		// err = cmd.Start()
+		// if err != nil {
+		// 	return err
+		// }
 
 		// listen for interrupt signals and forward them on
 		// listen for a context cancellation
