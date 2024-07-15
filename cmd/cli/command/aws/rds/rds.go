@@ -31,6 +31,7 @@ import (
 	"github.com/common-fate/clio/clierr"
 	"github.com/common-fate/grab"
 	"github.com/common-fate/granted/pkg/assume"
+	"github.com/hashicorp/yamux"
 	"github.com/sethvargo/go-retry"
 
 	"github.com/common-fate/sdk/config"
@@ -360,29 +361,28 @@ var proxyCommand = cli.Command{
 
 		// in local dev you can skip using ssm and just use a local port forward instead
 		if os.Getenv("CF_DEV_PROXY") == "true" {
-			cmd = exec.Command("socat", fmt.Sprintf("TCP-LISTEN:%s,fork", commandData.SSMPortForwardLocalPort), fmt.Sprintf("TCP:127.0.0.1:%s", commandData.SSMPortForwardServerPort))
+			commandData.SSMPortForwardLocalPort = commandData.SSMPortForwardServerPort
 			go func() { notifyCh <- struct{}{} }()
 		} else {
 			cmd = exec.Command("aws", formatSSMCommandArgs(commandData)...)
-		}
+			clio.Debugw("running aws ssm command", "command", "aws "+strings.Join(formatSSMCommandArgs(commandData), " "))
 
-		clio.Debugw("running aws ssm command", "command", "aws "+strings.Join(formatSSMCommandArgs(commandData), " "))
+			si = spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+			si.Suffix = " Starting database proxy..."
+			si.Writer = os.Stderr
+			si.Start()
+			defer si.Stop()
 
-		si = spinner.New(spinner.CharSets[14], 100*time.Millisecond)
-		si.Suffix = " Starting database proxy..."
-		si.Writer = os.Stderr
-		si.Start()
-		defer si.Stop()
+			cmd.Stderr = io.MultiWriter(NewNotifyingWriter(io.Discard, "Waiting for connections...", notifyCh), DebugWriter{})
+			cmd.Stdout = io.MultiWriter(NewNotifyingWriter(io.Discard, "Waiting for connections...", notifyCh), DebugWriter{})
+			cmd.Stdin = os.Stdin
+			cmd.Env = PrepareAWSCLIEnv(creds, commandData)
 
-		cmd.Stderr = io.MultiWriter(NewNotifyingWriter(io.Discard, "Waiting for connections...", notifyCh), DebugWriter{})
-		cmd.Stdout = io.MultiWriter(NewNotifyingWriter(io.Discard, "Waiting for connections...", notifyCh), DebugWriter{})
-		cmd.Stdin = os.Stdin
-		cmd.Env = PrepareAWSCLIEnv(creds, commandData)
-
-		// Start the command in a separate goroutine
-		err = cmd.Start()
-		if err != nil {
-			return err
+			// Start the command in a separate goroutine
+			err = cmd.Start()
+			if err != nil {
+				return err
+			}
 		}
 
 		// listen for interrupt signals and forward them on
@@ -403,6 +403,29 @@ var proxyCommand = cli.Command{
 			case <-ctx.Done():
 				si.Stop()
 				return nil
+			}
+
+			rawServerConn, err := net.Dial("tcp", "localhost:"+commandData.SSMPortForwardLocalPort)
+			if err != nil {
+				return fmt.Errorf("failed to establish a connection to the remote proxy server: %w", err)
+			}
+
+			handshaker := handshake.NewHandshakeClient(rawServerConn, ensuredGrant.Grant.Id, cfg.TokenSource)
+			handshakeResult, err := handshaker.Handshake()
+			if err != nil {
+				return clierr.New("failed to authenticate connection to the remote proxy server while accepting local connection", clierr.Error(err), clierr.Infof("Your grant may have expired, you can check the status here: %s", accessCmd.RequestURL(apiURL, ensuredGrant.Grant)))
+			}
+			clio.Debugw("handshakeResult", "result", handshakeResult)
+
+			// Setup client side of yamux
+			multiplexedServerClient, err := yamux.Client(rawServerConn, nil)
+			if err != nil {
+				return err
+			}
+
+			_, err = multiplexedServerClient.Ping()
+			if err != nil {
+				return err
 			}
 
 			var connectionString, cliString, port string
@@ -432,6 +455,7 @@ var proxyCommand = cli.Command{
 
 			eg.Go(func() error {
 				defer cancel()
+				defer rawServerConn.Close()
 
 				ln, err := net.Listen("tcp", "localhost:"+port)
 				if err != nil {
@@ -465,44 +489,33 @@ var proxyCommand = cli.Command{
 					case err := <-terminatingErrChan:
 						clio.Debug("terminating error recieved")
 						return err
-					case conn := <-connChan:
+					case databaseClientConn := <-connChan:
 						go func() {
-							serverConn, err := net.Dial("tcp", "localhost:"+commandData.SSMPortForwardLocalPort)
+							sessionConn, err := multiplexedServerClient.OpenStream()
 							if err != nil {
-								_ = conn.Close()
-								clio.Errorw("Failed to establish a connection to the remote proxy server while accepting local connection", zap.Error(err))
-								return
-							}
-
-							handshaker := handshake.NewHandshakeClient(serverConn, ensuredGrant.Grant.Id, cfg.TokenSource)
-							handshakeResult, err := handshaker.Handshake()
-
-							// if the handshake fails, we bail because we won't be able to make any connections to this database
-							if err != nil {
-								_ = conn.Close()
 								terminatingErrChan <- clierr.New("Failed to authenticate connection to the remote proxy server while accepting local connection", clierr.Error(err), clierr.Infof("Your grant may have expired, you can check the status here: %s", accessCmd.RequestURL(apiURL, ensuredGrant.Grant)))
 								return
 							}
 
-							clio.Debugw("handshakeResult", "result", handshakeResult)
-
-							clio.Infof("Connection accepted for session [%v]", handshakeResult.ConnectionID)
+							clio.Infof("Connection accepted for session [%v]", sessionConn.StreamID())
 
 							// when the handshake is successful for a connection
 							// begin proxying traffic
 							go func() {
-								defer conn.Close()
-								_, err := io.Copy(serverConn, conn)
+								defer databaseClientConn.Close()
+								defer sessionConn.Close()
+								_, err := io.Copy(sessionConn, databaseClientConn)
 								if err != nil {
-									clio.Debugw("Error writing data from client to server usually this is just because the database proxy session ended.", "connectionId", handshakeResult.ConnectionID, zap.Error(err))
+									clio.Debugw("Error writing data from client to server usually this is just because the database proxy session ended.", "streamId", sessionConn.StreamID(), zap.Error(err))
 								}
-								clio.Infof("Connection ended for session [%v]", handshakeResult.ConnectionID)
+								clio.Infof("Connection ended for session [%v]", sessionConn.StreamID())
 							}()
 							go func() {
-								defer conn.Close()
-								_, err := io.Copy(conn, serverConn)
+								defer databaseClientConn.Close()
+								defer sessionConn.Close()
+								_, err := io.Copy(databaseClientConn, sessionConn)
 								if err != nil {
-									clio.Debugw("Error writing data from server to client usually this is just because the database proxy session ended.", "connectionId", handshakeResult.ConnectionID, zap.Error(err))
+									clio.Debugw("Error writing data from server to client usually this is just because the database proxy session ended.", "streamId", sessionConn.StreamID(), zap.Error(err))
 								}
 							}()
 						}()
@@ -520,23 +533,28 @@ var proxyCommand = cli.Command{
 			case <-ctx.Done():
 				clio.Info("Shutting down database proxy...")
 			}
-			if err := cmd.Process.Signal(os.Interrupt); err != nil {
-				clio.Errorw("Error sending SIGTERM to AWS SSM process", zap.Error(err))
+			if cmd != nil {
+				if err := cmd.Process.Signal(os.Interrupt); err != nil {
+					clio.Errorw("Error sending SIGTERM to AWS SSM process", zap.Error(err))
+				}
 			}
+
 			return nil
 		})
 
 		// Wait for the command to finish
 		eg.Go(func() error {
-			defer cancel()
-			err = cmd.Wait()
-			if err != nil {
-				if err.Error() == "exit status 130" {
-					return nil
+			if cmd != nil {
+				defer cancel()
+				err = cmd.Wait()
+				if err != nil {
+					if err.Error() == "exit status 130" {
+						return nil
+					}
+					return clierr.New(fmt.Errorf("AWS SSM port forward session closed with an error: %w", err).Error(),
+						clierr.Info("You can try re-running this command with the verbose flag to see detailed logs, 'cf --verbose aws rds proxy'"),
+						clierr.Infof("In rare cases, where the database proxy has been re-deployed while your grant was active, you will need to close your request in Common Fate and request access again 'cf access close request --id=%s' This is usually indicated by an error message containing '(TargetNotConnected) when calling the StartSession'", ensuredGrant.Grant.AccessRequestId))
 				}
-				return clierr.New(fmt.Errorf("AWS SSM port forward session closed with an error: %w", err).Error(),
-					clierr.Info("You can try re-running this command with the verbose flag to see detailed logs, 'cf --verbose aws rds proxy'"),
-					clierr.Infof("In rare cases, where the database proxy has been re-deployed while your grant was active, you will need to close your request in Common Fate and request access again 'cf access close request --id=%s' This is usually indicated by an error message containing '(TargetNotConnected) when calling the StartSession'", ensuredGrant.Grant.AccessRequestId))
 			}
 			return nil
 		})
