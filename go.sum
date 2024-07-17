@@ -140,8 +140,8 @@ github.com/common-fate/iso8601 v1.1.0 h1:nrej9shsK1aB4IyOAjZl68xGk8yDuUxVwQjoDzx
 github.com/common-fate/iso8601 v1.1.0/go.mod h1:DU4mvUEkkWZUUSJq2aCuNqM1luSb0Pwyb2dLzXS+img=
 github.com/common-fate/provider-registry-sdk-go v0.19.0 h1:V5ZUP5jvNFM0FVXH8akXLb5VxBu22OkKqQTu2CA1goI=
 github.com/common-fate/provider-registry-sdk-go v0.19.0/go.mod h1:nD5qKGinFLxxhISpWHYCv5v7bQhB1wKap4jA8bmztOw=
-github.com/common-fate/sdk v1.26.2 h1:2wzbhD2atA/XYREXrGdrMvcwulS/aYZ7JpZidT8MLCQ=
-github.com/common-fate/sdk v1.26.2/go.mod h1:WXoPe1Lh7wPmwZj9nXOGVrOU+c5FLUbj7e7Mz4lxSUg=
+github.com/common-fate/sdk v1.45.1 h1:3G8/Ct/l5uiDRGElExKn7kMxViHqq60R5tVQx1uSzio=
+github.com/common-fate/sdk v1.45.1/go.mod h1:Y7yRweNikBpi/LRYPRx+wl/mlOx1VQ9xapglkGKEdcM=
 github.com/common-fate/useragent v0.1.0 h1:RLmkIiJXcOUJAUyXWc/zCaGbrGmlCbHBGMx99ztQ3ZU=
 github.com/common-fate/useragent v0.1.0/go.mod h1:GjXGR6cDiMboDP04qlfDfA5HTbeoRSoNgQWDAyOdW9o=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
