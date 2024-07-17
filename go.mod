@@ -78,7 +78,7 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/uuid v1.4.0 // indirect
 	github.com/gookit/color v1.5.1 // indirect
-	github.com/gorilla/schema v1.2.0 // indirect
+	github.com/gorilla/schema v1.4.1 // indirect
 	github.com/gorilla/securecookie v1.1.1 // indirect
 	github.com/gsterjov/go-libsecret v0.0.0-20161001094733-a6f4afe4910c // indirect
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b // indirect
