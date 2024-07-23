@@ -17,7 +17,6 @@ require (
 	github.com/common-fate/clio v1.2.3
 	github.com/common-fate/glide-cli v0.6.0
 	github.com/common-fate/grab v1.3.0
-	github.com/common-fate/granted v0.23.0
 	github.com/common-fate/sdk v1.41.2-0.20240703052432-300f4bbde487
 	github.com/fatih/color v1.16.0
 	github.com/mattn/go-isatty v0.0.20
@@ -64,7 +63,6 @@ require (
 	github.com/99designs/keyring v1.2.2 // indirect
 	github.com/BurntSushi/toml v1.3.2 // indirect
 	github.com/TylerBrock/colorjson v0.0.0-20200706003622-8a50f05110d2 // indirect
-	github.com/alessio/shellescape v1.4.2 // indirect
 	github.com/aws-cloudformation/rain v1.2.0 // indirect
 	github.com/aws/aws-sdk-go v1.54.19 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.5.4 // indirect
@@ -113,10 +111,8 @@ require (
 	github.com/gorilla/schema v1.4.1 // indirect
 	github.com/gorilla/securecookie v1.1.1 // indirect
 	github.com/gsterjov/go-libsecret v0.0.0-20161001094733-a6f4afe4910c // indirect
-	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b // indirect
 	github.com/invopop/yaml v0.2.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
-	github.com/joho/godotenv v1.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
@@ -151,4 +147,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/aws/session-manager-plugin => github.com/common-fate/session-manager-plugin v0.0.0-20240715064150-516cbf23bd84
+replace github.com/aws/session-manager-plugin => github.com/common-fate/session-manager-plugin v0.0.0-20240723020406-8ba300ac7b56
