@@ -37,6 +37,9 @@ import (
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/clierr"
 	"github.com/common-fate/grab"
+	"github.com/common-fate/granted/pkg/assume"
+	"github.com/hashicorp/yamux"
+	"github.com/sethvargo/go-retry"
 	"github.com/common-fate/sdk/config"
 	"github.com/common-fate/sdk/eid"
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
@@ -354,12 +357,14 @@ var proxyCommand = cli.Command{
 		mysqlPort := strconv.Itoa((c.Int("mysql-port")))
 		postgresPort := strconv.Itoa((c.Int("postgres-port")))
 
-		notifyCh := make(chan struct{}, 10)
+
+		notifyCh := make(chan struct{})
 
 		awscfg, err := awsConfig.LoadDefaultConfig(ctx, awsConfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)))
 		if err != nil {
 			return err
-		}
+
+
 		awscfg.Region = commandData.GrantOutput.Database.Region
 		ssmClient := ssm.NewFromConfig(awscfg)
 
@@ -448,6 +453,29 @@ var proxyCommand = cli.Command{
 				return nil
 			}
 
+			rawServerConn, err := net.Dial("tcp", "localhost:"+commandData.SSMPortForwardLocalPort)
+			if err != nil {
+				return fmt.Errorf("failed to establish a connection to the remote proxy server: %w", err)
+			}
+
+			handshaker := handshake.NewHandshakeClient(rawServerConn, ensuredGrant.Grant.Id, cfg.TokenSource)
+			handshakeResult, err := handshaker.Handshake()
+			if err != nil {
+				return clierr.New("failed to authenticate connection to the remote proxy server while accepting local connection", clierr.Error(err), clierr.Infof("Your grant may have expired, you can check the status here: %s", accessCmd.RequestURL(apiURL, ensuredGrant.Grant)))
+			}
+			clio.Debugw("handshakeResult", "result", handshakeResult)
+
+			// Setup client side of yamux
+			multiplexedServerClient, err := yamux.Client(rawServerConn, nil)
+			if err != nil {
+				return err
+			}
+
+			_, err = multiplexedServerClient.Ping()
+			if err != nil {
+				return err
+			}
+
 			var connectionString, cliString, port string
 			yellow := color.New(color.FgYellow)
 			switch commandData.GrantOutput.Database.Engine {
@@ -475,6 +503,7 @@ var proxyCommand = cli.Command{
 
 			eg.Go(func() error {
 				defer cancel()
+				defer rawServerConn.Close()
 
 				ln, err := net.Listen("tcp", "localhost:"+port)
 				if err != nil {
@@ -508,44 +537,33 @@ var proxyCommand = cli.Command{
 					case err := <-terminatingErrChan:
 						clio.Debug("terminating error recieved")
 						return err
-					case conn := <-connChan:
+					case databaseClientConn := <-connChan:
 						go func() {
-							serverConn, err := net.Dial("tcp", "localhost:"+commandData.SSMPortForwardLocalPort)
+							sessionConn, err := multiplexedServerClient.OpenStream()
 							if err != nil {
-								_ = conn.Close()
-								clio.Errorw("Failed to establish a connection to the remote proxy server while accepting local connection", zap.Error(err))
-								return
-							}
-
-							handshaker := handshake.NewHandshakeClient(serverConn, ensuredGrant.Grant.Id, cfg.TokenSource)
-							handshakeResult, err := handshaker.Handshake()
-
-							// if the handshake fails, we bail because we won't be able to make any connections to this database
-							if err != nil {
-								_ = conn.Close()
 								terminatingErrChan <- clierr.New("Failed to authenticate connection to the remote proxy server while accepting local connection", clierr.Error(err), clierr.Infof("Your grant may have expired, you can check the status here: %s", accessCmd.RequestURL(apiURL, ensuredGrant.Grant)))
 								return
 							}
 
-							clio.Debugw("handshakeResult", "result", handshakeResult)
-
-							clio.Infof("Connection accepted for session [%v]", handshakeResult.ConnectionID)
+							clio.Infof("Connection accepted for session [%v]", sessionConn.StreamID())
 
 							// when the handshake is successful for a connection
 							// begin proxying traffic
 							go func() {
-								defer conn.Close()
-								_, err := io.Copy(serverConn, conn)
+								defer databaseClientConn.Close()
+								defer sessionConn.Close()
+								_, err := io.Copy(sessionConn, databaseClientConn)
 								if err != nil {
-									clio.Debugw("Error writing data from client to server usually this is just because the database proxy session ended.", "connectionId", handshakeResult.ConnectionID, zap.Error(err))
+									clio.Debugw("Error writing data from client to server usually this is just because the database proxy session ended.", "streamId", sessionConn.StreamID(), zap.Error(err))
 								}
-								clio.Infof("Connection ended for session [%v]", handshakeResult.ConnectionID)
+								clio.Infof("Connection ended for session [%v]", sessionConn.StreamID())
 							}()
 							go func() {
-								defer conn.Close()
-								_, err := io.Copy(conn, serverConn)
+								defer databaseClientConn.Close()
+								defer sessionConn.Close()
+								_, err := io.Copy(databaseClientConn, sessionConn)
 								if err != nil {
-									clio.Debugw("Error writing data from server to client usually this is just because the database proxy session ended.", "connectionId", handshakeResult.ConnectionID, zap.Error(err))
+									clio.Debugw("Error writing data from server to client usually this is just because the database proxy session ended.", "streamId", sessionConn.StreamID(), zap.Error(err))
 								}
 							}()
 						}()
@@ -562,6 +580,24 @@ var proxyCommand = cli.Command{
 				cancel()
 			case <-ctx.Done():
 				clio.Info("Shutting down database proxy...")
+			}
+
+			return nil
+		})
+
+		// Wait for the command to finish
+		eg.Go(func() error {
+			if cmd != nil {
+				defer cancel()
+				err = cmd.Wait()
+				if err != nil {
+					if err.Error() == "exit status 130" {
+						return nil
+					}
+					return clierr.New(fmt.Errorf("AWS SSM port forward session closed with an error: %w", err).Error(),
+						clierr.Info("You can try re-running this command with the verbose flag to see detailed logs, 'cf --verbose aws rds proxy'"),
+						clierr.Infof("In rare cases, where the database proxy has been re-deployed while your grant was active, you will need to close your request in Common Fate and request access again 'cf access close request --id=%s' This is usually indicated by an error message containing '(TargetNotConnected) when calling the StartSession'", ensuredGrant.Grant.AccessRequestId))
+				}
 			}
 			return nil
 		})
