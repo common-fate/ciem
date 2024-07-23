@@ -1,12 +1,12 @@
 package rds
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+
 	"net"
 	"net/url"
 	"os"
@@ -18,10 +18,17 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"go.uber.org/zap"
-
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
+	awsConfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	"github.com/aws/session-manager-plugin/src/sessionmanagerplugin/session"
+	"github.com/aws/session-manager-plugin/src/sessionmanagerplugin/session/portsession"
+
+	"github.com/aws/session-manager-plugin/src/datachannel"
+	"github.com/google/uuid"
+
 	"github.com/briandowns/spinner"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
@@ -33,7 +40,6 @@ import (
 	"github.com/common-fate/granted/pkg/assume"
 	"github.com/hashicorp/yamux"
 	"github.com/sethvargo/go-retry"
-
 	"github.com/common-fate/sdk/config"
 	"github.com/common-fate/sdk/eid"
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
@@ -44,7 +50,9 @@ import (
 	"github.com/common-fate/sdk/service/entity"
 	"github.com/fatih/color"
 	"github.com/mattn/go-runewidth"
+	"github.com/sethvargo/go-retry"
 	"github.com/urfave/cli/v2"
+	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -75,12 +83,6 @@ var proxyCommand = cli.Command{
 		}
 
 		err = cfg.Initialize(ctx, config.InitializeOpts{})
-		if err != nil {
-			return err
-		}
-
-		// ensure required CLI tools are installed
-		err = CheckDependencies()
 		if err != nil {
 			return err
 		}
@@ -355,35 +357,16 @@ var proxyCommand = cli.Command{
 		mysqlPort := strconv.Itoa((c.Int("mysql-port")))
 		postgresPort := strconv.Itoa((c.Int("postgres-port")))
 
+
 		notifyCh := make(chan struct{})
 
-		var cmd *exec.Cmd
+		awscfg, err := awsConfig.LoadDefaultConfig(ctx, awsConfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)))
+		if err != nil {
+			return err
 
-		// in local dev you can skip using ssm and just use a local port forward instead
-		if os.Getenv("CF_DEV_PROXY") == "true" {
-			commandData.SSMPortForwardLocalPort = commandData.SSMPortForwardServerPort
-			go func() { notifyCh <- struct{}{} }()
-		} else {
-			cmd = exec.Command("aws", formatSSMCommandArgs(commandData)...)
-			clio.Debugw("running aws ssm command", "command", "aws "+strings.Join(formatSSMCommandArgs(commandData), " "))
 
-			si = spinner.New(spinner.CharSets[14], 100*time.Millisecond)
-			si.Suffix = " Starting database proxy..."
-			si.Writer = os.Stderr
-			si.Start()
-			defer si.Stop()
-
-			cmd.Stderr = io.MultiWriter(NewNotifyingWriter(io.Discard, "Waiting for connections...", notifyCh), DebugWriter{})
-			cmd.Stdout = io.MultiWriter(NewNotifyingWriter(io.Discard, "Waiting for connections...", notifyCh), DebugWriter{})
-			cmd.Stdin = os.Stdin
-			cmd.Env = PrepareAWSCLIEnv(creds, commandData)
-
-			// Start the command in a separate goroutine
-			err = cmd.Start()
-			if err != nil {
-				return err
-			}
-		}
+		awscfg.Region = commandData.GrantOutput.Database.Region
+		ssmClient := ssm.NewFromConfig(awscfg)
 
 		// listen for interrupt signals and forward them on
 		// listen for a context cancellation
@@ -394,7 +377,72 @@ var proxyCommand = cli.Command{
 		signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
 
 		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
 		eg, ctx := errgroup.WithContext(ctx)
+
+		var sessionOutput *ssm.StartSessionOutput
+		// in local dev you can skip using ssm and just use a local port forward instead
+		if os.Getenv("CF_DEV_PROXY") == "true" {
+			commandData.SSMPortForwardLocalPort = commandData.SSMPortForwardServerPort
+			go func() { notifyCh <- struct{}{} }()
+		} else {
+			documentName := "AWS-StartPortForwardingSession"
+			startSessionInput := ssm.StartSessionInput{
+				Target:       &commandData.GrantOutput.SSMSessionTarget,
+				DocumentName: &documentName,
+				Parameters: map[string][]string{
+					"portNumber":      {commandData.SSMPortForwardServerPort},
+					"localPortNumber": {commandData.SSMPortForwardLocalPort},
+				},
+			}
+			clio.Info("starting session with ssm client")
+
+			sessionOutput, err = ssmClient.StartSession(ctx, &startSessionInput)
+			if err != nil {
+				return err
+			}
+			eg.Go(func() error {
+				clientId := uuid.New().String()
+				ssmSession := session.Session{
+					StreamUrl:             *sessionOutput.StreamUrl,
+					SessionId:             *sessionOutput.SessionId,
+					TokenValue:            *sessionOutput.TokenValue,
+					IsAwsCliUpgradeNeeded: false,
+					Endpoint:              "localhost:" + commandData.SSMPortForwardLocalPort,
+					DataChannel:           &datachannel.DataChannel{},
+					ClientId:              clientId,
+				}
+
+				si = spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+				si.Suffix = " Starting database proxy..."
+				si.Writer = os.Stderr
+				si.Start()
+				defer si.Stop()
+
+				clio.Info("executing session with ssm client")
+
+				// registers the PortSession feature
+				_ = portsession.PortSession{}
+				// writes ssm session logs to clio.Debug while listening for the waiting for connectiosn phrase
+				// once we see that, we can start connecting
+
+				go func() {
+					<-ctx.Done()
+					err := ssmSession.TerminateSession(&SSMDebugLogger{
+						Writers: []io.Writer{DebugWriter{}},
+					})
+					if err != nil {
+						clio.Debug(err)
+					}
+				}()
+
+				return ssmSession.Execute(&SSMDebugLogger{
+					Writers: []io.Writer{
+						NewNotifyingWriter(DebugWriter{}, "Waiting for connections...", notifyCh),
+					},
+				})
+			})
+		}
 
 		eg.Go(func() error {
 			select {
@@ -533,11 +581,6 @@ var proxyCommand = cli.Command{
 			case <-ctx.Done():
 				clio.Info("Shutting down database proxy...")
 			}
-			if cmd != nil {
-				if err := cmd.Process.Signal(os.Interrupt); err != nil {
-					clio.Errorw("Error sending SIGTERM to AWS SSM process", zap.Error(err))
-				}
-			}
 
 			return nil
 		})
@@ -577,98 +620,10 @@ func GrabUnusedPort() (string, error) {
 	return strconv.Itoa(port), nil
 }
 
-// DebugWriter is an io.Writer that writes messages using clio.Debug.
-type DebugWriter struct{}
-
-// Write implements the io.Writer interface for DebugWriter.
-func (dw DebugWriter) Write(p []byte) (n int, err error) {
-	message := string(p)
-	clio.Debug(message)
-	return len(p), nil
-}
-
-type NotifyingWriter struct {
-	writer   io.Writer
-	phrase   string
-	notifyCh chan struct{}
-	buffer   bytes.Buffer
-}
-
-func NewNotifyingWriter(writer io.Writer, phrase string, notifyCh chan struct{}) *NotifyingWriter {
-	return &NotifyingWriter{
-		writer:   writer,
-		phrase:   phrase,
-		notifyCh: notifyCh,
-	}
-}
-
-func (nw *NotifyingWriter) Write(p []byte) (n int, err error) {
-	// Write to the buffer first
-	nw.buffer.Write(p)
-	// Check if the phrase is in the buffer
-	if strings.Contains(nw.buffer.String(), nw.phrase) {
-		// Notify the channel in a non-blocking way
-		select {
-		case nw.notifyCh <- struct{}{}:
-		default:
-		}
-		// Clear the buffer up to the phrase
-		nw.buffer.Reset()
-	}
-	// Write to the underlying writer
-	return nw.writer.Write(p)
-}
-
-func PrepareAWSCLIEnv(creds aws.Credentials, commandData CommandData) []string {
-	return append(SanitisedEnv(), assume.EnvKeys(creds, commandData.GrantOutput.Database.Region)...)
-}
-
-// SanitisedEnv returns the environment variables excluding specific AWS keys.
-// used so that existing aws creds in the terminal are not passed through to downstream programs like the AWS cli
-func SanitisedEnv() []string {
-	// List of AWS keys to remove from the environment.
-	awsKeys := map[string]struct{}{
-		"AWS_ACCESS_KEY_ID":         {},
-		"AWS_SECRET_ACCESS_KEY":     {},
-		"AWS_SESSION_TOKEN":         {},
-		"AWS_PROFILE":               {},
-		"AWS_REGION":                {},
-		"AWS_DEFAULT_REGION":        {},
-		"AWS_SESSION_EXPIRATION":    {},
-		"AWS_CREDENTIAL_EXPIRATION": {},
-	}
-
-	var cleanedEnv []string
-	for _, env := range os.Environ() {
-		// Split the environment variable into key and value
-		parts := strings.SplitN(env, "=", 2)
-		key := parts[0]
-
-		// If the key is not one of the AWS keys, include it in the cleaned environment
-		if _, found := awsKeys[key]; !found {
-			cleanedEnv = append(cleanedEnv, env)
-		}
-	}
-	return cleanedEnv
-}
-
 type CommandData struct {
 	GrantOutput              AWSRDS
 	SSMPortForwardLocalPort  string
 	SSMPortForwardServerPort string
-}
-
-func formatSSMCommandArgs(data CommandData) []string {
-	out := []string{
-		"ssm",
-		"start-session",
-		fmt.Sprintf("--target=%s", data.GrantOutput.SSMSessionTarget),
-		"--document-name=AWS-StartPortForwardingSession",
-		"--parameters",
-		fmt.Sprintf(`{"portNumber":["%s"], "localPortNumber":["%s"]}`, data.SSMPortForwardServerPort, data.SSMPortForwardLocalPort),
-	}
-
-	return out
 }
 
 // CredentialProcessOutput represents the JSON output format of the credential process.
@@ -695,26 +650,6 @@ func ParseCredentialProcessOutput(credentialProcessOutput string) (aws.Credentia
 		CanExpire:       !output.Expiration.IsZero(),
 		Expires:         output.Expiration,
 	}, nil
-}
-
-func CheckDependencies() error {
-	_, err := exec.LookPath("granted")
-	if err != nil {
-		// The executable was not found in the PATH
-		if _, ok := err.(*exec.Error); ok {
-			return clierr.New("the required cli 'granted' was not found on your path", clierr.Info("Granted is required to access AWS via SSO, please follow the instructions here to install it https://docs.commonfate.io/granted/getting-started/"))
-		}
-		return err
-	}
-	_, err = exec.LookPath("aws")
-	if err != nil {
-		// The executable was not found in the PATH
-		if _, ok := err.(*exec.Error); ok {
-			return clierr.New("the required cli 'aws' was not found on your path", clierr.Info("The AWS cli is required to access dastabases via SSM Session Manager, please follow the instructions here to install it https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-welcome.html"))
-		}
-		return err
-	}
-	return nil
 }
 
 func GrantedCredentialProcess(ctx context.Context, commandData CommandData) (aws.Credentials, error) {
