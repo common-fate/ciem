@@ -9,5 +9,7 @@ var Command = cli.Command{
 		&resetCommand,
 		&deleteOauthTokenCommand,
 		&relinkEntraUsers,
+		&delete,
+		&list,
 	},
 }
