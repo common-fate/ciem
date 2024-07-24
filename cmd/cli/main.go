@@ -14,7 +14,6 @@ import (
 	"github.com/common-fate/cli/cmd/cli/command/access"
 	"github.com/common-fate/cli/cmd/cli/command/auditlog"
 	"github.com/common-fate/cli/cmd/cli/command/authz"
-	"github.com/common-fate/cli/cmd/cli/command/aws"
 	"github.com/common-fate/cli/cmd/cli/command/deployment"
 	"github.com/common-fate/cli/cmd/cli/command/entity"
 	"github.com/common-fate/cli/cmd/cli/command/identity"
@@ -123,7 +122,6 @@ func main() {
 			&auditlog.Command,
 			&command.Configure,
 			&command.Context,
-			&aws.Command,
 			&deployment.Command,
 			&integration.Command,
 		},
