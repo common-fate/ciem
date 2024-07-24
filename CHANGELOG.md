@@ -1,5 +1,16 @@
 # @common-fate/cli
 
+## 1.14.0
+
+### Minor Changes
+
+- edef577: Removes deprecated AWS RDS command
+- dc65d83: Add list and delete integration commands
+
+### Patch Changes
+
+- 425f23c: Improved error message when invalid_scope error is received
+
 ## 1.13.2
 
 ### Patch Changes
