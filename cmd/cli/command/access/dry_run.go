@@ -73,8 +73,12 @@ func DryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.A
 			continue
 
 		case accessv1alpha1.GrantChange_GRANT_CHANGE_EXTENDED:
+			extendedTime := ""
+			if g.Grant.Extension != nil {
+				extendedTime = ShortDur(g.Grant.Extension.ExtensionDurationSeconds.AsDuration())
+			}
 			color.New(color.BgBlue).Printf("[WILL EXTEND]")
-			color.New(color.FgBlue).Printf(" %s will be extended for another %s: %s\n", g.Grant.Name, exp, RequestURL(apiURL, g.Grant))
+			color.New(color.FgBlue).Printf(" %s will be extended for another %s: %s\n", g.Grant.Name, extendedTime, RequestURL(apiURL, g.Grant))
 			continue
 
 		case accessv1alpha1.GrantChange_GRANT_CHANGE_REQUESTED:
