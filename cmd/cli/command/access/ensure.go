@@ -183,8 +183,13 @@ var ensureCommand = cli.Command{
 					continue
 
 				case accessv1alpha1.GrantChange_GRANT_CHANGE_EXTENDED:
+					extendedTime := ""
+					if g.Grant.Extension != nil {
+						extendedTime = ShortDur(g.Grant.Extension.ExtensionDurationSeconds.AsDuration())
+					}
 					color.New(color.BgBlue).Printf("[EXTENDED]")
-					color.New(color.FgBlue).Printf(" %s was extended for another %s: %s\n", g.Grant.Name, exp, RequestURL(apiURL, g.Grant))
+					color.New(color.FgBlue).Printf(" %s was extended for another %s: %s\n", g.Grant.Name, extendedTime, RequestURL(apiURL, g.Grant))
+					color.New(color.FgGreen).Printf(" %s will now expire in %s\n", g.Grant.Name, exp)
 					continue
 
 				case accessv1alpha1.GrantChange_GRANT_CHANGE_REQUESTED:
