@@ -264,7 +264,7 @@ func accessTestFailure(msg string, res *connect.Response[accessv1alpha1.DebugEnt
 		return errors.New(msg)
 	}
 
-	return fmt.Errorf("%s\n\tpolicies contributing to requesting access: [%s]\n\tpolicies contributing to requesting access: [%s]", msg, strings.Join(res.Msg.Reason.CanRequestReason, ", "), strings.Join(res.Msg.Reason.AutoApprovalReason, ", "))
+	return fmt.Errorf("%s\n\tpolicies contributing to requesting access: [%s]\n\tpolicies contributing to activating access: [%s]", msg, strings.Join(res.Msg.Reason.CanRequestReason, ", "), strings.Join(res.Msg.Reason.AutoApprovalReason, ", "))
 }
 
 func findUserWithEmail(users []*directoryv1alpha1.User, email string) (*directoryv1alpha1.User, error) {
