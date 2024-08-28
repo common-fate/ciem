@@ -1,5 +1,15 @@
 # @common-fate/cli
 
+## 1.15.0
+
+### Minor Changes
+
+- 2814893: Adds a testing command to run access and group membership tests against a Common Fate deployment. To create a test file, run 'cf tests create -f tests.yml'. To run tests, use 'cf tests run -f tests.yml'.
+
+### Patch Changes
+
+- d6d3599: Fixes an issue where the CLI was displaying an incorrect time for the duration to be extended by.
+
 ## 1.14.0
 
 ### Minor Changes
