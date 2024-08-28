@@ -65,6 +65,9 @@ var runCommand = cli.Command{
 			}
 			return res.Msg.Users, nil, nil
 		})
+		if err != nil {
+			return err
+		}
 
 		fmt.Printf("retrieved %v users\n", len(users))
 
@@ -162,6 +165,9 @@ func (r *TestRunner) RunGroupMembershipTest(ctx context.Context, test GroupTest)
 		}
 		return res.Msg.Memberships, nil, nil
 	})
+	if err != nil {
+		return err
+	}
 
 	var isMember bool
 	for _, m := range groupMemberships {
