@@ -1,5 +1,11 @@
 # @common-fate/cli
 
+## 1.15.1
+
+### Patch Changes
+
+- 5c07512: Fix a typo in the access test diagnostics
+
 ## 1.15.0
 
 ### Minor Changes
