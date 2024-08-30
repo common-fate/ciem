@@ -7,6 +7,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/goreleaser/fileglob"
+
 	"connectrpc.com/connect"
 	"github.com/common-fate/grab"
 	"github.com/common-fate/sdk/config"
@@ -25,22 +27,26 @@ var runCommand = cli.Command{
 	Name:  "run",
 	Usage: "Run tests against a Common Fate deployment",
 	Flags: []cli.Flag{
-		&cli.PathFlag{Name: "file", Aliases: []string{"f"}, Required: true, Usage: "the path to the YAML file specifying the tests to run"},
+		&cli.StringFlag{Name: "file", Aliases: []string{"f"}, Required: true, Usage: "the path or glob pattern to the YAML file(s) specifying the tests to run"},
 	},
 	Action: func(c *cli.Context) error {
-		filePath := c.Path("file")
+		filePattern := c.Path("file")
 
-		testFileBytes, err := os.ReadFile(filePath)
+		matches, err := fileglob.Glob(filePattern, fileglob.MaybeRootFS)
 		if err != nil {
-			return fmt.Errorf("error reading tests file %q: %w", filePath, err)
+			return fmt.Errorf("invalid file glob: %w", err)
 		}
 
-		var tests testFile
-
-		err = yaml.Unmarshal(testFileBytes, &tests)
-		if err != nil {
-			return fmt.Errorf("error unmarshalling tests file %q (this usually means your file is incorrectly formatted or has invalid keys): %w", filePath, err)
+		if len(matches) == 0 {
+			return fmt.Errorf("no test files found matching pattern: %s", filePattern)
 		}
+
+		filesText := "file"
+		if len(matches) > 0 {
+			filesText = "files"
+		}
+
+		fmt.Printf("Running %v test %s...\n", len(matches), filesText)
 
 		ctx := context.Background()
 
@@ -71,9 +77,6 @@ var runCommand = cli.Command{
 
 		fmt.Printf("retrieved %v users\n", len(users))
 
-		fmt.Println("\n\n-------------- ACCESS TESTS --------------")
-		fmt.Printf("running %v access tests...\n\n", len(tests.AccessTests))
-
 		accessClient := access.NewFromConfig(cfg)
 
 		runner := TestRunner{
@@ -82,52 +85,90 @@ var runCommand = cli.Command{
 			Users:           users,
 		}
 
-		var failedAccessTests int
+		var totalFailedAccessTests int
+		var totalFailedMembershipTests int
 
-		for _, test := range tests.AccessTests {
-			err = runner.RunAccessTest(ctx, test)
+		for _, filePath := range matches {
+			fmt.Printf("\n\nRunning tests from file: %s\n", filePath)
+
+			testFileBytes, err := os.ReadFile(filePath)
 			if err != nil {
-				fmt.Printf("[FAIL] %s %s to %s with role %s: %s\n\n", test.User, test.ExpectedResult, test.Target, test.Role, err.Error())
-				failedAccessTests++
-			} else {
-				fmt.Printf("[PASS] %s %s to %s with role %s\n\n", test.User, test.ExpectedResult, test.Target, test.Role)
-			}
-		}
-
-		fmt.Println("\n\n-------------- GROUP MEMBERSHIP TESTS --------------")
-		fmt.Printf("running %v group membership tests...\n\n", len(tests.GroupTests))
-
-		var failedMembershipTests int
-
-		for _, test := range tests.GroupTests {
-			memberText := "is not member of"
-
-			if test.IsMember {
-				memberText = "is member of"
+				return fmt.Errorf("error reading tests file %q: %w", filePath, err)
 			}
 
-			err = runner.RunGroupMembershipTest(ctx, test)
+			var tests testFile
+
+			err = yaml.Unmarshal(testFileBytes, &tests)
 			if err != nil {
-				fmt.Printf("[FAIL] %s %s %s: %s\n\n", test.User, memberText, test.Group, err.Error())
-				failedMembershipTests++
-			} else {
-				fmt.Printf("[PASS] %s %s %s\n\n", test.User, memberText, test.Group)
+				return fmt.Errorf("error unmarshalling tests file %q (this usually means your file is incorrectly formatted or has invalid keys): %w", filePath, err)
+			}
+
+			fmt.Println("\n-------------- ACCESS TESTS --------------")
+			fmt.Printf("running %v access tests...\n\n", len(tests.AccessTests))
+
+			var failedAccessTests int
+
+			for _, test := range tests.AccessTests {
+				err = runner.RunAccessTest(ctx, test)
+				if err != nil {
+					fmt.Printf("[FAIL] %s %s to %s with role %s: %s\n\n", test.User, test.ExpectedResult, test.Target, test.Role, err.Error())
+					failedAccessTests++
+				} else {
+					fmt.Printf("[PASS] %s %s to %s with role %s\n\n", test.User, test.ExpectedResult, test.Target, test.Role)
+				}
+			}
+
+			fmt.Println("\n-------------- GROUP MEMBERSHIP TESTS --------------")
+			fmt.Printf("running %v group membership tests...\n\n", len(tests.GroupTests))
+
+			var failedMembershipTests int
+
+			for _, test := range tests.GroupTests {
+				memberText := "is not member of"
+
+				if test.IsMember {
+					memberText = "is member of"
+				}
+
+				err = runner.RunGroupMembershipTest(ctx, test)
+				if err != nil {
+					fmt.Printf("[FAIL] %s %s %s: %s\n\n", test.User, memberText, test.Group, err.Error())
+					failedMembershipTests++
+				} else {
+					fmt.Printf("[PASS] %s %s %s\n\n", test.User, memberText, test.Group)
+				}
+			}
+
+			totalFailedAccessTests += failedAccessTests
+			totalFailedMembershipTests += failedMembershipTests
+
+			if failedAccessTests > 0 {
+				fmt.Printf("\n%v Access Tests failed in this file\n", failedAccessTests)
+			} else if len(tests.AccessTests) > 0 {
+				fmt.Println("\nAll Access Tests passed in this file")
+			}
+
+			if failedMembershipTests > 0 {
+				fmt.Printf("\n%v Group Membership Tests failed in this file\n", failedMembershipTests)
+			} else if len(tests.GroupTests) > 0 {
+				fmt.Println("\nAll Group Membership Tests passed in this file")
 			}
 		}
 
-		if failedAccessTests > 0 {
-			fmt.Printf("\n\n%v Access Tests failed\n", failedAccessTests)
-		} else if len(tests.AccessTests) > 0 {
-			fmt.Println("\n\nAll Access Tests passed")
+		fmt.Printf("\n\nTotal results across all files:\n")
+		if totalFailedAccessTests > 0 {
+			fmt.Printf("%v Access Tests failed\n", totalFailedAccessTests)
+		} else {
+			fmt.Println("All Access Tests passed")
 		}
 
-		if failedMembershipTests > 0 {
-			fmt.Printf("\n%v Group Membership Tests failed\n", failedMembershipTests)
-		} else if len(tests.GroupTests) > 0 {
-			fmt.Println("\nAll Group Membership Tests passed")
+		if totalFailedMembershipTests > 0 {
+			fmt.Printf("%v Group Membership Tests failed\n", totalFailedMembershipTests)
+		} else {
+			fmt.Println("All Group Membership Tests passed")
 		}
 
-		if failedAccessTests > 0 || failedMembershipTests > 0 {
+		if totalFailedAccessTests > 0 || totalFailedMembershipTests > 0 {
 			os.Exit(1)
 		}
 
