@@ -1,5 +1,11 @@
 # @common-fate/cli
 
+## 1.16.0
+
+### Minor Changes
+
+- 418be75: Adds support for providing a file glob to the 'cf tests run' command.
+
 ## 1.15.1
 
 ### Patch Changes
