@@ -16,6 +16,7 @@ require (
 	github.com/common-fate/grab v1.3.0
 	github.com/common-fate/sdk v1.54.1
 	github.com/fatih/color v1.16.0
+	github.com/goreleaser/fileglob v1.3.0
 	github.com/mattn/go-isatty v0.0.20
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.9.0
@@ -74,6 +75,7 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/jsonpointer v0.19.6 // indirect
 	github.com/go-openapi/swag v0.22.3 // indirect
+	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/godbus/dbus v0.0.0-20190726142602-4481cbc300e2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gookit/color v1.5.1 // indirect
