@@ -1,5 +1,11 @@
 # @common-fate/cli
 
+## 1.16.1
+
+### Patch Changes
+
+- 58e73ca: Adds support for providing multiple values to the ExpectedResult configuration option for access tests, permitting testing complex access scenarios.
+
 ## 1.16.0
 
 ### Minor Changes
