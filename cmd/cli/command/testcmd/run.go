@@ -109,10 +109,12 @@ var runCommand = cli.Command{
 			var failedAccessTests int
 
 			for _, test := range tests.AccessTests {
-				err = runner.RunAccessTest(ctx, test)
+				result, err := runner.RunAccessTest(ctx, test)
 				if err != nil {
 					fmt.Printf("[FAIL] %s %s to %s with role %s: %s\n\n", test.User, test.ExpectedResult, test.Target, test.Role, err.Error())
 					failedAccessTests++
+				} else if result != "" {
+					fmt.Printf("[PASS] %s %s to %s with role %s\n\n", test.User, result, test.Target, test.Role)
 				} else {
 					fmt.Printf("[PASS] %s %s to %s with role %s\n\n", test.User, test.ExpectedResult, test.Target, test.Role)
 				}
@@ -228,20 +230,29 @@ func (r *TestRunner) RunGroupMembershipTest(ctx context.Context, test GroupTest)
 	return nil
 }
 
-func (r *TestRunner) RunAccessTest(ctx context.Context, test AccessTest) error {
-	if test.ExpectedResult != "auto-approved" && test.ExpectedResult != "requires-approval" && test.ExpectedResult != "no-access" {
-		return fmt.Errorf("invalid value for expected-result: %q - must be one of ['auto-approved', 'requires-approval', 'no-access']", test.ExpectedResult)
+func (r *TestRunner) RunAccessTest(ctx context.Context, test AccessTest) (string, error) {
+	expected := map[string]bool{}
+	for _, v := range test.ExpectedResult {
+		expected[v] = true
+	}
+
+	if !expected["auto-approved"] && !expected["requires-approval"] && !expected["no-access"] {
+		return "", fmt.Errorf("invalid value for expected-result: %q - must be one of ['auto-approved', 'requires-approval', 'no-access']", test.ExpectedResult)
+	}
+
+	if (expected["auto-approved"] || expected["requires-approval"]) && expected["no-access"] {
+		return "", fmt.Errorf("invalid value for expected-result: %q - cannot have both 'auto-approved' or 'requires-approval' and 'no-access'", test.ExpectedResult)
 	}
 
 	user, err := findUserWithEmail(r.Users, test.User)
-	if err != nil && test.ExpectedResult == "no-access" {
+	if err != nil && expected["no-access"] {
 		// don't fail if no-access and the user doesn't exist
 		fmt.Printf("[WARN] error when finding user for email %s, ignoring because expected-result is no-access: %s\n", test.User, err.Error())
-		return nil
+		return "", nil
 	}
 
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	result, err := r.AccessClient.DebugEntitlementAccess(ctx, connect.NewRequest(&accessv1alpha1.DebugEntitlementAccessRequest{
@@ -265,38 +276,43 @@ func (r *TestRunner) RunAccessTest(ctx context.Context, test AccessTest) error {
 		},
 	}))
 	if err != nil {
-		return fmt.Errorf("error calling the Common Fate DebugEntitlementAccess API: %w", err)
+		return "", fmt.Errorf("error calling the Common Fate DebugEntitlementAccess API: %w", err)
 	}
 
-	switch test.ExpectedResult {
-	case "auto-approved":
+	if expected["auto-approved"] && expected["requires-approval"] {
 		if result.Msg.CanRequest && result.Msg.AutoApproved {
-			return nil
+			return "auto-approved", nil
 		}
 		if result.Msg.CanRequest {
-			return accessTestFailure("got requires-approval", result)
+			return "requires-approval", nil
 		}
-		return accessTestFailure("got no-access", result)
-
-	case "requires-approval":
+		return "", accessTestFailure("got no-access", result)
+	} else if expected["auto-approved"] {
 		if result.Msg.CanRequest && result.Msg.AutoApproved {
-			return accessTestFailure("got auto-approved", result)
+			return "auto-approved", nil
+		} 
+		if result.Msg.CanRequest {
+			return "", accessTestFailure("got requires-approval", result)
+		}
+		return "", accessTestFailure("got no-access", result)
+	} else if expected["requires-approval"] {
+		if result.Msg.CanRequest && result.Msg.AutoApproved {
+			return "", accessTestFailure("got auto-approved", result)
 		}
 		if result.Msg.CanRequest {
-			return nil
+			return "requires-approval", nil
 		}
-		return accessTestFailure("got no-access", result)
-
-	case "no-access":
+		return "", accessTestFailure("got no-access", result)
+	} else if expected["no-access"] {
 		if result.Msg.CanRequest && result.Msg.AutoApproved {
-			return accessTestFailure("got auto-approved", result)
+			return "", accessTestFailure("got auto-approved", result)
 		}
 		if result.Msg.CanRequest {
-			return accessTestFailure("got requires-approval", result)
+			return "", accessTestFailure("got requires-approval", result)
 		}
-		return nil
-	default:
-		return fmt.Errorf("invalid expected-result value: %q", test.ExpectedResult)
+		return "no-access", nil
+	} else {
+		return "", errors.New("invalid value for expected-result")
 	}
 }
 
@@ -327,11 +343,49 @@ type AccessTest struct {
 	User           string `yaml:"user"`
 	Target         string `yaml:"target"`
 	Role           string `yaml:"role"`
-	ExpectedResult string `yaml:"expected-result"`
+	ExpectedResult []string `yaml:"expected-result"`
 }
 
 type GroupTest struct {
 	User     string `yaml:"user"`
 	Group    string `yaml:"group"`
 	IsMember bool   `yaml:"is-member"`
+}
+
+func (a *AccessTest) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	aux := struct {
+		User           string      `yaml:"user"`
+		Target         string      `yaml:"target"`
+		Role           string      `yaml:"role"`
+		ExpectedResult interface{} `yaml:"expected-result"`
+	}{}
+
+	if err := unmarshal(&aux); err != nil {
+		return fmt.Errorf("failed to unmarshal AccessTest: %w", err)
+	}
+
+	a.User = aux.User
+	a.Target = aux.Target
+	a.Role = aux.Role
+
+	if a.User == "" {
+		return fmt.Errorf("user field is empty")
+	}
+
+	switch v := aux.ExpectedResult.(type) {
+	case string:
+		a.ExpectedResult = []string{v}
+	case []interface{}:
+		for _, item := range v {
+			str, ok := item.(string)
+			if !ok {
+				return fmt.Errorf("non-string element found in expected-result array: %v", item)
+			}
+			a.ExpectedResult = append(a.ExpectedResult, str)
+		}
+	default:
+		return fmt.Errorf("unexpected type for expected-result: %T", aux.ExpectedResult)
+	}
+
+	return nil
 }
