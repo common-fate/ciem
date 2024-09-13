@@ -23,6 +23,7 @@ var requestsCommand = cli.Command{
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "output", Value: "table", Usage: "output format ('table', 'wide', or 'json')"},
 		&cli.BoolFlag{Name: "order-ascending", Usage: "list requests in ascending chronological order"},
+		&cli.BoolFlag{Name: "closed", Usage: "list closed requests"},
 	},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
@@ -45,6 +46,7 @@ var requestsCommand = cli.Command{
 			res, err := client.QueryAccessRequests(ctx, connect.NewRequest(&accessv1alpha1.QueryAccessRequestsRequest{
 				PageToken: pageToken,
 				Order:     grab.If(c.Bool("order-ascending"), entityv1alpha1.Order_ORDER_ASCENDING.Enum(), entityv1alpha1.Order_ORDER_DESCENDING.Enum()),
+				Archived:  c.Bool("closed"),
 			}))
 			if err != nil {
 				return err
