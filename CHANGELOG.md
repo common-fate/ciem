@@ -1,5 +1,11 @@
 # @common-fate/cli
 
+## 1.16.2
+
+### Patch Changes
+
+- a6ee29d: Adds the option to list closed access requests. 'cf access list requests --closed'
+
 ## 1.16.1
 
 ### Patch Changes
