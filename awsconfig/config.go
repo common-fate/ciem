@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	// permission for user to read/write/execute.
-	USER_READ_WRITE_PERM = 0700
+	// permission for user to read/write.
+	USER_READ_WRITE_PERM = 0644
 )
 
 func loadAWSConfigFileFromPath(filepath string) (*ini.File, error) {
