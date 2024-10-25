@@ -22,6 +22,8 @@ var listCommand = cli.Command{
 		}
 
 		client := newResourceClient(cfg)
+		// the Common Fate API doesn't currently expose a ListAccessWorkflows method, so we use the
+		// QueryResources API.
 		res, err := client.QueryResources(ctx, connect.NewRequest(&resourcev1alpha1.QueryResourcesRequest{
 			Type: "Access::Workflow",
 		}))
@@ -29,7 +31,7 @@ var listCommand = cli.Command{
 			return err
 		}
 
-		workflows := AllWorkflows{Workflows: []workflow{}}
+		workflows := allWorkflows{Workflows: []workflow{}}
 
 		for _, w := range res.Msg.Resources {
 			workflows.Workflows = append(workflows.Workflows, workflow{
@@ -48,7 +50,10 @@ var listCommand = cli.Command{
 	},
 }
 
-type AllWorkflows struct {
+// allWorkflows is used to ensure the output of the `cf workflows list`
+// command remains stable, even if the API that we call changes from
+// QueryResources to something else in future (such as ListAccessWorkflows).
+type allWorkflows struct {
 	Workflows []workflow `json:"workflows"`
 }
 
