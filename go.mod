@@ -14,7 +14,7 @@ require (
 	github.com/common-fate/clio v1.2.3
 	github.com/common-fate/glide-cli v0.6.0
 	github.com/common-fate/grab v1.3.0
-	github.com/common-fate/sdk v1.54.1
+	github.com/common-fate/sdk v1.66.0
 	github.com/fatih/color v1.16.0
 	github.com/goreleaser/fileglob v1.3.0
 	github.com/mattn/go-isatty v0.0.20
