@@ -1,5 +1,11 @@
 # @common-fate/cli
 
+## 1.17.0
+
+### Minor Changes
+
+- 2be98c3: Adds 'cf workflow list' and 'cf workflow delete' commands.
+
 ## 1.16.2
 
 ### Patch Changes
