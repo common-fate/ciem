@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/common-fate/cli/cmd/cli/command/testcmd"
+	"github.com/common-fate/cli/cmd/cli/command/workflow"
 
 	"go.uber.org/zap"
 
@@ -127,6 +128,7 @@ func main() {
 			&deployment.Command,
 			&integration.Command,
 			&testcmd.Command,
+			&workflow.Command,
 		},
 	}
 	clio.SetLevelFromEnv("CF_LOG")
