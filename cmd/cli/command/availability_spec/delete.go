@@ -14,7 +14,7 @@ var deleteCommand = cli.Command{
 	Name:  "delete",
 	Usage: "Delete an Availability Spec",
 	Flags: []cli.Flag{
-		&cli.StringFlag{Name: "availability-spec-id", Required: true, Usage: "the Availability Spec ID to delete"},
+		&cli.StringFlag{Name: "id", Required: true, Usage: "the Availability Spec ID to delete"},
 	},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
@@ -27,7 +27,7 @@ var deleteCommand = cli.Command{
 		client := configsvc.NewFromConfig(cfg)
 
 		res, err := client.AvailabilitySpec().DeleteAvailabilitySpec(ctx, connect.NewRequest(&configv1alpha1.DeleteAvailabilitySpecRequest{
-			Id: c.String("availability-spec-id"),
+			Id: c.String("id"),
 		}))
 		if err != nil {
 			return err
