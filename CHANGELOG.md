@@ -1,5 +1,11 @@
 # @common-fate/cli
 
+## 1.18.0
+
+### Minor Changes
+
+- f3fb759: Add commands for listing and deleting availability specs
+
 ## 1.17.0
 
 ### Minor Changes
