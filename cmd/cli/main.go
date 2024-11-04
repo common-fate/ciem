@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	availabilityspec "github.com/common-fate/cli/cmd/cli/command/availability_spec"
 	"github.com/common-fate/cli/cmd/cli/command/testcmd"
 	"github.com/common-fate/cli/cmd/cli/command/workflow"
 
@@ -129,6 +130,7 @@ func main() {
 			&integration.Command,
 			&testcmd.Command,
 			&workflow.Command,
+			&availabilityspec.Command,
 		},
 	}
 	clio.SetLevelFromEnv("CF_LOG")
